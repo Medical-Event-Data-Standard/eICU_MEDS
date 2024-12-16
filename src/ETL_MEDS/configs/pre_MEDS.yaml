@@ -1,0 +1,15 @@
+input_dir: ???
+output_dir: ???
+
+do_overwrite: false
+
+log_dir: ${output_dir}/.logs
+
+# Hydra
+hydra:
+  job:
+    name: pre_MEDS_${now:%Y-%m-%d_%H-%M-%S}
+  run:
+    dir: ${log_dir}
+  sweep:
+    dir: ${log_dir}

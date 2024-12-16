@@ -1,0 +1,25 @@
+defaults:
+  - _self_
+
+root_output_dir: ???
+
+raw_input_dir: ${root_output_dir}/raw_input
+pre_MEDS_dir: ${root_output_dir}/pre_MEDS
+MEDS_cohort_dir: ${root_output_dir}/MEDS_cohort
+
+stage_runner_fp: null
+
+do_download: True
+do_overwrite: False
+do_demo: False
+
+log_dir: ${root_output_dir}/.logs
+
+# Hydra
+hydra:
+  job:
+    name: full_extraction_${now:%Y-%m-%d_%H-%M-%S}
+  run:
+    dir: ${log_dir}
+  sweep:
+    dir: ${log_dir}

@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ETL-MEDS"
+dynamic = ["version"]
+authors = [
+  { name="Matthew McDermott", email="mattmcdermott8@gmail.com" },
+]
+description = "A template ETL pipeline to extract arbitrary data into the MEDS format."
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  "meds-transforms", "requests", "beautifulsoup4", "hydra-core"
+]
+
+[tool.setuptools_scm]
+
+[project.optional-dependencies]
+dev = ["pre-commit<4"]
+tests = ["pytest", "pytest-cov", "rootutils", "hydra-joblib-launcher"]
+local_parallelism = ["hydra-joblib-launcher"]
+slurm_parallelism = ["hydra-submitit-launcher"]
+docs = [
+  "mkdocs==1.6.0", "mkdocs-material==9.5.31", "mkdocstrings[python,shell]==0.25.2", "mkdocs-gen-files==0.5.0",
+  "mkdocs-literate-nav==0.6.1", "mkdocs-section-index==0.3.9", "mkdocs-git-authors-plugin==0.9.0",
+  "mkdocs-git-revision-date-localized-plugin==1.2.6"
+]
+
+[project.scripts]
+MEDS_extract-sample_dataset = "ETL_MEDS.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/mmcdermott/ETL_MEDS_Template"
+Issues = "https://github.com/mmcdermott/ETL_MEDS_Template/issues"

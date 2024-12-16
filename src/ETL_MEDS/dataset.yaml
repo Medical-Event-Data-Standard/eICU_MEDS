@@ -1,0 +1,13 @@
+dataset_name: ???
+raw_dataset_version: ???
+
+urls:
+  dataset:
+    - EXAMPLE_OPEN_URL
+    - url: EXAMPLE_CONTROLLED_URL
+      username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
+      password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
+  demo:
+    - EXAMPLE_OPEN_URL
+  common:
+    - EXAMPLE_SHARED_URL # Often used for shared metadata files
