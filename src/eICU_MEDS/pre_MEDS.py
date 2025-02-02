@@ -12,10 +12,12 @@ from . import PRE_MEDS_CFG, __package_name__
 from importlib.resources import files
 
 import polars as pl
-from loguru import logger
+import logging
 from omegaconf import OmegaConf
 
-from MEDS_transforms.utils import get_shard_prefix, hydra_loguru_init, write_lazyframe
+logger = logging.getLogger(__name__)
+
+from MEDS_transforms.utils import get_shard_prefix, write_lazyframe
 
 HEALTH_SYSTEM_STAY_ID = "patienthealthsystemstayid"
 UNIT_STAY_ID = "patientunitstayid"

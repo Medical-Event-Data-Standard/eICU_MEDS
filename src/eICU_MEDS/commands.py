@@ -67,7 +67,6 @@ def run_command(
     command_out = runner_fn(full_cmd, shell=True, capture_output=True)
 
     # https://stackoverflow.com/questions/21953835/run-subprocess-and-print-output-to-logging
-    # https://loguru.readthedocs.io/en/stable/api/logger.html#loguru._logger.Logger.parse
 
     stderr = command_out.stderr.decode()
     stdout = command_out.stdout.decode()
