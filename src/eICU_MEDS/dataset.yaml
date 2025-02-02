@@ -1,0 +1,11 @@
+dataset_name: eICU
+raw_dataset_version: "2.0"
+demo_dataset_version: "2.0.1"
+
+urls:
+  dataset:
+    - url: https://physionet.org/files/eicu-crd/${raw_dataset_version}/
+      username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
+      password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
+  demo:
+    - https://physionet.org/files/eicu-crd-demo/${demo_dataset_version}/

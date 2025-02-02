@@ -7,13 +7,16 @@ from pathlib import Path
 import hydra
 from omegaconf import DictConfig
 
-from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, PRE_MEDS_PY, RUNNER_CFG
+from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, RUNNER_CFG
 from . import __version__ as PKG_VERSION
 from . import dataset_info
 from .commands import run_command
 from .download import download_data
 
 logger = logging.getLogger(__name__)
+
+if HAS_PRE_MEDS:
+    from .pre_MEDS import main as pre_MEDS_transform
 
 
 @hydra.main(version_base=None, config_path=str(MAIN_CFG.parent), config_name=MAIN_CFG.stem)
@@ -38,13 +41,9 @@ def main(cfg: DictConfig):
 
     # Step 1: Pre-MEDS Data Wrangling
     if HAS_PRE_MEDS:
-        command_parts = [
-            "python",
-            str(PRE_MEDS_PY),
-            f"input_dir={raw_input_dir}",
-            f"output_dir={pre_MEDS_dir}",
-        ]
-        run_command(command_parts, cfg)
+        pre_MEDS_transform(
+            input_dir=raw_input_dir, output_dir=pre_MEDS_dir, do_overwrite=cfg.get("do_overwrite", None),
+        )
     else:
         pre_MEDS_dir = raw_input_dir
 

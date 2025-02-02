@@ -5,7 +5,6 @@ from tempfile import TemporaryDirectory
 import pytest
 
 
-@pytest.mark.skip(reason="If you have a demo dataset, re-enable this test in your downstream repositories.")
 def test_e2e():
     with TemporaryDirectory() as temp_dir:
 
@@ -16,7 +15,7 @@ def test_e2e():
         do_download = True
 
         command_parts = [
-            "MEDS_extract-sample_dataset",
+            "MEDS_extract-eICU",
             f"root_output_dir={str(root.resolve())}",
             f"do_download={do_download}",
             f"do_overwrite={do_overwrite}",
