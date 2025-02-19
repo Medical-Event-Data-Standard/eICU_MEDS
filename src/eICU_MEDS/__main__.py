@@ -28,6 +28,10 @@ def main(cfg: DictConfig):
     MEDS_cohort_dir = Path(cfg.MEDS_cohort_dir)
     stage_runner_fp = cfg.get("stage_runner_fp", None)
 
+    raw_input_dir.mkdir(parents=True, exist_ok=True)
+    pre_MEDS_dir.mkdir(parents=True, exist_ok=True)
+    MEDS_cohort_dir.mkdir(parents=True, exist_ok=True)
+
     # Step 0: Data downloading
     if cfg.do_download:  # pragma: no cover
         if cfg.get("do_demo", False):
@@ -41,6 +45,7 @@ def main(cfg: DictConfig):
 
     # Step 1: Pre-MEDS Data Wrangling
     if HAS_PRE_MEDS:
+        logger.info("Running pre_MEDS data wrangling.")
         pre_MEDS_transform(
             input_dir=raw_input_dir, output_dir=pre_MEDS_dir, do_overwrite=cfg.get("do_overwrite", None),
         )

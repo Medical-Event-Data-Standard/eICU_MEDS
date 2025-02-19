@@ -13,9 +13,10 @@ customized the repository to your dataset (see instructions below), you will be 
 pipeline with a few simple command-line commands, such as:
 
 ```bash
-pip install PACKAGE_NAME # you can do this locally or via PyPI
-# Download your data or set download credentials
-COMMAND_NAME root_output_dir=$ROOT_OUTPUT_DIR
+pip install eICU_MEDS  # or pip install .
+export DATASET_DOWNLOAD_USERNAME=$PHYSIONET_USERNAME
+export DATASET_DOWNLOAD_PASSWORD=$PHYSIONET_PASSWORD
+MEDS_extract-eICU root_output_dir=eicu_meds do_download=False
 ```
 
 See the [MIMIC-IV MEDS Extraction ETL](https://github.com/mmcdermott/MIMIC_IV_MEDS) for an end to end example!
