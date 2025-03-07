@@ -37,5 +37,5 @@ docs = [
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/mmcdermott/ETL_MEDS_Template"
-Issues = "https://github.com/mmcdermott/ETL_MEDS_Template/issues"
+Homepage = "https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template"
+Issues = "https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/issues"

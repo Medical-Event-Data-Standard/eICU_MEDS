@@ -1,12 +1,12 @@
 # Extract your custom dataset via MEDS-Transforms
 
-[![codecov](https://codecov.io/gh/mmcdermott/ETL_MEDS_Template/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/mmcdermott/ETL_MEDS_Template)
-[![tests](https://github.com/mmcdermott/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/mmcdermott/ETL_MEDS_Template/actions/workflows/tests.yml)
-[![code-quality](https://github.com/mmcdermott/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/mmcdermott/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml)
+[![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template)
+[![tests](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yml)
+[![code-quality](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml)
 ![python](https://img.shields.io/badge/-Python_3.11-blue?logo=python&logoColor=white)
-[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/mmcdermott/ETL_MEDS_Template#license)
-[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/mmcdermott/ETL_MEDS_Template/pulls)
-[![contributors](https://img.shields.io/github/contributors/mmcdermott/ETL_MEDS_Template.svg)](https://github.com/mmcdermott/ETL_MEDS_Template/graphs/contributors)
+[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#license)
+[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/pulls)
+[![contributors](https://img.shields.io/github/contributors/Medical-Event-Data-Standard/ETL_MEDS_Template.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/graphs/contributors)
 
 A template repository for a MEDS-Transforms powered extraction pipeline for a custom dataset. Once you have
 customized the repository to your dataset (see instructions below), you will be able to run your extraction
@@ -18,7 +18,7 @@ pip install PACKAGE_NAME # you can do this locally or via PyPI
 COMMAND_NAME root_output_dir=$ROOT_OUTPUT_DIR
 ```
 
-See the [MIMIC-IV MEDS Extraction ETL](https://github.com/mmcdermott/MIMIC_IV_MEDS) for an end to end example!
+See the [MIMIC-IV MEDS Extraction ETL](https://github.com/Medical-Event-Data-Standard/MIMIC_IV_MEDS) for an end to end example!
 
 ## How to use this repository
 
@@ -97,7 +97,7 @@ That's no problem! You can simply turn off downloading entirely by setting `do_d
 `configs/main.yaml` or on the command line when you run the pipeline and ensure that your data files are
 manually downloaded and placed in the appropriate directory (the `raw_input_dir` in the `configs/main.yaml`).
 If there is a technical issue with downloading the data through the format supported so far, you can also file
-a [GitHub Issue](https://github.com/mmcdermott/ETL_MEDS_Template/issues) outlining your issue and we can
+a [GitHub Issue](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/issues) outlining your issue and we can
 attempt to expand the supported libraries to cover your use case!
 
 #### `pre_MEDS.py`
@@ -125,13 +125,13 @@ Insert badges like below:
 ```markdown
 [![PyPI - Version](https://img.shields.io/pypi/v/PACKAGE_NAME)](https://pypi.org/project/PACKAGE_NAME/)
 [![Documentation Status](https://readthedocs.org/projects/REPO_NAME/badge/?version=latest)](https://REPO_NAME.readthedocs.io/en/stable/?badge=stable)
-[![codecov](https://codecov.io/gh/mmcdermott/REPO_NAME/graph/badge.svg?token=REPO_TOKEN)](https://codecov.io/gh/mmcdermott/REPO_NAME)
-[![tests](https://github.com/mmcdermott/REPO_NAME/actions/workflows/tests.yaml/badge.svg)](https://github.com/mmcdermott/REPO_NAME/actions/workflows/tests.yml)
-[![code-quality](https://github.com/mmcdermott/REPO_NAME/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/mmcdermott/REPO_NAME/actions/workflows/code-quality-main.yaml)
+[![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/REPO_NAME/graph/badge.svg?token=REPO_TOKEN)](https://codecov.io/gh/Medical-Event-Data-Standard/REPO_NAME)
+[![tests](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/tests.yml)
+[![code-quality](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/actions/workflows/code-quality-main.yaml)
 ![python](https://img.shields.io/badge/-Python_3.12-blue?logo=python&logoColor=white)
-[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/mmcdermott/REPO_NAME#license)
-[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/mmcdermott/REPO_NAME/pulls)
-[![contributors](https://img.shields.io/github/contributors/mmcdermott/REPO_NAME.svg)](https://github.com/mmcdermott/REPO_NAME/graphs/contributors)
+[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/REPO_NAME#license)
+[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/pulls)
+[![contributors](https://img.shields.io/github/contributors/Medical-Event-Data-Standard/REPO_NAME.svg)](https://github.com/Medical-Event-Data-Standard/REPO_NAME/graphs/contributors)
 ```
 
 #### `tests/e2e_demo_test.py`
@@ -176,4 +176,4 @@ code coverage will be tracked via CodeCov.
     versions effectively!
 
 Example trusted publisher set-up:
-![PyPI Trusted Publisher](https://github.com/mmcdermott/ETL_MEDS_Template/blob/main/static/pypi_trusted_publisher_example.png?raw=true)
+![PyPI Trusted Publisher](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/blob/main/static/pypi_trusted_publisher_example.png?raw=true)
