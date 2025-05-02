@@ -67,6 +67,11 @@ patient:
       - ICU_DISCHARGE_WEIGHT
     time: col(unitdischargetimestamp)
     numeric_value: unitdischargeweight
+  time_of_death:
+    code:
+      - MEDS_DEATH
+    time: col(timeofdeath)
+  
 
 admissionDx:
   admission_diagnosis:
@@ -140,7 +145,7 @@ infusionDrug:
     infusion_rate: infusionrate
     drug_amount: drugamount
     volume_of_fluid: volumeoffluid
-    numeraic_value: infusionrate
+    numeric_value: infusionrate
   patient_weight:
     code:
       - INFUSION_SUBJECT_WEIGHT
@@ -151,9 +156,8 @@ lab:
   lab:
     code:
       - LAB
-      - col(labmeasurenamesystem)
-      - col(labmeasurenameinterface)
       - col(labname)
+      - col(labmeasurenamesystem)
     time: col(labResultDrawnTimestamp)
     numeric_value: labresult
     text_value: labresulttext
@@ -162,8 +166,8 @@ lab:
 medication:
   drug_ordered:
     code:
-      - "MEDICATION"
-      - "ORDERED"
+      - MEDICATION
+      - ORDERED
       - col(drugname)
     time: col(drugordertimestamp)
     medication_id: "medicationid"
@@ -176,15 +180,15 @@ medication:
     gtc: "gtc"
   drug_started:
     code:
-      - "MEDICATION"
-      - "STARTED"
+      - MEDICATION
+      - STARTED
       - col(drugname)
     time: col(drugstarttimestamp)
     medication_id: "medicationid"
   drug_stopped:
     code:
-      - "MEDICATION"
-      - "STOPPED"
+      - MEDICATION
+      - STOPPED
       - col(drugname)
     time: col(drugstoptimestamp)
     medication_id: "medicationid"

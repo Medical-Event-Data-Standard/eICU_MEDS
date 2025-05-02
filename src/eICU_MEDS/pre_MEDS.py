@@ -74,6 +74,12 @@ def check_timestamps_agree(df: pl.LazyFrame, pseudotime_col: pl.Expr, given_24ht
 def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame:
     """Takes the patient table and converts it to a form that includes timestamps.
 
+    Args:
+        df: The patient table as a Polars DataFrame.
+        hospital_df: The hospital table as a Polars DataFrame.
+    Returns:
+        The processed patient table as a Polars DataFrame.
+
     As eICU stores only offset times, note here that we add a CONSTANT TIME ACROSS ALL PATIENTS for the true
     timestamp of their health system admission. This is acceptable because in eICU ONLY RELATIVE TIME
     DIFFERENCES ARE MEANINGFUL, NOT ABSOLUTE TIMES.
@@ -100,6 +106,14 @@ def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame
     age_in_days = age_in_years * 365.25
     # We assume that the patient was born at the midpoint of the year as we don't know the actual birthdate
     pseudo_date_of_birth = unit_admit_pseudotime - pl.duration(days=(age_in_days - 365.25 / 2))
+
+    # process time of death and add it to the df
+    df = df.with_columns([
+        pl.when(pl.col("hospitaldischargestatus") == "Expired")
+        .then(hospital_discharge_pseudotime)
+        .otherwise(None)
+        .alias("time_of_death")
+        ])
 
     # Check the times
     start = datetime.now()
@@ -133,6 +147,7 @@ def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame
         "gender",
         pseudo_date_of_birth.alias("dateofbirth"),
         "ethnicity",
+        "age",
         # 2. Health system stay parameters
         HEALTH_SYSTEM_STAY_ID,
         "hospitalid",
@@ -160,6 +175,7 @@ def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame
         "unitdischargelocation",
         "unitdischargestatus",
         pl.col("dischargeweight").alias("unitdischargeweight"),
+        "time_of_death",
     )
 
 
