@@ -5,73 +5,82 @@ subject_id_col: patienthealthsystemstayid
 
 patient:
   dob:
-    code: "MEDS_BIRTH" # This is the MEDS official code for BIRTH.
+    code: MEDS_BIRTH # This is the MEDS official code for BIRTH.
     time: col(dateofbirth)
-    uniquepid: "uniquepid"
   gender:
-    code: ["GENDER", "col(gender)"]
+    code: 
+      - GENDER
+      - col(gender)
     time: null
   ethnicity:
-    code: ["ETHNICITY", "col(ethnicity)"]
+    code: 
+      - RACE
+      - col(ethnicity)
+    time: null
+  age:
+    code: 
+      - AGE
+      - col(age)
     time: null
   hosp_admission:
     code:
-      - "HOSPITAL_ADMISSION"
+      - HOSPITAL_ADMISSION
       - col(hospitaladmitsource)
       - col(hospitalregion)
       - col(hospitalteachingstatus)
       - col(hospitalnumbedscategory)
     time: col(hospitaladmittimestamp)
-    hospital_id: "hospitalid"
+    hospital_id: hospitalid
   hosp_discharge:
     code:
       - "HOSPITAL_DISCHARGE"
       - col(hospitaldischargestatus)
       - col(hospitaldischargelocation)
     time: col(hospitaldischargetimestamp)
+    hospital_id: hospitalid
   unit_admission:
     code:
-      - "UNIT_ADMISSION"
+      - ICU_ADMISSION
       - col(unitadmitsource)
       - col(unitstaytype)
     time: col(unitadmittimestamp)
-    ward_id: "wardid"
-    unit_stay_id: "patientunitstayid"
+    ward_id: wardid
+    stay_id: patientunitstayid
   unit_admission_weight:
     code:
-      - "UNIT_ADMISSION_WEIGHT"
+      - ICU_ADMISSION_WEIGHT
     time: col(unitadmittimestamp)
     numeric_value: "unitadmissionweight"
   unit_admission_height:
     code:
-      - "UNIT_ADMISSION_HEIGHT"
+      - ICU_ADMISSION_HEIGHT
     time: col(unitadmittimestamp)
     numeric_value: "unitadmissionheight"
   unit_discharge:
     code:
-      - "UNIT_DISCHARGE"
+      - ICU_DISCHARGE
       - col(unitdischargestatus)
       - col(unitdischargelocation)
     time: col(unitdischargetimestamp)
   unit_discharge_weight:
     code:
-      - "UNIT_DISCHARGE_WEIGHT"
+      - ICU_DISCHARGE_WEIGHT
     time: col(unitdischargetimestamp)
-    numeric_value: "unitdischargeweight"
+    numeric_value: unitdischargeweight
 
 admissionDx:
   admission_diagnosis:
     code:
-      - "ADMISSION_DX"
+      - ADMISSION_DIAGNOSIS
       - col(admitdxname)
     time: col(admitDxEnteredTimestamp)
-    admission_dx_id: "admissiondxid"
-    unit_stay_id: "patientunitstayid"
+    admission_dx_id: admissiondxid
+    stay_id: patientunitstayid
 
 allergy:
   allergy:
     code:
-      - "ALLERGY"
+      - ALLERGY
       - col(allergytype)
       - col(allergyname)
     time: col(allergyEnteredTimestamp)
@@ -79,7 +88,7 @@ allergy:
 carePlanGeneral:
   cplItem:
     code:
-      - "CAREPLAN_GENERAL"
+      - CAREPLAN_GENERAL
       - col(cplgroup)
       - col(cplitemvalue)
     time: col(carePlanGeneralItemEnteredTimestamp)
@@ -87,13 +96,13 @@ carePlanGeneral:
 carePlanEOL:
   cplEolDiscussion:
     code:
-      - "CAREPLAN_EOL"
+      - CAREPLAN_EOL
     time: col(carePlanEolDiscussionOccurredTimestamp)
 
 carePlanGoal:
   cplGoal:
     code:
-      - "CAREPLAN_GOAL"
+      - CAREPLAN_GOAL
       - col(cplgoalcategory)
       - col(cplgoalvalue)
       - col(cplgoalstatus)
@@ -102,7 +111,7 @@ carePlanGoal:
 carePlanInfectiousDisease:
   cplInfectDisease:
     code:
-      - "CAREPLAN_INFECTIOUS_DISEASE"
+      - CAREPLAN_INFECTIOUS_DISEASE
       - col(infectdiseasesite)
       - col(infectdiseaseassessment)
       - col(treatment)
@@ -112,40 +121,43 @@ carePlanInfectiousDisease:
 diagnosis:
   diagnosis:
     code:
-      - "ICD9CM"
+      - DIAGNOSIS
+      - ICD
+      - "9"
       - col(icd9code)
-      - col(diagnosispriority)
+    diagnosis_priority: col(diagnosispriority)
     time: col(diagnosisEnteredTimestamp)
-    diagnosis_string: "diagnosisstring"
+    diagnosis_string: diagnosisstring
 
 infusionDrug:
   infusion:
     code:
-      - "INFUSION"
+      - INFUSION
       - col(infusiondrugid)
       - col(drugname)
     time: col(infusionEnteredTimestamp)
-    drug_rate: "drugrate"
-    infusion_rate: "infusionrate"
-    drug_amount: "drugamount"
-    volume_of_fluid: "volumeoffluid"
+    drug_rate: drugrate
+    infusion_rate: infusionrate
+    drug_amount: drugamount
+    volume_of_fluid: volumeoffluid
+    numeraic_value: infusionrate
   patient_weight:
     code:
-      - "INFUSION_SUBJECT_WEIGHT"
+      - INFUSION_SUBJECT_WEIGHT
     time: col(infusionEnteredTimestamp)
-    numeric_value: "patientweight"
+    numeric_value: patientweight
 
 lab:
   lab:
     code:
-      - "LAB"
+      - LAB
       - col(labmeasurenamesystem)
       - col(labmeasurenameinterface)
       - col(labname)
     time: col(labResultDrawnTimestamp)
-    numeric_value: "labresult"
-    text_value: "labresulttext"
-    lab_type_id: "labtypeid"
+    numeric_value: labresult
+    text_value: labresulttext
+    lab_type_id: labtypeid
 
 medication:
   drug_ordered:
@@ -177,188 +189,6 @@ medication:
     time: col(drugstoptimestamp)
     medication_id: "medicationid"
 
-nurseAssessment:
-  nurse_assessment_performed:
-    code:
-      - "NURSE_ASSESSMENT"
-      - "PERFORMED"
-      - NOT YET DONE
-    time: col(nurseAssessPerformedTimestamp)
-    nurse_assessment_id: "nurseassessid"
-    cell_label: "celllabel"
-    cell_attribute: "cellattribute"
-    cell_attribute_value: "cellattributevalue"
-
-  nurse_assessment_entered:
-    code:
-      - "NURSE_ASSESSMENT"
-      - "ENTERED"
-      - NOT YET DONE
-    time: col(nurseAssessEnteredTimestamp)
-    nurse_assessment_id: "nurseassessid"
-    cell_label: "celllabel"
-    cell_attribute: "cellattribute"
-    cell_attribute_value: "cellattributevalue"
-
-nurseCare:
-  nurse_care_performed:
-    code:
-      - "NURSE_CARE"
-      - "PERFORMED"
-      - NOT YET DONE
-    time: col(nurseCarePerformedTimestamp)
-    nurse_care_id: "nursecareid"
-    cell_label: "celllabel"
-    cell_attribute: "cellattribute"
-    cell_attribute_value: "cellattributevalue"
-
-  nurse_care_entered:
-    code:
-      - "NURSE_CARE"
-      - "ENTERED"
-      - NOT YET DONE
-    time: col(nurseCareEnteredTimestamp)
-    nurse_care_id: "nursecareid"
-    cell_label: "celllabel"
-    cell_attribute: "cellattribute"
-    cell_attribute_value: "cellattributevalue"
-
-nurseCharting:
-  nurse_charting_performed:
-    code:
-      - "NURSE_CHARTING"
-      - "PERFORMED"
-      - NOT YET DONE
-    time: col(nursingChartPerformedTimestamp)
-    nurse_charting_id: "nursingchartid"
-    cell_type_cat: "nursingchartcelltypecat"
-    cell_type_val_name: "nursingchartcelltypevalname"
-    cell_type_val_label: "nursingchartcelltypevallabel"
-    cell_value: "nursingchartvalue"
-
-  nurse_charting_entered:
-    code:
-      - "NURSE_CHARTING"
-      - "ENTERED"
-      - NOT YET DONE
-    time: col(nursingChartEnteredTimestamp)
-    nurse_charting_id: "nursingchartid"
-    cell_type_cat: "nursingchartcelltypecat"
-    cell_type_val_name: "nursingchartcelltypevalname"
-    cell_type_val_label: "nursingchartcelltypevallabel"
-    cell_value: "nursingchartvalue"
-
-pastHistory:
-  past_history_taken:
-    code:
-      - "PAST_HISTORY"
-      - "TAKEN"
-      - NOT YET DONE
-    time: col(pastHistoryTakenTimestamp)
-    past_history_id: "pasthistoryid"
-    note_type: "pasthistorynotetype"
-    path: "pasthistorypath"
-    value: "pasthistoryvalue"
-    value_text: "pasthistoryvaluetext"
-
-  past_history_entered:
-    code:
-      - "PAST_HISTORY"
-      - "ENTERED"
-      - NOT YET DONE
-    time: col(pastHistoryEnteredTimestamp)
-    past_history_id: "pasthistoryid"
-    note_type: "pasthistorynotetype"
-    path: "pasthistorypath"
-    value: "pasthistoryvalue"
-    value_text: "pasthistoryvaluetext"
-
-physicalExam:
-  physical_exam_entered:
-    code:
-      - "PHYSICAL_EXAM"
-      - "ENTERED"
-      - NOT YET DONE
-    time: col(physicalExamEnteredTimestamp)
-    physical_exam_id: "physicalexamid"
-    text: "physicalexamtext"
-    path: "physicalexampath"
-    value: "physicalexamvalue"
-
-respiratoryCare:
-  resp_care_status:
-    code:
-      - "RESP_CARE"
-      - "STATUS"
-      - NOT YET DONE
-    time: col(respCareStatusEnteredTimestamp)
-    resp_care_id: "respcareid"
-    airwaytype: "airwaytype"
-    airwaysize: "airwaysize"
-    airwayposition: "airwayposition"
-    cuffpressure: "cuffpressure"
-    apneaparms: "apneaparms"
-    lowexhmvlimit: "lowexhmvlimit"
-    hiexhmvlimit: "hiexhmvlimit"
-    lowexhtvlimit: "lowexhtvlimit"
-    hipeakpreslimit: "hipeakpreslimit"
-    lowpeakpreslimit: "lowpeakpreslimit"
-    hirespratelimit: "hirespratelimit"
-    lowrespratelimit: "lowrespratelimit"
-    sighpreslimit: "sighpreslimit"
-    lowironoxlimit: "lowironoxlimit"
-    highironoxlimit: "highironoxlimit"
-    meanairwaypreslimit: "meanairwaypreslimit"
-    peeplimit: "peeplimit"
-    cpaplimit: "cpaplimit"
-    setapneainterval: "setapneainterval"
-    setapneatv: "setapneatv"
-    setapneaippeephigh: "setapneaippeephigh"
-    setapnearr: "setapnearr"
-    setapneapeakflow: "setapneapeakflow"
-    setapneainsptime: "setapneainsptime"
-    setapneaie: "setapneaie"
-    setapneafio2: "setapneafio2"
-
-  vent_start:
-    code:
-      - "VENT"
-      - "START"
-      - NOT YET DONE
-    time: col(ventStartTimestamp)
-    resp_care_id: "respcareid"
-
-  vent_end:
-    code:
-      - "VENT"
-      - "END"
-      - NOT YET DONE
-    time: col(ventEndTimestamp)
-    resp_care_id: "respcareid"
-
-respiratoryCharting:
-  resp_charting_performed:
-    code:
-      - "RESP_CHARTING"
-      - "PERFORMED"
-      - NOT YET DONE
-    time: col(respChartPerformedTimestamp)
-    resp_chart_id: "respchartid"
-    type_cat: "respcharttypecat"
-    value_label: "respchartvaluelabel"
-    value: "respchartvalue"
-
-  resp_charting_entered:
-    code:
-      - "RESP_CHARTING"
-      - "ENTERED"
-      - NOT YET DONE
-    time: col(respChartEnteredTimestamp)
-    resp_chart_id: "respchartid"
-    type_cat: "respcharttypecat"
-    value_label: "respchartvaluelabel"
-    value: "respchartvalue"
-
 treatment:
   treatment:
     code:
@@ -366,7 +196,8 @@ treatment:
       - "ENTERED"
       - col(treatmentstring)
     time: col(treatmentEnteredTimestamp)
-    treatment_id: "treatmentid"
+    text_value: treatmentstring
+
 
 vitalAperiodic:
   non_invasive_systolic:
@@ -611,3 +442,163 @@ vitalPeriodic:
     time: col(observationEnteredTimestamp)
     vital_id: "vitalperiodicid"
     numeric_value: "icp"
+
+
+# nurseCare:
+#   nurse_care_performed:
+#     code:
+#       - NURSE_CARE
+#       - "PERFORMED"
+#       - NOT YET DONE
+#     time: col(nurseCarePerformedTimestamp)
+#     nurse_care_id: "nursecareid"
+#     cell_label: "celllabel"
+#     cell_attribute: "cellattribute"
+#     cell_attribute_value: "cellattributevalue"
+
+#   nurse_care_entered:
+#     code:
+#       - "NURSE_CARE"
+#       - "ENTERED"
+#       - NOT YET DONE
+#     time: col(nurseCareEnteredTimestamp)
+#     nurse_care_id: "nursecareid"
+#     cell_label: "celllabel"
+#     cell_attribute: "cellattribute"
+#     cell_attribute_value: "cellattributevalue"
+
+# nurseCharting:
+#   nurse_charting_performed:
+#     code:
+#       - "NURSE_CHARTING"
+#       - "PERFORMED"
+#       - NOT YET DONE
+#     time: col(nursingChartPerformedTimestamp)
+#     nurse_charting_id: "nursingchartid"
+#     cell_type_cat: "nursingchartcelltypecat"
+#     cell_type_val_name: "nursingchartcelltypevalname"
+#     cell_type_val_label: "nursingchartcelltypevallabel"
+#     cell_value: "nursingchartvalue"
+
+#   nurse_charting_entered:
+#     code:
+#       - "NURSE_CHARTING"
+#       - "ENTERED"
+#       - NOT YET DONE
+#     time: col(nursingChartEnteredTimestamp)
+#     nurse_charting_id: "nursingchartid"
+#     cell_type_cat: "nursingchartcelltypecat"
+#     cell_type_val_name: "nursingchartcelltypevalname"
+#     cell_type_val_label: "nursingchartcelltypevallabel"
+#     cell_value: "nursingchartvalue"
+
+# pastHistory:
+#   past_history_taken:
+#     code:
+#       - "PAST_HISTORY"
+#       - "TAKEN"
+#       - NOT YET DONE
+#     time: col(pastHistoryTakenTimestamp)
+#     past_history_id: "pasthistoryid"
+#     note_type: "pasthistorynotetype"
+#     path: "pasthistorypath"
+#     value: "pasthistoryvalue"
+#     value_text: "pasthistoryvaluetext"
+
+#   past_history_entered:
+#     code:
+#       - "PAST_HISTORY"
+#       - "ENTERED"
+#       - NOT YET DONE
+#     time: col(pastHistoryEnteredTimestamp)
+#     past_history_id: "pasthistoryid"
+#     note_type: "pasthistorynotetype"
+#     path: "pasthistorypath"
+#     value: "pasthistoryvalue"
+#     value_text: "pasthistoryvaluetext"
+
+# physicalExam:
+#   physical_exam_entered:
+#     code:
+#       - "PHYSICAL_EXAM"
+#       - "ENTERED"
+#       - NOT YET DONE
+#     time: col(physicalExamEnteredTimestamp)
+#     physical_exam_id: "physicalexamid"
+#     text: "physicalexamtext"
+#     path: "physicalexampath"
+#     value: "physicalexamvalue"
+
+# respiratoryCare:
+#   resp_care_status:
+#     code:
+#       - "RESP_CARE"
+#       - "STATUS"
+#       - NOT YET DONE
+#     time: col(respCareStatusEnteredTimestamp)
+#     resp_care_id: "respcareid"
+#     airwaytype: "airwaytype"
+#     airwaysize: "airwaysize"
+#     airwayposition: "airwayposition"
+#     cuffpressure: "cuffpressure"
+#     apneaparms: "apneaparms"
+#     lowexhmvlimit: "lowexhmvlimit"
+#     hiexhmvlimit: "hiexhmvlimit"
+#     lowexhtvlimit: "lowexhtvlimit"
+#     hipeakpreslimit: "hipeakpreslimit"
+#     lowpeakpreslimit: "lowpeakpreslimit"
+#     hirespratelimit: "hirespratelimit"
+#     lowrespratelimit: "lowrespratelimit"
+#     sighpreslimit: "sighpreslimit"
+#     lowironoxlimit: "lowironoxlimit"
+#     highironoxlimit: "highironoxlimit"
+#     meanairwaypreslimit: "meanairwaypreslimit"
+#     peeplimit: "peeplimit"
+#     cpaplimit: "cpaplimit"
+#     setapneainterval: "setapneainterval"
+#     setapneatv: "setapneatv"
+#     setapneaippeephigh: "setapneaippeephigh"
+#     setapnearr: "setapnearr"
+#     setapneapeakflow: "setapneapeakflow"
+#     setapneainsptime: "setapneainsptime"
+#     setapneaie: "setapneaie"
+#     setapneafio2: "setapneafio2"
+
+#   vent_start:
+#     code:
+#       - "VENT"
+#       - "START"
+#       - NOT YET DONE
+#     time: col(ventStartTimestamp)
+#     resp_care_id: "respcareid"
+
+#   vent_end:
+#     code:
+#       - "VENT"
+#       - "END"
+#       - NOT YET DONE
+#     time: col(ventEndTimestamp)
+#     resp_care_id: "respcareid"
+
+# respiratoryCharting:
+#   resp_charting_performed:
+#     code:
+#       - "RESP_CHARTING"
+#       - "PERFORMED"
+#       - NOT YET DONE
+#     time: col(respChartPerformedTimestamp)
+#     resp_chart_id: "respchartid"
+#     type_cat: "respcharttypecat"
+#     value_label: "respchartvaluelabel"
+#     value: "respchartvalue"
+
+#   resp_charting_entered:
+#     code:
+#       - "RESP_CHARTING"
+#       - "ENTERED"
+#       - NOT YET DONE
+#     time: col(respChartEnteredTimestamp)
+#     resp_chart_id: "respchartid"
+#     type_cat: "respcharttypecat"
+#     value_label: "respchartvaluelabel"
+#     value: "respchartvalue"
