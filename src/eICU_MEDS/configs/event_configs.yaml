@@ -30,22 +30,23 @@ patient:
       - col(hospitalteachingstatus)
       - col(hospitalnumbedscategory)
     time: col(hospitaladmittimestamp)
-    hospital_id: hospitalid
+    hadm_id: hospitalid
   hosp_discharge:
     code:
       - "HOSPITAL_DISCHARGE"
       - col(hospitaldischargestatus)
       - col(hospitaldischargelocation)
     time: col(hospitaldischargetimestamp)
-    hospital_id: hospitalid
+    hadm_id: hospitalid
   unit_admission:
     code:
       - ICU_ADMISSION
       - col(unitadmitsource)
       - col(unitstaytype)
     time: col(unitadmittimestamp)
-    ward_id: wardid
+    hadm_id: hospitalid
     stay_id: patientunitstayid
+    ward_id: wardid
   unit_admission_weight:
     code:
       - ICU_ADMISSION_WEIGHT
@@ -62,6 +63,9 @@ patient:
       - col(unitdischargestatus)
       - col(unitdischargelocation)
     time: col(unitdischargetimestamp)
+    hadm_id: hospitalid
+    stay_id: patientunitstayid
+    ward_id: wardid
   unit_discharge_weight:
     code:
       - ICU_DISCHARGE_WEIGHT
