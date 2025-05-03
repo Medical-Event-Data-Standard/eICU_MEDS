@@ -70,7 +70,7 @@ patient:
   time_of_death:
     code:
       - MEDS_DEATH
-    time: col(timeofdeath)
+    time: col(time_of_death)
   
 
 admissionDx:
