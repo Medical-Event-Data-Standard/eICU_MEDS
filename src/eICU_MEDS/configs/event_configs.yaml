@@ -45,7 +45,7 @@ patient:
       - col(unitstaytype)
     time: col(unitadmittimestamp)
     hadm_id: hospitalid
-    stay_id: patientunitstayid
+    icustay_id: patientunitstayid
     ward_id: wardid
   unit_admission_weight:
     code:
@@ -64,7 +64,7 @@ patient:
       - col(unitdischargelocation)
     time: col(unitdischargetimestamp)
     hadm_id: hospitalid
-    stay_id: patientunitstayid
+    icustay_id: patientunitstayid
     ward_id: wardid
   unit_discharge_weight:
     code:
@@ -84,7 +84,7 @@ admissionDx:
       - col(admitdxname)
     time: col(admitDxEnteredTimestamp)
     admission_dx_id: admissiondxid
-    stay_id: patientunitstayid
+    icustay_id: patientunitstayid
 
 allergy:
   allergy:
