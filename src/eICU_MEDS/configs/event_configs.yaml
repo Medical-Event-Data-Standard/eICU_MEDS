@@ -51,11 +51,15 @@ patient:
     code:
       - ICU_ADMISSION_WEIGHT
     time: col(unitadmittimestamp)
+    hadm_id: hospitalid
+    icustay_id: patientunitstayid
     numeric_value: "unitadmissionweight"
   unit_admission_height:
     code:
       - ICU_ADMISSION_HEIGHT
     time: col(unitadmittimestamp)
+    hadm_id: hospitalid
+    icustay_id: patientunitstayid
     numeric_value: "unitadmissionheight"
   unit_discharge:
     code:
@@ -168,26 +172,27 @@ lab:
     lab_type_id: labtypeid
 
 medication:
-  drug_ordered:
-    code:
-      - MEDICATION
-      - ORDERED
-      - col(drugname)
-    time: col(drugordertimestamp)
-    medication_id: "medicationid"
-    drug_iv_admixture: "drugivadmixture"
-    dosage: "dosage"
-    route_admin: "routeadmin"
-    frequency: "frequency"
-    loading_dose: "loadingdose"
-    prn: "prn"
-    gtc: "gtc"
+  # drug_ordered:
+  #   code:
+  #     - MEDICATION
+  #     - ORDERED
+  #     - col(drugname)
+  #   time: col(drugordertimestamp)
+  #   medication_id: "medicationid"
+  #   drug_iv_admixture: "drugivadmixture"
+  #   dosage: "dosage"
+  #   route_admin: "routeadmin"
+  #   frequency: "frequency"
+  #   loading_dose: "loadingdose"
+  #   prn: "prn"
+  #   gtc: "gtc"
   drug_started:
     code:
       - MEDICATION
       - STARTED
       - col(drugname)
     time: col(drugstarttimestamp)
+    numeric_value: dosage
     medication_id: "medicationid"
   drug_stopped:
     code:
@@ -299,6 +304,7 @@ vitalAperiodic:
     time: col(observationEnteredTimestamp)
     vital_id: "vitalaperiodicid"
     numeric_value: "pvri"
+
 
 vitalPeriodic:
   temperature:
