@@ -90,6 +90,7 @@ admissionDx:
     admission_dx_id: admissiondxid
     icustay_id: patientunitstayid
 
+
 allergy:
   allergy:
     code:
@@ -156,7 +157,7 @@ infusionDrug:
     numeric_value: infusionrate
   patient_weight:
     code:
-      - INFUSION_SUBJECT_WEIGHT
+      - SUBJECT_WEIGHT_AT_INFUSION
     time: col(infusionEnteredTimestamp)
     numeric_value: patientweight
 
