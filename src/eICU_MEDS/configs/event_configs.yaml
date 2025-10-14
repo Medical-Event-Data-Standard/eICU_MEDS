@@ -96,8 +96,9 @@ allergy:
     code:
       - ALLERGY
       - col(allergytype)
-      - col(allergyname)
+#      - col(allergyname)
     time: col(allergyEnteredTimestamp)
+    text_value: allergyname
 
 carePlanGeneral:
   cplItem:
@@ -146,10 +147,11 @@ diagnosis:
 infusionDrug:
   infusion:
     code:
-      - INFUSION
+      - INFUSION_DRUG
       - col(infusiondrugid)
-      - col(drugname)
+#      - col(drugname)
     time: col(infusionEnteredTimestamp)
+    text_value: drugname
     drug_rate: drugrate
     infusion_rate: infusionrate
     drug_amount: drugamount
