@@ -7,6 +7,7 @@ name = "eICU-MEDS"
 dynamic = ["version"]
 authors = [
   { name="Matthew McDermott", email="mattmcdermott8@gmail.com" },
+    { name="Robin P. van de Water", email="robin.vandewater@hpi.de" },
 ]
 description = "An ETL pipeline to extract the eICU dataset into the MEDS format."
 readme = "README.md"
