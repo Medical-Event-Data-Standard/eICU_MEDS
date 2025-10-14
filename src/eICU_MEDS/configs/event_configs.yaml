@@ -146,7 +146,7 @@ infusionDrug:
   infusion:
     code:
       - INFUSION_DRUG
-#      - col(infusiondrugid)
+    #      - col(infusiondrugid)
     #      - col(drugname)
     time: col(infusionEnteredTimestamp)
     text_value: drugname
