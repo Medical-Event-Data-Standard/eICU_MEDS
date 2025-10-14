@@ -3,6 +3,7 @@
 import logging
 import os
 from pathlib import Path
+import polars as pl
 
 import hydra
 from omegaconf import DictConfig
@@ -84,6 +85,16 @@ def main(cfg: DictConfig):
 
     command_parts.append("'hydra.searchpath=[pkg://MEDS_transforms.configs]'")
     run_command(command_parts, cfg)
+
+    unique_codes = (
+        pl.scan_parquet(MEDS_cohort_dir / "data/**/*.parquet")
+        .select(pl.col("code"))
+        .unique()
+    )
+    unique_codes = unique_codes.with_columns(
+        description=pl.lit(""), parent_codes=pl.lit(None).cast(pl.List(pl.Utf8))
+    )
+    unique_codes.sink_parquet(MEDS_cohort_dir / "metadata" / "codes.parquet")
 
 
 if __name__ == "__main__":
