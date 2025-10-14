@@ -1,4 +1,8 @@
-# Extract your custom dataset via MEDS-Transforms
+# eICU MEDS Extraction ETL
+
+[![PyPI - Version](https://img.shields.io/pypi/v/ETL-MEDS)](https://pypi.org/project/ETL-MEDS/)
+[![Documentation Status](https://readthedocs.org/projects/etl-meds/badge/?version=latest)](https://etl-meds.readthedocs.io/en/stable/?badge=stable)
+![Static Badge](https://img.shields.io/badge/MEDS-0.3.3-blue)
 
 [![codecov](https://codecov.io/gh/mmcdermott/ETL_MEDS_Template/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/mmcdermott/ETL_MEDS_Template)
 [![tests](https://github.com/mmcdermott/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/mmcdermott/ETL_MEDS_Template/actions/workflows/tests.yml)

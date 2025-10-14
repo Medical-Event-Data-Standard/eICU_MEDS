@@ -8,17 +8,17 @@ patient:
     code: MEDS_BIRTH # This is the MEDS official code for BIRTH.
     time: col(dateofbirth)
   gender:
-    code: 
+    code:
       - GENDER
       - col(gender)
     time: null
   ethnicity:
-    code: 
+    code:
       - RACE
       - col(ethnicity)
     time: null
   age:
-    code: 
+    code:
       - AGE
       - col(age)
     time: null
@@ -79,7 +79,6 @@ patient:
     code:
       - MEDS_DEATH
     time: col(time_of_death)
-  
 
 admissionDx:
   admission_diagnosis:
@@ -90,13 +89,12 @@ admissionDx:
     admission_dx_id: admissiondxid
     icustay_id: patientunitstayid
 
-
 allergy:
   allergy:
     code:
       - ALLERGY
       - col(allergytype)
-#      - col(allergyname)
+    #      - col(allergyname)
     time: col(allergyEnteredTimestamp)
     text_value: allergyname
 
@@ -149,7 +147,7 @@ infusionDrug:
     code:
       - INFUSION_DRUG
       - col(infusiondrugid)
-#      - col(drugname)
+    #      - col(drugname)
     time: col(infusionEnteredTimestamp)
     text_value: drugname
     drug_rate: drugrate
@@ -213,7 +211,6 @@ treatment:
       - col(treatmentstring)
     time: col(treatmentEnteredTimestamp)
     text_value: treatmentstring
-
 
 vitalAperiodic:
   non_invasive_systolic:
@@ -307,7 +304,6 @@ vitalAperiodic:
     time: col(observationEnteredTimestamp)
     vital_id: "vitalaperiodicid"
     numeric_value: "pvri"
-
 
 vitalPeriodic:
   temperature:
@@ -459,8 +455,6 @@ vitalPeriodic:
     time: col(observationEnteredTimestamp)
     vital_id: "vitalperiodicid"
     numeric_value: "icp"
-
-
 # nurseCare:
 #   nurse_care_performed:
 #     code:

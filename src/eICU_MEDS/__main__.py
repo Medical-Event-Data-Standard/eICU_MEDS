@@ -19,7 +19,9 @@ if HAS_PRE_MEDS:
     from .pre_MEDS import main as pre_MEDS_transform
 
 
-@hydra.main(version_base=None, config_path=str(MAIN_CFG.parent), config_name=MAIN_CFG.stem)
+@hydra.main(
+    version_base=None, config_path=str(MAIN_CFG.parent), config_name=MAIN_CFG.stem
+)
 def main(cfg: DictConfig):
     """Runs the end-to-end MEDS Extraction pipeline."""
 
@@ -47,7 +49,9 @@ def main(cfg: DictConfig):
     if HAS_PRE_MEDS:
         logger.info("Running pre_MEDS data wrangling.")
         pre_MEDS_transform(
-            input_dir=raw_input_dir, output_dir=pre_MEDS_dir, do_overwrite=cfg.get("do_overwrite", None),
+            input_dir=raw_input_dir,
+            output_dir=pre_MEDS_dir,
+            do_overwrite=cfg.get("do_overwrite", None),
         )
     else:
         pre_MEDS_dir = raw_input_dir

@@ -60,7 +60,9 @@ def run_command(
     if seed is not None:
         command_parts.append(f"++seed={seed}")
     if do_profile:
-        command_parts.append("++hydra.callbacks.profiler._target_=hydra_profiler.profiler.ProfilerCallback")
+        command_parts.append(
+            "++hydra.callbacks.profiler._target_=hydra_profiler.profiler.ProfilerCallback"
+        )
 
     full_cmd = " ".join(command_parts)
     logger.info(f"Running command: {full_cmd}")

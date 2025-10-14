@@ -8,16 +8,16 @@ from collections.abc import Callable
 from datetime import datetime
 from pathlib import Path
 
-from . import PRE_MEDS_CFG, __package_name__
+from . import __package_name__
 from importlib.resources import files
 
 import polars as pl
 import logging
 from omegaconf import OmegaConf
+from MEDS_transforms.utils import get_shard_prefix, write_lazyframe
 
 logger = logging.getLogger(__name__)
 
-from MEDS_transforms.utils import get_shard_prefix, write_lazyframe
 
 HEALTH_SYSTEM_STAY_ID = "patienthealthsystemstayid"
 UNIT_STAY_ID = "patientunitstayid"
@@ -39,13 +39,17 @@ def load_raw_eicu_file(fp: Path, **kwargs) -> pl.LazyFrame:
     """
 
     if not fp.is_file():
-        raise FileNotFoundError(f"{fp} does not exist. Directory contents: {list(fp.parent.rglob('*'))}")
+        raise FileNotFoundError(
+            f"{fp} does not exist. Directory contents: {list(fp.parent.rglob('*'))}"
+        )
 
     with gzip.open(fp, mode="rb") as f:
         return pl.read_csv(f, infer_schema_length=100000000, **kwargs).lazy()
 
 
-def check_timestamps_agree(df: pl.LazyFrame, pseudotime_col: pl.Expr, given_24htime_col: str):
+def check_timestamps_agree(
+    df: pl.LazyFrame, pseudotime_col: pl.Expr, given_24htime_col: str
+):
     """Checks that the time-of-day portions agree between the pseudotime and given columns.
 
     Raises a `ValueError` if the times don't match within a minute.
@@ -56,7 +60,9 @@ def check_timestamps_agree(df: pl.LazyFrame, pseudotime_col: pl.Expr, given_24ht
     expected_time = pl.col(given_24htime_col).str.strptime(pl.Time, "%H:%M:%S")
 
     # The use of `.dt.combine` here re-sets the "time-of-day" of the pseudotime_col column
-    time_deltas_min = (pseudotime_col - pseudotime_col.dt.combine(expected_time)).dt.total_minutes()
+    time_deltas_min = (
+        pseudotime_col - pseudotime_col.dt.combine(expected_time)
+    ).dt.total_minutes()
 
     # Check that the time deltas are all within 1 minute
     logger.info(
@@ -96,24 +102,34 @@ def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame
         minutes=pl.col("hospitaldischargeoffset")
     )
 
-    unit_discharge_pseudotime = unit_admit_pseudotime + pl.duration(minutes=pl.col("unitdischargeoffset"))
+    unit_discharge_pseudotime = unit_admit_pseudotime + pl.duration(
+        minutes=pl.col("unitdischargeoffset")
+    )
 
-    hospital_admit_pseudotime = unit_admit_pseudotime + pl.duration(minutes=pl.col("hospitaladmitoffset"))
+    hospital_admit_pseudotime = unit_admit_pseudotime + pl.duration(
+        minutes=pl.col("hospitaladmitoffset")
+    )
 
     age_in_years = (
-        pl.when(pl.col("age") == "> 89").then(90).otherwise(pl.col("age").cast(pl.UInt16, strict=False))
+        pl.when(pl.col("age") == "> 89")
+        .then(90)
+        .otherwise(pl.col("age").cast(pl.UInt16, strict=False))
     )
     age_in_days = age_in_years * 365.25
     # We assume that the patient was born at the midpoint of the year as we don't know the actual birthdate
-    pseudo_date_of_birth = unit_admit_pseudotime - pl.duration(days=(age_in_days - 365.25 / 2))
+    pseudo_date_of_birth = unit_admit_pseudotime - pl.duration(
+        days=(age_in_days - 365.25 / 2)
+    )
 
     # process time of death and add it to the df
-    df = df.with_columns([
-        pl.when(pl.col("hospitaldischargestatus") == "Expired")
-        .then(hospital_discharge_pseudotime)
-        .otherwise(None)
-        .alias("time_of_death")
-        ])
+    df = df.with_columns(
+        [
+            pl.when(pl.col("hospitaldischargestatus") == "Expired")
+            .then(hospital_discharge_pseudotime)
+            .otherwise(None)
+            .alias("time_of_death")
+        ]
+    )
 
     # Check the times
     start = datetime.now()
@@ -127,7 +143,9 @@ def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame
     check_timestamps_agree(df, unit_discharge_pseudotime, "unitdischargetime24")
     logger.info(f"Validated 24h times in {datetime.now() - start}")
 
-    logger.warning("NOT validating the `unitVisitNumber` column as that isn't implemented yet.")
+    logger.warning(
+        "NOT validating the `unitVisitNumber` column as that isn't implemented yet."
+    )
 
     logger.warning(
         "NOT SURE ABOUT THE FOLLOWING. Check with the eICU team:\n"
@@ -141,7 +159,9 @@ def process_patient(df: pl.LazyFrame, hospital_df: pl.LazyFrame) -> pl.LazyFrame
         "  - Note that all the column names appear to be all in lowercase for the csv versions, vs. the docs"
     )
 
-    return df.join(hospital_df, left_on="hospitalid", right_on="hospitalid", how="left").select(
+    return df.join(
+        hospital_df, left_on="hospitalid", right_on="hospitalid", how="left"
+    ).select(
         # 1. Static variables
         PATIENT_ID,
         "gender",
@@ -215,7 +235,9 @@ def join_and_get_pseudotime_fntr(
         """
 
         pseudotimes = [
-            (pl.col("unitadmittimestamp") + pl.duration(minutes=pl.col(offset))).alias(pseudotime)
+            (pl.col("unitadmittimestamp") + pl.duration(minutes=pl.col(offset))).alias(
+                pseudotime
+            )
             for pseudotime, offset in zip(pseudotime_col, offset_col)
         ]
 
@@ -292,19 +314,31 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
         output_dir: The directory to write the processed files to.
     """
 
-    table_preprocessors_config_fp = files(__package_name__).joinpath("configs/table_preprocessors.yaml")
-    logger.info(f"Loading table preprocessors from {str(table_preprocessors_config_fp.resolve())}...")
+    table_preprocessors_config_fp = files(__package_name__).joinpath(
+        "configs/table_preprocessors.yaml"
+    )
+    logger.info(
+        f"Loading table preprocessors from {str(table_preprocessors_config_fp.resolve())}..."
+    )
     preprocessors = OmegaConf.load(table_preprocessors_config_fp)
     functions = {}
     for table_name, preprocessor_cfg in preprocessors.items():
-        logger.info(f"  Adding preprocessor for {table_name}:\n{OmegaConf.to_yaml(preprocessor_cfg)}")
-        functions[table_name] = join_and_get_pseudotime_fntr(table_name=table_name, **preprocessor_cfg)
+        logger.info(
+            f"  Adding preprocessor for {table_name}:\n{OmegaConf.to_yaml(preprocessor_cfg)}"
+        )
+        functions[table_name] = join_and_get_pseudotime_fntr(
+            table_name=table_name, **preprocessor_cfg
+        )
 
     patient_out_fp = output_dir / "patient.parquet"
 
     if patient_out_fp.is_file():
-        logger.info(f"Reloading processed patient df from {str(patient_out_fp.resolve())}")
-        patient_df = pl.read_parquet(patient_out_fp, columns=NEEDED_PATIENT_COLS, use_pyarrow=True).lazy()
+        logger.info(
+            f"Reloading processed patient df from {str(patient_out_fp.resolve())}"
+        )
+        patient_df = pl.read_parquet(
+            patient_out_fp, columns=NEEDED_PATIENT_COLS, use_pyarrow=True
+        ).lazy()
     else:
         logger.info("Processing patient table first...")
 
@@ -312,7 +346,8 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
         patient_fp = input_dir / "patient.csv.gz"
         logger.info(f"Loading {str(hospital_fp.resolve())}...")
         hospital_df = load_raw_eicu_file(
-            hospital_fp, columns=["hospitalid", "numbedscategory", "teachingstatus", "region"]
+            hospital_fp,
+            columns=["hospitalid", "numbedscategory", "teachingstatus", "region"],
         )
         logger.info(f"Loading {str(patient_fp.resolve())}...")
         raw_patient_df = load_raw_eicu_file(patient_fp)
@@ -322,7 +357,9 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
         write_lazyframe(patient_df, output_dir / "patient.parquet")
 
     all_fps = [
-        fp for fp in input_dir.glob("*.csv.gz") if fp.name not in {"hospital.csv.gz", "patient.csv.gz"}
+        fp
+        for fp in input_dir.glob("*.csv.gz")
+        if fp.name not in {"hospital.csv.gz", "patient.csv.gz"}
     ]
 
     unused_tables = {
@@ -343,7 +380,9 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
             logger.warning(f"Skipping {pfx} as it is not supported in this pipeline.")
             continue
         elif pfx not in functions:
-            logger.warning(f"No function needed for {pfx}. For eICU, THIS IS UNEXPECTED")
+            logger.warning(
+                f"No function needed for {pfx}. For eICU, THIS IS UNEXPECTED"
+            )
             continue
 
         out_fp = output_dir / f"{pfx}.parquet"
@@ -362,6 +401,10 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
         logger.info(f"  * Loaded raw {in_fp} in {datetime.now() - st}")
         processed_df = fn(df, patient_df)
         write_lazyframe(processed_df, out_fp)
-        logger.info(f"  * Processed and wrote to {str(out_fp.resolve())} in {datetime.now() - st}")
+        logger.info(
+            f"  * Processed and wrote to {str(out_fp.resolve())} in {datetime.now() - st}"
+        )
 
-    logger.info(f"Done! All dataframes processed and written to {str(output_dir.resolve())}")
+    logger.info(
+        f"Done! All dataframes processed and written to {str(output_dir.resolve())}"
+    )
