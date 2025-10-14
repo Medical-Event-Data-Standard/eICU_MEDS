@@ -146,7 +146,7 @@ infusionDrug:
   infusion:
     code:
       - INFUSION_DRUG
-      - col(infusiondrugid)
+#      - col(infusiondrugid)
     #      - col(drugname)
     time: col(infusionEnteredTimestamp)
     text_value: drugname
@@ -155,6 +155,7 @@ infusionDrug:
     drug_amount: drugamount
     volume_of_fluid: volumeoffluid
     numeric_value: infusionrate
+    medication_id: infusiondrugid
   patient_weight:
     code:
       - SUBJECT_WEIGHT_AT_INFUSION
