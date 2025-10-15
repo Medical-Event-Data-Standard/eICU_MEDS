@@ -1,8 +1,11 @@
+# File: `src/eICU_MEDS/configs/event_configs.yaml`
 # Note that there is no "subject_id" for eICU -- patients are only differentiable during the course of a
 # single health system stay. Accordingly, we set the "patient" id here as the "patientHealthSystemStayID"
 
+# Original: subject_id_col
 subject_id_col: patienthealthsystemstayid
 
+# Original: patient
 patient:
   dob:
     code: MEDS_BIRTH # This is the MEDS official code for BIRTH.
@@ -80,7 +83,8 @@ patient:
       - MEDS_DEATH
     time: col(time_of_death)
 
-admissionDx:
+# Original: admissionDx
+admissiondx:
   admission_diagnosis:
     code:
       - ADMISSION_DIAGNOSIS
@@ -89,6 +93,7 @@ admissionDx:
     admission_dx_id: admissiondxid
     icustay_id: patientunitstayid
 
+# Original: allergy
 allergy:
   allergy:
     code:
@@ -98,7 +103,8 @@ allergy:
     time: col(allergyEnteredTimestamp)
     text_value: allergyname
 
-carePlanGeneral:
+# Original: carePlanGeneral
+careplangeneral:
   cplItem:
     code:
       - CAREPLAN_GENERAL
@@ -106,13 +112,15 @@ carePlanGeneral:
       - col(cplitemvalue)
     time: col(carePlanGeneralItemEnteredTimestamp)
 
-carePlanEOL:
+# Original: carePlanEOL
+careplaneol:
   cplEolDiscussion:
     code:
       - CAREPLAN_EOL
     time: col(carePlanEolDiscussionOccurredTimestamp)
 
-carePlanGoal:
+# Original: carePlanGoal
+careplangoal:
   cplGoal:
     code:
       - CAREPLAN_GOAL
@@ -121,7 +129,8 @@ carePlanGoal:
       - col(cplgoalstatus)
     time: col(carePlanGoalEnteredTimestamp)
 
-carePlanInfectiousDisease:
+# Original: carePlanInfectiousDisease
+careplaninfectiousdisease:
   cplInfectDisease:
     code:
       - CAREPLAN_INFECTIOUS_DISEASE
@@ -131,6 +140,7 @@ carePlanInfectiousDisease:
       - col(responsetotherapy)
     time: col(carePlanInfectDiseaseEnteredTimestamp)
 
+# Original: diagnosis
 diagnosis:
   diagnosis:
     code:
@@ -142,7 +152,8 @@ diagnosis:
     time: col(diagnosisEnteredTimestamp)
     diagnosis_string: diagnosisstring
 
-infusionDrug:
+# Original: infusionDrug
+infusiondrug:
   infusion:
     code:
       - INFUSION_DRUG
@@ -162,6 +173,7 @@ infusionDrug:
     time: col(infusionEnteredTimestamp)
     numeric_value: patientweight
 
+# Original: lab
 lab:
   lab:
     code:
@@ -173,6 +185,7 @@ lab:
     text_value: labresulttext
     lab_type_id: labtypeid
 
+# Original: medication
 medication:
   # drug_ordered:
   #   code:
@@ -204,6 +217,7 @@ medication:
     time: col(drugstoptimestamp)
     medication_id: "medicationid"
 
+# Original: treatment
 treatment:
   treatment:
     code:
@@ -213,7 +227,8 @@ treatment:
     time: col(treatmentEnteredTimestamp)
     text_value: treatmentstring
 
-vitalAperiodic:
+# Original: vitalAperiodic
+vitalaperiodic:
   non_invasive_systolic:
     code:
       - "VITALS"
@@ -306,7 +321,8 @@ vitalAperiodic:
     vital_id: "vitalaperiodicid"
     numeric_value: "pvri"
 
-vitalPeriodic:
+# Original: vitalPeriodic
+vitalperiodic:
   temperature:
     code:
       - "VITALS"

@@ -323,10 +323,11 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
     preprocessors = OmegaConf.load(table_preprocessors_config_fp)
     functions = {}
     for table_name, preprocessor_cfg in preprocessors.items():
+        key = table_name.lower()
         logger.info(
             f"  Adding preprocessor for {table_name}:\n{OmegaConf.to_yaml(preprocessor_cfg)}"
         )
-        functions[table_name] = join_and_get_pseudotime_fntr(
+        functions[key] = join_and_get_pseudotime_fntr(
             table_name=table_name, **preprocessor_cfg
         )
 
@@ -376,6 +377,8 @@ def main(input_dir: Path, output_dir: Path, do_overwrite: bool = False):
 
     for in_fp in all_fps:
         pfx = get_shard_prefix(input_dir, in_fp)
+        # Infusiondrug in the demo is lowercase, so we lowercase everything here to be safe
+        pfx = pfx.lower()
         if pfx in unused_tables:
             logger.warning(f"Skipping {pfx} as it is not supported in this pipeline.")
             continue
