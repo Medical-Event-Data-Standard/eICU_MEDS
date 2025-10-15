@@ -6,9 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "eICU-MEDS"
 dynamic = ["version"]
 authors = [
-  { name="Matthew McDermott", email="mattmcdermott8@gmail.com" },
-    { name="Robin P. van de Water", email="robin.vandewater@hpi.de" },
-    {name="Jason Zuu", email=""}
+  { name="Matthew McDermott", email="mattmcdermott8@gmail.com" }, { name="Robin P. van de Water", email="robin.vandewater@hpi.de" }, {name="Jason Zuu"}
 ]
 description = "An ETL pipeline to extract the eICU dataset into the MEDS format."
 readme = "README.md"
@@ -19,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "meds-transforms~=0.2.4", "requests", "beautifulsoup4", "hydra-core", "polars<1.21.0"
+  "meds-transforms~=0.2.4", "requests", "beautifulsoup4", "hydra-core", "polars<1.27.0"
 ]
 
 [tool.setuptools_scm]
