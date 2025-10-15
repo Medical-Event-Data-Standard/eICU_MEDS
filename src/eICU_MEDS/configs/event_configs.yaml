@@ -20,11 +20,6 @@ patient:
       - RACE
       - col(ethnicity)
     time: null
-  age:
-    code:
-      - AGE
-      - col(age)
-    time: null
   hosp_admission:
     code:
       - HOSPITAL_ADMISSION
