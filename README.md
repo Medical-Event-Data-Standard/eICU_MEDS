@@ -1,23 +1,23 @@
 # eICU MEDS Extraction ETL
 
-[![PyPI - Version](https://img.shields.io/pypi/v/ETL-MEDS)](https://pypi.org/project/ETL-MEDS/)
+[![PyPI - Version](https://img.shields.io/pypi/v/eICU-MEDS)](https://pypi.org/project/eICU-MEDS/)
 [![Documentation Status](https://readthedocs.org/projects/etl-meds/badge/?version=latest)](https://etl-meds.readthedocs.io/en/stable/?badge=stable)
 ![Static Badge](https://img.shields.io/badge/MEDS-0.3.3-blue)
 
-[![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/Medical-Event-Data-Standard/ETL_MEDS_Template)
-[![tests](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/tests.yml)
-[![code-quality](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/actions/workflows/code-quality-main.yaml)
+[![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/eICU_MEDS/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/Medical-Event-Data-Standard/eICU_MEDS)
+[![tests](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/tests.yml)
+[![code-quality](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/code-quality-main.yaml)
 ![python](https://img.shields.io/badge/-Python_3.11-blue?logo=python&logoColor=white)
-[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template#license)
-[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/pulls)
-[![contributors](https://img.shields.io/github/contributors/Medical-Event-Data-Standard/ETL_MEDS_Template.svg)](https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/graphs/contributors)
+[![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS#license)
+[![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pulls)
+[![contributors](https://img.shields.io/github/contributors/Medical-Event-Data-Standard/eICU_MEDS.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/graphs/contributors)
 
 A template repository for a MEDS-Transforms powered extraction pipeline for a custom dataset. Once you have
 customized the repository to your dataset (see instructions below), you will be able to run your extraction
 pipeline with a few simple command-line commands, such as:
 
 ```bash
-pip install -e . # using editing mode
+pip install eICU-MEDS # use `pip install -e .` for local installation in editing mode
 export DATASET_DOWNLOAD_USERNAME=$PHYSIONET_USERNAME
 export DATASET_DOWNLOAD_PASSWORD=$PHYSIONET_PASSWORD
 MEDS_extract-eICU root_output_dir=data/eicu_meds do_download=False
