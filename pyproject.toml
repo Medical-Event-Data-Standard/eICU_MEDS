@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "eICU-MEDS"
 dynamic = ["version"]
 authors = [
-  { name="Matthew McDermott", email="mattmcdermott8@gmail.com" },
+  { name="Matthew McDermott", email="mattmcdermott8@gmail.com" }, { name="Robin P. van de Water", email="robin.vandewater@hpi.de" }, { name="Jason Zuu" }
 ]
 description = "An ETL pipeline to extract the eICU dataset into the MEDS format."
 readme = "README.md"
@@ -17,7 +17,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-  "meds-transforms~=0.2", "requests", "beautifulsoup4", "hydra-core"
+  "meds-transforms~=0.2.4", "requests", "beautifulsoup4", "hydra-core", "polars<1.27.0"
 ]
 
 [tool.setuptools_scm]
@@ -37,5 +37,5 @@ docs = [
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template"
-Issues = "https://github.com/Medical-Event-Data-Standard/ETL_MEDS_Template/issues"
+Homepage = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS"
+Issues = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues"

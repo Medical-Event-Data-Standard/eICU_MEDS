@@ -3,6 +3,7 @@
 import logging
 import os
 from pathlib import Path
+import polars as pl
 
 import hydra
 from omegaconf import DictConfig
@@ -19,7 +20,9 @@ if HAS_PRE_MEDS:
     from .pre_MEDS import main as pre_MEDS_transform
 
 
-@hydra.main(version_base=None, config_path=str(MAIN_CFG.parent), config_name=MAIN_CFG.stem)
+@hydra.main(
+    version_base=None, config_path=str(MAIN_CFG.parent), config_name=MAIN_CFG.stem
+)
 def main(cfg: DictConfig):
     """Runs the end-to-end MEDS Extraction pipeline."""
 
@@ -27,6 +30,10 @@ def main(cfg: DictConfig):
     pre_MEDS_dir = Path(cfg.pre_MEDS_dir)
     MEDS_cohort_dir = Path(cfg.MEDS_cohort_dir)
     stage_runner_fp = cfg.get("stage_runner_fp", None)
+
+    raw_input_dir.mkdir(parents=True, exist_ok=True)
+    pre_MEDS_dir.mkdir(parents=True, exist_ok=True)
+    MEDS_cohort_dir.mkdir(parents=True, exist_ok=True)
 
     # Step 0: Data downloading
     if cfg.do_download:  # pragma: no cover
@@ -41,8 +48,11 @@ def main(cfg: DictConfig):
 
     # Step 1: Pre-MEDS Data Wrangling
     if HAS_PRE_MEDS:
+        logger.info("Running pre_MEDS data wrangling.")
         pre_MEDS_transform(
-            input_dir=raw_input_dir, output_dir=pre_MEDS_dir, do_overwrite=cfg.get("do_overwrite", None),
+            input_dir=raw_input_dir,
+            output_dir=pre_MEDS_dir,
+            do_overwrite=cfg.get("do_overwrite", None),
         )
     else:
         pre_MEDS_dir = raw_input_dir
@@ -75,6 +85,16 @@ def main(cfg: DictConfig):
 
     command_parts.append("'hydra.searchpath=[pkg://MEDS_transforms.configs]'")
     run_command(command_parts, cfg)
+
+    unique_codes = (
+        pl.scan_parquet(MEDS_cohort_dir / "data/**/*.parquet")
+        .select(pl.col("code"))
+        .unique()
+    )
+    unique_codes = unique_codes.with_columns(
+        description=pl.lit(""), parent_codes=pl.lit(None).cast(pl.List(pl.Utf8))
+    )
+    unique_codes.sink_parquet(MEDS_cohort_dir / "metadata" / "codes.parquet")
 
 
 if __name__ == "__main__":

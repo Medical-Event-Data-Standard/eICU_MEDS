@@ -2,12 +2,9 @@ import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-import pytest
-
 
 def test_e2e():
     with TemporaryDirectory() as temp_dir:
-
         root = Path(temp_dir)
 
         do_overwrite = True
@@ -36,20 +33,30 @@ def test_e2e():
         assert command_out.returncode == 0, err_message
 
         data_path = root / "MEDS_cohort" / "data"
-        data_files = list(data_path.glob("*.parquet")) + list(data_path.glob("**/*.parquet"))
+        data_files = list(data_path.glob("*.parquet")) + list(
+            data_path.glob("**/*.parquet")
+        )
 
         all_files = [x for x in data_path.glob("**/*") if x.is_file()]
 
-        assert len(data_files) > 0, f"No data files found in {data_path}; found {all_files}"
+        assert len(data_files) > 0, (
+            f"No data files found in {data_path}; found {all_files}"
+        )
 
         metadata_path = root / "MEDS_cohort" / "metadata"
         all_files = [x for x in metadata_path.glob("**/*") if x.is_file()]
 
         dataset_metadata = metadata_path / "dataset.json"
-        assert dataset_metadata.exists(), f"Dataset metadata not found in {metadata_path}; found {all_files}"
+        assert dataset_metadata.exists(), (
+            f"Dataset metadata not found in {metadata_path}; found {all_files}"
+        )
 
         codes_metadata = metadata_path / "codes.parquet"
-        assert codes_metadata.exists(), f"Codes metadata not found in {metadata_path}; found {all_files}"
+        assert codes_metadata.exists(), (
+            f"Codes metadata not found in {metadata_path}; found {all_files}"
+        )
 
         subject_splits = metadata_path / "subject_splits.parquet"
-        assert subject_splits.exists(), f"Subject splits not found in {metadata_path}; found {all_files}"
+        assert subject_splits.exists(), (
+            f"Subject splits not found in {metadata_path}; found {all_files}"
+        )
