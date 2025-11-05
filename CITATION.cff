@@ -23,6 +23,6 @@ authors:
     orcid: 'https://orcid.org/0000-0002-2895-4872'
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.17535692)
+    value: 10.5281/zenodo.17535692
 repository-code: 'https://github.com/Medical-Event-Data-Standard/eICU_MEDS/'
 license: MIT
