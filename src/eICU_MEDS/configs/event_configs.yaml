@@ -30,6 +30,31 @@
 # Subtraction lowers to `pl.Expr.sub`, which handles Datetime − Duration natively — so
 # every "anchor + offset" is written as "anchor − (−offset)". Filed upstream; once `Add`
 # lowers to `pl.Expr.add` these can all become plain `+ $offset::minutes`.
+#
+# ── NUMERIC-GUARD ───────────────────────────────────────────────────────────────
+# `numeric_value` is strict-cast downstream, so a String source column containing any
+# non-numeric row aborts the stage. Which columns are String is NOT inferable from the
+# demo — it depends on what junk happens to appear — so the guarded set is taken from
+# the official eICU DDL (MIT-LCP/eicu-code postgres_create_tables.sql) instead:
+#
+#   VARCHAR  -> age, medication.dosage, infusiondrug.{infusionrate, patientweight,
+#               drugrate, drugamount, volumeoffluid}
+#   NUMERIC/INT/DOUBLE -> lab.labresult, patient.{admission,discharge}{weight,height},
+#               and every vitalPeriodic / vitalAperiodic measurement
+#
+# Only the VARCHAR columns used as `numeric_value` are guarded; the numeric-typed ones
+# are passed through bare, since the upstream schema forbids junk in them and wrapping
+# ~29M vitals rows would cost for nothing. (`drugrate`/`drugamount`/`volumeoffluid` are
+# VARCHAR but ride along as free-text passthrough columns, which need no guard.)
+#
+# The guard regex is exactly Rust's `f64::from_str` grammar — optional sign, decimal or
+# leading/trailing-dot forms, optional exponent, plus inf/infinity/nan — so
+# `regex_extract(...)::float64` is value-for-value identical to polars'
+# `cast(Float64, strict=False)`, which is what the pre-0.7 pipeline applied. A narrower
+# hand-rolled pattern silently drops real values (`1e5`, `25.`, `+5`); `tests/
+# test_numeric_guard.py` pins the equivalence by differential fuzzing so it cannot
+# regress. inf/NaN passthrough is inherited from the old behavior and is deliberately
+# NOT changed here — that belongs in its own change, not a migration.
 
 _defaults:
   subject_id: $patienthealthsystemstayid
@@ -197,17 +222,15 @@ infusiondrug:
     infusion_rate: $infusionrate
     drug_amount: $drugamount
     volume_of_fluid: $volumeoffluid
-    # eICU quotes empty numeric fields, so these arrive as String, and `drugrate` even
-    # carries a literal "ERROR". `numeric_value` is strict-cast downstream, so a bare
-    # `$infusionrate` aborts the stage. The regex yields null for anything not a plain
-    # number, reproducing the pre-0.7 lenient `cast(Float64, strict=False)` exactly
-    # (verified value-for-value on the demo).
-    numeric_value: 'regex_extract("^-?[0-9]*\.?[0-9]+$", $infusionrate)::float64'
+    # NUMERIC-GUARD (see the header note). `infusionrate` and `patientweight` are
+    # VARCHAR(255) in the eICU DDL and really do carry junk — `drugrate` ships a literal
+    # "ERROR" — so a bare `$infusionrate` aborts the stage on the strict cast.
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $infusionrate)::float64'
     medication_id: $infusiondrugid
   patient_weight:
     code: SUBJECT_WEIGHT_AT_INFUSION
     time: $unitadmittimestamp - (-$infusionoffset)::minutes
-    numeric_value: 'regex_extract("^-?[0-9]*\.?[0-9]+$", $patientweight)::float64'
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $patientweight)::float64'
 
 lab:
   _table:
@@ -227,13 +250,13 @@ medication:
   drug_started:
     code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
-    # `dosage` is free text ("1000 MG", "5,000 UNITS", "1 SPRAY"): only ~1% of rows are
-    # bare numbers. The pre-0.7 lenient cast silently nulled the rest, and this regex
-    # reproduces that exactly — but it means `numeric_value` is null for ~99% of
-    # medication events. The raw string is preserved in `dosage` below so the
-    # information is not lost; whether `dosage` should be parsed (value + unit) rather
-    # than coerced is worth revisiting separately.
-    numeric_value: 'regex_extract("^-?[0-9]*\.?[0-9]+$", $dosage)::float64'
+    # NUMERIC-GUARD (see the header note). `dosage` is VARCHAR(60) and overwhelmingly
+    # free text ("1000 MG", "5,000 UNITS", "1 SPRAY") — only ~1% of demo rows are bare
+    # numbers. The pre-0.7 lenient cast silently nulled the rest and this reproduces
+    # that, so `numeric_value` is null for almost every medication event. The raw string
+    # is preserved in `dosage` below so nothing is lost; parsing it into value + unit is
+    # worth its own issue.
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $dosage)::float64'
     dosage: $dosage
     medication_id: $medicationid
   drug_stopped:
