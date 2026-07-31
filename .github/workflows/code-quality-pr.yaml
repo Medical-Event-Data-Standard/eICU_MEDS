@@ -26,9 +26,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install packages
+      # Only `pre-commit` is needed here — it provisions its own hook
+      # environments, so the package itself is never imported. Installing the
+      # project would also fail outright: `meds-extract` resolves from a git
+      # source declared in `[tool.uv.sources]`, which pip does not read.
+      - name: Install pre-commit
         run: |
-          pip install .[dev]
+          pip install 'pre-commit~=3.8'
 
       - name: Find modified files
         id: file_changes
