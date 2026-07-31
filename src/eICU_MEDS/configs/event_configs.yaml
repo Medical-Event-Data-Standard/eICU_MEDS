@@ -231,10 +231,11 @@ diagnosis:
     # Every operand of `and` is parenthesised because dftly's regex-match binds
     # looser than `and` (mmcdermott/dftly#85); without the parens this fails to parse.
     #
-    # NOTE: rows with an empty `icd9code` (15.1% of the demo) now emit NO event —
-    # previously they produced `DIAGNOSIS//ICD//9//UNK`, which at least carried the
-    # `diagnosisstring`. Restoring them needs a code scheme for uncoded diagnoses;
-    # deliberately left open rather than invented here.
+    # 15.9% of rows across the full release carry no ICD code at all (`icd9code` is
+    # the empty string — never null). Those are emitted as `UNK_DX//<path>` by the
+    # `uncoded_dx` column below, so the clinical content is not lost just because
+    # eICU never assigned a billing code. `UNK_DX` (no vocabulary at all) is kept
+    # distinct from `ICD_UNK` (an ICD code whose vocabulary is undecidable).
     cols:
       unitadmittimestamp: >-
         f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
@@ -276,6 +277,10 @@ diagnosis:
         else f"ICD9CM/{$icd_part_6}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_6)
         else f"ICD10CM/{$icd_part_6}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_6)
         else f"ICD_UNK/{$icd_part_6}"
+      # `diagnosisstring` is a '|'-separated clinical path present on EVERY row
+      # (100% of both coded and uncoded rows, depth 3-6). Here it *is* the code,
+      # so no separate `diagnosis_string` column is attached to this event.
+      uncoded_dx: 'f"UNK_DX//{$diagnosisstring}" if $icd9code == ""'
       icd_code_7: >-
         f"ICD_UNK/{$icd_part_7}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_7) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_7))
         else f"ICD9CM/{$icd_part_7}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_7)
@@ -316,6 +321,10 @@ diagnosis:
     time: *dx_time
     diagnosis_priority: *dx_prio
     diagnosis_string: *dx_str
+  uncoded_dx:
+    code: $uncoded_dx
+    time: *dx_time
+    diagnosis_priority: *dx_prio
 
 # The credentialed release spells this `infusionDrug.csv.gz`; the demo ships it
 # lowercase and is normalized up to this name on download (see the `sources:` block).
