@@ -201,16 +201,125 @@ carePlanInfectiousDisease:
 diagnosis:
   _table:
     join: *anchor_join
-    cols: *anchor_cols
-  diagnosis:
-    code: f"DIAGNOSIS//ICD//9//{$icd9code ?? 'UNK'}"
-    time: $unitadmittimestamp - (-$diagnosisoffset)::minutes
-    diagnosis_priority: $diagnosispriority
-    diagnosis_string: $diagnosisstring
+    # Written out rather than reusing *anchor_cols: this table needs the shared
+    # pseudotime anchor *plus* the ICD split below in one `cols` mapping.
+    #
+    # ── ICD SPLIT ──────────────────────────────────────────────────────────────
+    # Despite its name, `icd9code` holds BOTH ICD-9-CM and ICD-10-CM codes, comma-
+    # separated, in one cell — 80.4% of populated cells carry both (e.g.
+    # "401.9, I10", "038.9, 518.81, R65.20, J96.0"). The pre-0.7 config emitted the
+    # whole cell as one opaque code, `DIAGNOSIS//ICD//9//401.9, I10`: two
+    # vocabularies fused and mislabeled as ICD-9. (That bug predates the 0.7
+    # migration — it is on `main` too.)
+    #
+    # Each cell is split into up to 7 parts (the observed maximum over the full
+    # 2.7M-row release) and each part classified independently, so the emitted code
+    # IS the vocabulary-qualified code — no separate `parent_codes` or `description`
+    # is needed, since either would just restate it.
+    #
+    # Classification is by grammar, checking the ambiguous case FIRST so the later
+    # branches need no negation:
+    #   ICD-9-CM  : 3 digits, or E+3 digits, or V+2 digits, optional .dd
+    #   ICD-10-CM : letter(A-T,V-Z) + digit + alnum, optional .xxxx
+    # These overlap only on V-codes: `V08`, `V42.7`, `V42.83`, `V62.84` are valid
+    # under both grammars (they are ICD-9 status codes here, but nothing in the cell
+    # proves that), and `31.1` — an ICD-9 *procedure* code that leaked in — matches
+    # neither. All five land in ICD_UNK rather than being silently forced either way.
+    # Over the full release that is 6,444 of 4,555,096 codes (0.1%); the rest split
+    # 51.1% ICD9CM / 48.8% ICD10CM.
+    #
+    # Every operand of `and` is parenthesised because dftly's regex-match binds
+    # looser than `and` (mmcdermott/dftly#85); without the parens this fails to parse.
+    #
+    # NOTE: rows with an empty `icd9code` (15.1% of the demo) now emit NO event —
+    # previously they produced `DIAGNOSIS//ICD//9//UNK`, which at least carried the
+    # `diagnosisstring`. Restoring them needs a code scheme for uncoded diagnoses;
+    # deliberately left open rather than invented here.
+    cols:
+      unitadmittimestamp: >-
+        f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
+        - $hospitaldischargeoffset::minutes
+      icd_part_1: 'extract group 1 of /^(?:[^,]+,\s*){0}([^,]+)/ from $icd9code'
+      icd_part_2: 'extract group 1 of /^(?:[^,]+,\s*){1}([^,]+)/ from $icd9code'
+      icd_part_3: 'extract group 1 of /^(?:[^,]+,\s*){2}([^,]+)/ from $icd9code'
+      icd_part_4: 'extract group 1 of /^(?:[^,]+,\s*){3}([^,]+)/ from $icd9code'
+      icd_part_5: 'extract group 1 of /^(?:[^,]+,\s*){4}([^,]+)/ from $icd9code'
+      icd_part_6: 'extract group 1 of /^(?:[^,]+,\s*){5}([^,]+)/ from $icd9code'
+      icd_part_7: 'extract group 1 of /^(?:[^,]+,\s*){6}([^,]+)/ from $icd9code'
+      icd_code_1: >-
+        f"ICD_UNK/{$icd_part_1}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_1) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_1))
+        else f"ICD9CM/{$icd_part_1}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_1)
+        else f"ICD10CM/{$icd_part_1}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_1)
+        else f"ICD_UNK/{$icd_part_1}"
+      icd_code_2: >-
+        f"ICD_UNK/{$icd_part_2}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_2) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_2))
+        else f"ICD9CM/{$icd_part_2}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_2)
+        else f"ICD10CM/{$icd_part_2}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_2)
+        else f"ICD_UNK/{$icd_part_2}"
+      icd_code_3: >-
+        f"ICD_UNK/{$icd_part_3}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_3) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_3))
+        else f"ICD9CM/{$icd_part_3}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_3)
+        else f"ICD10CM/{$icd_part_3}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_3)
+        else f"ICD_UNK/{$icd_part_3}"
+      icd_code_4: >-
+        f"ICD_UNK/{$icd_part_4}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_4) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_4))
+        else f"ICD9CM/{$icd_part_4}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_4)
+        else f"ICD10CM/{$icd_part_4}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_4)
+        else f"ICD_UNK/{$icd_part_4}"
+      icd_code_5: >-
+        f"ICD_UNK/{$icd_part_5}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_5) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_5))
+        else f"ICD9CM/{$icd_part_5}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_5)
+        else f"ICD10CM/{$icd_part_5}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_5)
+        else f"ICD_UNK/{$icd_part_5}"
+      icd_code_6: >-
+        f"ICD_UNK/{$icd_part_6}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_6) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_6))
+        else f"ICD9CM/{$icd_part_6}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_6)
+        else f"ICD10CM/{$icd_part_6}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_6)
+        else f"ICD_UNK/{$icd_part_6}"
+      icd_code_7: >-
+        f"ICD_UNK/{$icd_part_7}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_7) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_7))
+        else f"ICD9CM/{$icd_part_7}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_7)
+        else f"ICD10CM/{$icd_part_7}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_7)
+        else f"ICD_UNK/{$icd_part_7}"
+  icd_1:
+    code: $icd_code_1
+    time: &dx_time $unitadmittimestamp - (-$diagnosisoffset)::minutes
+    diagnosis_priority: &dx_prio $diagnosispriority
+    diagnosis_string: &dx_str $diagnosisstring
+  icd_2:
+    code: $icd_code_2
+    time: *dx_time
+    diagnosis_priority: *dx_prio
+    diagnosis_string: *dx_str
+  icd_3:
+    code: $icd_code_3
+    time: *dx_time
+    diagnosis_priority: *dx_prio
+    diagnosis_string: *dx_str
+  icd_4:
+    code: $icd_code_4
+    time: *dx_time
+    diagnosis_priority: *dx_prio
+    diagnosis_string: *dx_str
+  icd_5:
+    code: $icd_code_5
+    time: *dx_time
+    diagnosis_priority: *dx_prio
+    diagnosis_string: *dx_str
+  icd_6:
+    code: $icd_code_6
+    time: *dx_time
+    diagnosis_priority: *dx_prio
+    diagnosis_string: *dx_str
+  icd_7:
+    code: $icd_code_7
+    time: *dx_time
+    diagnosis_priority: *dx_prio
+    diagnosis_string: *dx_str
 
-# NOTE: lowercase in the demo (`infusiondrug.csv.gz`); the credentialed full release
-# names this table `infusionDrug.csv.gz`. See the README note on table-name casing.
-infusiondrug:
+# The credentialed release spells this `infusionDrug.csv.gz`; the demo ships it
+# lowercase and is normalized up to this name on download (see the `sources:` block).
+infusionDrug:
   _table:
     join: *anchor_join
     cols: *anchor_cols
@@ -422,12 +531,58 @@ vitalPeriodic:
 # never need the credential env vars below; a `key=dataset` run without them fails up
 # front with a clear missing-env-var error. eICU has no external concept-map metadata to
 # fetch, so there is no `common` bucket.
+# The `User-Agent` is REQUIRED for the credentialed release and is not cosmetic.
+# physionet.org serves credentialed paths under `/files/` only to clients whose UA
+# begins with `Wget/<version>` — their documented bulk-download tool. Every other
+# client is refused with a bare `403` and no `WWW-Authenticate` challenge, *before*
+# credentials are considered: an unauthenticated request, a deliberately-wrong
+# credential, and a correct credential are byte-identical 403s under curl's,
+# httpx's, requests', or a browser's default UA. That makes the failure look like
+# bad credentials or a missing data-use agreement, which is how it was first
+# misdiagnosed here. httpx (what this downloader uses) is refused by default.
+#
+# The prefix is what PhysioNet matches, so a trailing identifier is preserved —
+# `Wget/1.21.4 eICU-MEDS` satisfies their allowlist while still naming the real
+# client, rather than impersonating wget outright.
 sources:
   dataset:
     - type: physionet
       base_url: https://physionet.org/files/eicu-crd/2.0
       username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
       password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
+      headers:
+        User-Agent: Wget/1.21.4 eICU-MEDS
   demo:
     - type: physionet
       base_url: https://physionet.org/files/eicu-crd-demo/2.0.1
+      # The open demo is served to any UA today; set the same header so the two
+      # buckets do not diverge if PhysioNet ever applies the rule uniformly.
+      headers:
+        User-Agent: Wget/1.21.4 eICU-MEDS
+      # Normalized to the full release's name by the entry below.
+      exclude:
+        - infusiondrug.csv.gz
+    # CASING NORMALIZATION. The demo and the credentialed release disagree on the
+    # case of exactly two filenames: the demo ships `infusiondrug.csv.gz` and
+    # `admissiondrug.csv.gz` where the full release has `infusionDrug.csv.gz` and
+    # `admissionDrug.csv.gz`. All 29 other names match byte-for-byte.
+    #
+    # This matters because 0.7 reads the raw download directly and resolves a table
+    # by exact path (`resolve_source_files` builds `dir / f"{prefix}{ext}"`), so one
+    # config prefix cannot match both. The old pipeline hid this by lowercasing every
+    # prefix in pre-MEDS. The failure is at least loud — `shard_events` raises
+    # `FileNotFoundError` naming the prefix — but it does block the run.
+    #
+    # Rather than rename the authoritative release, the *demo* is normalized up to the
+    # official spelling (which is also the DDL's table name), so the credentialed
+    # download stays byte-faithful and the e2e exercises this path on every CI run.
+    # `admissiondrug` is deliberately left alone — no table in this config reads it.
+    - type: http
+      headers:
+        User-Agent: Wget/1.21.4 eICU-MEDS
+      urls:
+        - url: https://physionet.org/files/eicu-crd-demo/2.0.1/infusiondrug.csv.gz
+          rel_path: infusionDrug.csv.gz
+          # Pinned because the downloader refuses to skip an existing file it cannot
+          # verify, which would break every resumed run. The 2.0.1 release is immutable.
+          sha256: 3b9f024d28682884a820763ac516ae68b247ebf17903fee4f38240c04886d527
