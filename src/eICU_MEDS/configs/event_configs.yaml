@@ -201,130 +201,44 @@ carePlanInfectiousDisease:
 diagnosis:
   _table:
     join: *anchor_join
-    # Written out rather than reusing *anchor_cols: this table needs the shared
-    # pseudotime anchor *plus* the ICD split below in one `cols` mapping.
-    #
-    # ── ICD SPLIT ──────────────────────────────────────────────────────────────
-    # Despite its name, `icd9code` holds BOTH ICD-9-CM and ICD-10-CM codes, comma-
-    # separated, in one cell — 80.4% of populated cells carry both (e.g.
-    # "401.9, I10", "038.9, 518.81, R65.20, J96.0"). The pre-0.7 config emitted the
-    # whole cell as one opaque code, `DIAGNOSIS//ICD//9//401.9, I10`: two
-    # vocabularies fused and mislabeled as ICD-9. (That bug predates the 0.7
-    # migration — it is on `main` too.)
-    #
-    # Each cell is split into up to 7 parts (the observed maximum over the full
-    # 2.7M-row release) and each part classified independently, so the emitted code
-    # IS the vocabulary-qualified code — no separate `parent_codes` or `description`
-    # is needed, since either would just restate it.
-    #
-    # Classification is by grammar, checking the ambiguous case FIRST so the later
-    # branches need no negation:
-    #   ICD-9-CM  : 3 digits, or E+3 digits, or V+2 digits, optional .dd
-    #   ICD-10-CM : letter(A-T,V-Z) + digit + alnum, optional .xxxx
-    # These overlap only on V-codes: `V08`, `V42.7`, `V42.83`, `V62.84` are valid
-    # under both grammars (they are ICD-9 status codes here, but nothing in the cell
-    # proves that), and `31.1` — an ICD-9 *procedure* code that leaked in — matches
-    # neither. All five land in ICD_UNK rather than being silently forced either way.
-    # Over the full release that is 6,444 of 4,555,096 codes (0.1%); the rest split
-    # 51.1% ICD9CM / 48.8% ICD10CM.
-    #
-    # Every operand of `and` is parenthesised because dftly's regex-match binds
-    # looser than `and` (mmcdermott/dftly#85); without the parens this fails to parse.
-    #
-    # 15.9% of rows across the full release carry no ICD code at all (`icd9code` is
-    # the empty string — never null). Those are emitted as `UNK_DX//<path>` by the
-    # `uncoded_dx` column below, so the clinical content is not lost just because
-    # eICU never assigned a billing code. `UNK_DX` (no vocabulary at all) is kept
-    # distinct from `ICD_UNK` (an ICD code whose vocabulary is undecidable).
-    cols:
-      unitadmittimestamp: >-
-        f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
-        - $hospitaldischargeoffset::minutes
-      icd_part_1: 'extract group 1 of /^(?:[^,]+,\s*){0}([^,]+)/ from $icd9code'
-      icd_part_2: 'extract group 1 of /^(?:[^,]+,\s*){1}([^,]+)/ from $icd9code'
-      icd_part_3: 'extract group 1 of /^(?:[^,]+,\s*){2}([^,]+)/ from $icd9code'
-      icd_part_4: 'extract group 1 of /^(?:[^,]+,\s*){3}([^,]+)/ from $icd9code'
-      icd_part_5: 'extract group 1 of /^(?:[^,]+,\s*){4}([^,]+)/ from $icd9code'
-      icd_part_6: 'extract group 1 of /^(?:[^,]+,\s*){5}([^,]+)/ from $icd9code'
-      icd_part_7: 'extract group 1 of /^(?:[^,]+,\s*){6}([^,]+)/ from $icd9code'
-      icd_code_1: >-
-        f"ICD_UNK/{$icd_part_1}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_1) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_1))
-        else f"ICD9CM/{$icd_part_1}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_1)
-        else f"ICD10CM/{$icd_part_1}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_1)
-        else f"ICD_UNK/{$icd_part_1}"
-      icd_code_2: >-
-        f"ICD_UNK/{$icd_part_2}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_2) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_2))
-        else f"ICD9CM/{$icd_part_2}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_2)
-        else f"ICD10CM/{$icd_part_2}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_2)
-        else f"ICD_UNK/{$icd_part_2}"
-      icd_code_3: >-
-        f"ICD_UNK/{$icd_part_3}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_3) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_3))
-        else f"ICD9CM/{$icd_part_3}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_3)
-        else f"ICD10CM/{$icd_part_3}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_3)
-        else f"ICD_UNK/{$icd_part_3}"
-      icd_code_4: >-
-        f"ICD_UNK/{$icd_part_4}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_4) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_4))
-        else f"ICD9CM/{$icd_part_4}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_4)
-        else f"ICD10CM/{$icd_part_4}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_4)
-        else f"ICD_UNK/{$icd_part_4}"
-      icd_code_5: >-
-        f"ICD_UNK/{$icd_part_5}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_5) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_5))
-        else f"ICD9CM/{$icd_part_5}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_5)
-        else f"ICD10CM/{$icd_part_5}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_5)
-        else f"ICD_UNK/{$icd_part_5}"
-      icd_code_6: >-
-        f"ICD_UNK/{$icd_part_6}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_6) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_6))
-        else f"ICD9CM/{$icd_part_6}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_6)
-        else f"ICD10CM/{$icd_part_6}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_6)
-        else f"ICD_UNK/{$icd_part_6}"
-      # `diagnosisstring` is a '|'-separated clinical path present on EVERY row
-      # (100% of both coded and uncoded rows, depth 3-6). Here it *is* the code,
-      # so no separate `diagnosis_string` column is attached to this event.
-      uncoded_dx: 'f"UNK_DX//{$diagnosisstring}" if $icd9code == ""'
-      icd_code_7: >-
-        f"ICD_UNK/{$icd_part_7}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_7) and (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_7))
-        else f"ICD9CM/{$icd_part_7}" if (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_part_7)
-        else f"ICD10CM/{$icd_part_7}" if (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_part_7)
-        else f"ICD_UNK/{$icd_part_7}"
-  icd_1:
-    code: $icd_code_1
-    time: &dx_time $unitadmittimestamp - (-$diagnosisoffset)::minutes
-    diagnosis_priority: &dx_prio $diagnosispriority
-    diagnosis_string: &dx_str $diagnosisstring
-  icd_2:
-    code: $icd_code_2
-    time: *dx_time
-    diagnosis_priority: *dx_prio
-    diagnosis_string: *dx_str
-  icd_3:
-    code: $icd_code_3
-    time: *dx_time
-    diagnosis_priority: *dx_prio
-    diagnosis_string: *dx_str
-  icd_4:
-    code: $icd_code_4
-    time: *dx_time
-    diagnosis_priority: *dx_prio
-    diagnosis_string: *dx_str
-  icd_5:
-    code: $icd_code_5
-    time: *dx_time
-    diagnosis_priority: *dx_prio
-    diagnosis_string: *dx_str
-  icd_6:
-    code: $icd_code_6
-    time: *dx_time
-    diagnosis_priority: *dx_prio
-    diagnosis_string: *dx_str
-  icd_7:
-    code: $icd_code_7
-    time: *dx_time
-    diagnosis_priority: *dx_prio
-    diagnosis_string: *dx_str
-  uncoded_dx:
-    code: $uncoded_dx
-    time: *dx_time
-    diagnosis_priority: *dx_prio
+    cols: *anchor_cols
+  # One row of `diagnosis` is ONE clinical problem, identified by its hierarchical
+  # eCareManager path. `icd9code` is not a per-row coding decision and not a list of
+  # distinct diagnoses — it is a vendor lookup from that path to its ICD equivalents,
+  # verified empirically: of 861 distinct coded paths in the demo, zero appear with more
+  # than one distinct `icd9code` value, and none appear both coded and uncoded.
+  #
+  #   Sci Data 5:180178 (Pollard et al. 2018), which ships as the PhysioNet description:
+  #     "Most problems are mapped to International Classification of Disease (ICD) codes
+  #      [...] For example, ''endocrine|glucose metabolism|diabetes mellitus|Type II|
+  #      controlled'' is mapped to ICD-9 code 250.00 [...] and ICD-10 code E11.9"
+  #     https://doi.org/10.1038/sdata.2018.178
+  #
+  #   MIT-LCP/eicu-code notebooks/diagnosis.ipynb:
+  #     "icd9code - a mapping from the problem to ICD-9 and ICD-10 code (the name of the
+  #      column is antiquated)"
+  #     https://eicu.mit.edu/tutorials/diagnosis/
+  #
+  #   Omar Badawi (Philips, paper co-author), MIT-LCP/eicu-code#239:
+  #     "the diagnosis strings are not ICD 9 or 10 diagnoses. They were custom made and
+  #      the codes you see were generated by a mapping of the custom strings to their ICD
+  #      counterparts."
+  #     https://github.com/MIT-LCP/eicu-code/issues/239
+  #
+  # So the code here is the path itself — one event per row, no splitting. The ICD codes
+  # belong in `parent_codes` (a List(String)), which needs one metadata row per
+  # (path, code) pair and therefore an explode that MESSY/dftly cannot express; see
+  # Medical-Event-Data-Standard/eICU_MEDS#9. `icd_codes` carries the raw cell in the
+  # interim so nothing is lost.
+  #
+  # The full path is kept rather than its last `|` element: the leaf does NOT determine
+  # the path. 719 of 2,302 distinct leaves are shared by several paths (`closed`, `open`,
+  # `severe`, `right`, `suspected` are generic qualifiers), affecting 55.4% of rows.
+  diagnosis:
+    code: f"DIAGNOSIS//{$diagnosisstring}"
+    time: $unitadmittimestamp - (-$diagnosisoffset)::minutes
+    diagnosis_priority: $diagnosispriority
+    icd_codes: $icd9code
 
 # The credentialed release spells this `infusionDrug.csv.gz`; the demo ships it
 # lowercase and is normalized up to this name on download (see the `sources:` block).
