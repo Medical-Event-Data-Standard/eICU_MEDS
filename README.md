@@ -61,6 +61,46 @@ minutes relative to unit admission, and health-system stays are ordered only at
 **Only relative time differences within a subject are meaningful.** Absolute dates in the
 output are not real and must not be interpreted as such.
 
+## Which eICU tables are extracted
+
+eICU-CRD v2.0 ships 31 tables. This pipeline reads 15 of them. The rest are excluded
+deliberately — the reasoning is recorded here rather than in a code comment, because
+"this table is missing" is otherwise indistinguishable from an oversight.
+
+**Extracted:** `patient`, `hospital` (joined for site attributes), `admissionDx`,
+`allergy`, `carePlanEOL`, `carePlanGeneral`, `carePlanGoal`,
+`carePlanInfectiousDisease`, `diagnosis`, `infusionDrug`, `lab`, `medication`,
+`treatment`, `vitalAperiodic`, `vitalPeriodic`.
+
+**Excluded — deliberate, on the merits:**
+
+| Table                  |       Rows | Why not                                                                                                                                                                          |
+| ---------------------- | ---------: | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admissionDrug`        |    874,920 | [Documented](https://eicu.mit.edu/eicutables/admissiondrug/) as "extremely infrequently used".                                                                                   |
+| `apacheApsVar`         |    171,177 | Inputs to the APACHE score. We prefer the raw measurements they were computed from.                                                                                              |
+| `apachePatientResult`  |    297,064 | Pre-computed APACHE scores and predictions — derived values, not observations.                                                                                                   |
+| `apachePredVar`        |    171,177 | Further APACHE inputs; same reasoning.                                                                                                                                           |
+| `carePlanCareProvider` |    502,765 | Cannot be linked to the specific care-plan entries it describes, and its offsets record when a provider was entered into the plan rather than any clinical event.                |
+| `customLab`            |      1,082 | Documentation is very sparse, and it holds only the lab measurements that could not be mapped to the standard set in `lab`.                                                      |
+| `intakeOutput`         | 12,030,289 | The documentation carries significant warnings about duplicate and cumulative values. Excluded until those are handled properly rather than silently.                            |
+| `microLab`             |     16,996 | **Time leakage**: culture-taken time is not culture-result time, so a model would see organism/sensitivity results before they could exist. Also documented as poorly populated. |
+| `note`                 |  2,254,179 | Largely duplicative of the structured tables — narrative notes were mostly removed for PHI reasons.                                                                              |
+
+**Excluded — not yet done, not on the merits.** These carry real clinical signal and
+were stubbed out but never finished (the original config shipped commented-out blocks
+for them marked `NOT YET DONE`, because their cell-label/value structure needs a code
+scheme of its own):
+
+| Table                 |        Rows | Contains                                                                                            |
+| --------------------- | ----------: | --------------------------------------------------------------------------------------------------- |
+| `nurseCharting`       | 151,604,232 | Nursing-charted observations, including vitals not in `vitalPeriodic`. By far the largest omission. |
+| `respiratoryCharting` |  20,168,176 | Ventilator and respiratory observations.                                                            |
+| `nurseAssessment`     |  15,602,498 | Structured nursing assessments.                                                                     |
+| `physicalExam`        |   9,212,316 | Physical examination findings.                                                                      |
+| `nurseCare`           |   8,311,132 | Nursing care entries.                                                                               |
+| `pastHistory`         |   1,149,180 | Comorbidity / prior history, as a `/`-separated hierarchy.                                          |
+| `respiratoryCare`     |     865,381 | Ventilator settings and airway management.                                                          |
+
 ## MEDS-transforms settings
 
 If you want to convert a large dataset, you can use parallelization with MEDS-transforms

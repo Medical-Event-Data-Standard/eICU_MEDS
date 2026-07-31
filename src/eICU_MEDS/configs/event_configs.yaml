@@ -150,7 +150,13 @@ admissionDx:
         f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
         - $hospitaldischargeoffset::minutes
   admission_diagnosis:
-    code: f"ADMISSION_DIAGNOSIS//{$admitdxname ?? 'UNK'}"
+    # Keyed on the full `|` path, not `admitdxname`, for the same reason `diagnosis` is:
+    # the leaf does not identify the concept. `admitdxname` is exactly the last path
+    # element (verified: 626,858/626,858 rows), and 46 names are reached by more than one
+    # path — `posterior` alone appears under `Acute MI location` and elsewhere. Keying on
+    # the name would silently merge 487 distinct admission diagnoses into 431 codes.
+    # The name is dropped rather than carried, being derivable from the code.
+    code: f"ADMISSION_DIAGNOSIS//{$admitdxpath ?? 'UNK'}"
     time: $unitadmittimestamp - (-$admitdxenteredoffset)::minutes
     admission_dx_id: $admissiondxid
     icustay_id: $patientunitstayid
@@ -300,9 +306,30 @@ lab:
   _table:
     join: *anchor_join
     cols: *anchor_cols
-  lab:
-    code: f"LAB//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+  # Split into draw and result, mirroring MIMIC's `lab_specimen_collected` /
+  # `lab_result` pair, because eICU carries two distinct times and the earlier one is
+  # NOT when the value existed:
+  #
+  #   labResultOffset        "minutes from unit admit time that the lab value was drawn"
+  #   labResultRevisedOffset "minutes from unit admit time that the revised lab value
+  #                           was entered"
+  #   https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/lab.md
+  #
+  # Attaching the value to the draw time leaks: across the full release the entry lags
+  # the draw in 72.2% of rows, by a median of 42 minutes (p90 105, p99 588). A model
+  # keyed on draw time would see results up to hours before they were available.
+  #
+  # So the draw event carries no value, and the value rides on the entry event.
+  # Caveat: in 5.0% of rows the revised offset precedes the draw offset, which is
+  # incoherent as stated; those are passed through as recorded rather than reordered,
+  # since correcting them would invent a time the source does not contain.
+  lab_specimen_drawn:
+    code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
     time: $unitadmittimestamp - (-$labresultoffset)::minutes
+    lab_type_id: $labtypeid
+  lab_result:
+    code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$labresultrevisedoffset)::minutes
     numeric_value: $labresult
     text_value: $labresulttext
     lab_type_id: $labtypeid
