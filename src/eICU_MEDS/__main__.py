@@ -46,19 +46,20 @@ def main(cfg: DictConfig):
     else:  # pragma: no cover
         logger.info("Skipping data download.")
 
-    # Step 1: Pre-MEDS Data Wrangling
+    # Step 1: Pre-MEDS
     #
-    # eICU no longer ships a pre-MEDS step: the offset-to-pseudotime derivation it used
-    # to perform is expressed declaratively in `configs/event_configs.yaml` via
-    # `_table.join` + `_table.cols`, so the pipeline runs on the raw download directly.
-    # The branch is kept because `HAS_PRE_MEDS` is a package-level capability check.
-    if HAS_PRE_MEDS:  # pragma: no cover
+    # The offset-to-pseudotime wrangling the original pre-MEDS existed for is gone — it is
+    # declared in `configs/event_configs.yaml` now. What remains is metadata-only: building
+    # the `dx_icd_map` side table, which needs an explode that MESSY/dftly cannot express
+    # (mmcdermott/dftly#87). Raw tables are passed through untouched.
+    if HAS_PRE_MEDS:
         pre_MEDS_transform(
             input_dir=raw_input_dir,
             output_dir=pre_MEDS_dir,
-            do_overwrite=cfg.get("do_overwrite", None),
+            do_overwrite=cfg.get("do_overwrite", False),
+            do_copy=cfg.get("do_copy", False),
         )
-    else:
+    else:  # pragma: no cover
         pre_MEDS_dir = raw_input_dir
 
     # Step 2: MEDS Cohort Creation

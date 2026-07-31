@@ -13,6 +13,11 @@ do_download: True
 do_overwrite: False
 do_demo: False
 
+# Pre-MEDS passes the raw tables through untouched (it only adds the derived `dx_icd_map`
+# metadata table), so they are symlinked rather than duplicated. Set True to copy instead
+# — e.g. when the pipeline runs somewhere the raw directory will not stay mounted.
+do_copy: False
+
 # Number of parallel HTTPS connections used during the raw download stage. PhysioNet
 # rate-limits each TCP connection to ~50 KB/s but does not throttle aggregate per-IP
 # throughput, so 8 workers gives roughly 8x faster download without tripping their 429

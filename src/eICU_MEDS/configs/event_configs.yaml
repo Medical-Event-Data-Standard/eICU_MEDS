@@ -225,11 +225,8 @@ diagnosis:
   #      counterparts."
   #     https://github.com/MIT-LCP/eicu-code/issues/239
   #
-  # So the code here is the path itself — one event per row, no splitting. The ICD codes
-  # belong in `parent_codes` (a List(String)), which needs one metadata row per
-  # (path, code) pair and therefore an explode that MESSY/dftly cannot express; see
-  # Medical-Event-Data-Standard/eICU_MEDS#9. `icd_codes` carries the raw cell in the
-  # interim so nothing is lost.
+  # So the code here is the path itself — one event per row, no splitting — and the ICD
+  # codes become its `parent_codes`.
   #
   # The full path is kept rather than its last `|` element: the leaf does NOT determine
   # the path. 719 of 2,302 distinct leaves are shared by several paths (`closed`, `open`,
@@ -238,7 +235,42 @@ diagnosis:
     code: f"DIAGNOSIS//{$diagnosisstring}"
     time: $unitadmittimestamp - (-$diagnosisoffset)::minutes
     diagnosis_priority: $diagnosispriority
-    icd_codes: $icd9code
+    _metadata:
+      # `dx_icd_map` is built by pre_MEDS.py: one row per (diagnosisstring, icd_code),
+      # exploded out of the comma-joined cell and deduplicated. That explode is the ONLY
+      # reason a pre-MEDS stage exists — dftly has no list type, so it cannot be expressed
+      # here (mmcdermott/dftly#87). Everything below is declarative.
+      #
+      # `parent_codes` is reduced by unioning across the metadata rows that share a join
+      # key, so the N rows for one problem become one List(String) of N parents.
+      # `diagnosisstring` is the join key: it name-matches the component column of this
+      # event's code expression.
+      #
+      # No `description` is emitted — it would restate the code, which already is the path.
+      dx_icd_map:
+        diagnosisstring: $diagnosisstring
+        # Vocabulary is decided by grammar, matching MIMIC's `ICD9CM/...` / `ICD10CM/...`
+        # parent key format. eICU codes already carry their dots, so unlike MIMIC no
+        # normalization is needed — only the vocabulary prefix.
+        #
+        # A parent is emitted ONLY when the vocabulary is unambiguous. The grammars overlap
+        # on V-codes (`V08`, `V42.7`, `V42.83`, `V62.84` are legal under both) and `31.1` —
+        # an ICD-9 procedure code that leaked in — matches neither. Those get no parent
+        # rather than a guessed one: the conditional has no final `else`, so it yields null,
+        # and nulls are dropped by the union. 6,444 of 4,555,096 codes (0.1%) are affected.
+        #
+        # Note the maintainer guidance in MIT-LCP/eicu-code#176 — "ICD9 does not include
+        # any letters, so some basic regex should be able to select ICD9 or ICD10" — is
+        # wrong: ICD-9 E-codes and V-codes are letter-initial and collide with the ICD-10
+        # shape. Hence the explicit two-grammar test rather than a letter check.
+        #
+        # Each `and` operand is parenthesised because dftly's regex-match binds looser than
+        # `and` (mmcdermott/dftly#85); without the parens this does not parse.
+        parent_codes: >-
+          f"ICD9CM/{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
+          $icd_code) and (not (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code)))
+          else f"ICD10CM/{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
+          (not (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_code)))
 
 # The credentialed release spells this `infusionDrug.csv.gz`; the demo ships it
 # lowercase and is normalized up to this name on download (see the `sources:` block).
