@@ -15,8 +15,11 @@ description: |-
       various subfolders of this dir depending on the stage, as intermediate stages cache their output during
       computation for efficiency of re-running and distributing.
 
-# The event conversion configuration file is used throughout the pipeline to define the events to extract.
-event_conversion_config_fp: ${oc.env:EVENT_CONVERSION_CONFIG_FP}
+# The MESSY config drives every stage. 0.7 renamed this key from
+# `event_conversion_config_fp` to `MESSY_config_fp`; the stages read it out of the
+# pipeline config as a struct, so the old name fails with
+# "Key 'MESSY_config_fp' is not in struct" rather than a legible message.
+MESSY_config_fp: ${oc.env:EVENT_CONVERSION_CONFIG_FP}
 
 input_dir: ${oc.env:PRE_MEDS_DIR}
 output_dir: ${oc.env:MEDS_OUTPUT_DIR}
@@ -27,8 +30,12 @@ etl_metadata:
   dataset_version: ${oc.env:DATASET_VERSION}
 
 stages:
-  - shard_events:
-      infer_schema_length: 999999999
+  # 0.7 renamed the raw-ingest stage: `shard_events` became `convert_to_parquet`, which
+  # reads the raw source files into parquet before subject-sharding. Leaving the old name
+  # here fails the run outright with "Stage 'shard_events' not registered!".
+  # `infer_schema_length` is not a `convert_to_parquet` knob -- the 0.7 ingest derives
+  # column types from the MESSY `sources:` declaration rather than by sniffing rows.
+  - convert_to_parquet
   - split_and_shard_subjects:
       n_subjects_per_shard: 1000
   - convert_to_subject_sharded

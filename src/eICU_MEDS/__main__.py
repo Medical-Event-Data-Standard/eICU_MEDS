@@ -38,7 +38,11 @@ def main(cfg: DictConfig):
             [
                 resolve_console_script("meds-extract-download"),
                 f"spec={EVENT_CFG.resolve()!s}",
-                f"raw_input_dir={raw_input_dir.resolve()!s}",
+                # `meds-extract-download` names its destination `output_dir` (it is that
+                # command's output), not `raw_input_dir` -- the latter is this ETL's name
+                # for the same directory, and passing it through verbatim makes Hydra
+                # reject the override against `DownloadConfig`.
+                f"output_dir={raw_input_dir.resolve()!s}",
                 f"key={key}",
                 f"concurrency={download_workers}",
             ]
