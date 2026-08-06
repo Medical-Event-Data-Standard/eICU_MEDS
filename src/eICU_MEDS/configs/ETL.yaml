@@ -40,8 +40,19 @@ stages:
       n_subjects_per_shard: 1000
   - convert_to_subject_sharded
   - convert_to_MEDS_events
-  - merge_to_MEDS_cohort
+  # `extract_code_metadata` MUST precede `merge_to_MEDS_cohort`, matching upstream's
+  # canonical DEFAULT_PIPELINE. It consumes the `convert_to_MEDS_events` output, and its
+  # `data_input_dir` is simply the preceding stage's output — so ordering it after the merge
+  # silently pointed it at the MERGED shards instead.
+  #
+  # That used to work by accident: the merged output still carried the `code_components`
+  # struct the metadata join matches on. MEDS-Extract #254 drops that struct at merge, so the
+  # accidental wiring now matches nothing and every extracted metadata column is silently
+  # dropped — `metadata/codes.parquet` comes out as just `['code']`, with exit 0 and no
+  # warning. Upstream reordered its canonical pipeline in 9457866; this hand-maintained copy
+  # had to follow.
   - extract_code_metadata
+  - merge_to_MEDS_cohort
   - finalize_MEDS_metadata
   - finalize_MEDS_data
 
