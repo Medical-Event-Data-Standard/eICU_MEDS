@@ -10,7 +10,10 @@ authors = [
 ]
 description = "An ETL pipeline to extract the eICU dataset into the MEDS format."
 readme = "README.md"
-requires-python = ">=3.11"
+# Mirrors MEDS-Extract's own floor and ceiling. Upstream narrowed to >=3.11.4,<3.14; a
+# looser range here admits interpreters it cannot be installed on, and uv refuses to
+# resolve at all ("the requested Python version (>=3.11) does not satisfy Python>=3.11.4,<3.14").
+requires-python = ">=3.11.4,<3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -29,11 +32,17 @@ classifiers = [
 # `requests`/`beautifulsoup4` are gone: the bespoke `download.py` scraper was replaced
 # by MEDS-Extract's download layer (the `[download]` extra, httpx + tenacity), driven
 # by the `sources:` block in `configs/event_configs.yaml`.
+# Only MEDS-Extract and the joblib launcher are declared here. `polars`, `meds-transforms`
+# and `hydra-core` used to be pinned directly as well, and that is exactly the drift the
+# MIMIC-IV migration warns about: MEDS-Extract already fences those, so a second copy of the
+# pin goes stale independently. It did — `meds-transforms>=0.6.7,<0.7` here against
+# MEDS-Extract's own `>=0.7.0,<0.8` made the project unresolvable outright. They arrive
+# transitively at whatever versions MEDS-Extract fences.
+#
+# `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
+# it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
 dependencies = [
-    "polars~=1.30",
-    "meds-transforms>=0.6.7,<0.7",
     "meds-extract[download]>=0.6.2.dev0,<0.8",
-    "hydra-core~=1.3",
     "hydra-joblib-launcher~=1.2",
 ]
 
