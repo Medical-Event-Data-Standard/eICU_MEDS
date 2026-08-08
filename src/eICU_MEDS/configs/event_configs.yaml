@@ -14,10 +14,12 @@ patient:
       unitdischargetimestamp: $unitadmittimestamp - (-$unitdischargeoffset)::minutes
       hospitaladmittimestamp: $unitadmittimestamp - (-$hospitaladmitoffset)::minutes
       age_in_years: 90 if $age == "> 89" else regex_extract("^[0-9]+$", $age)::float64
-      dateofbirth: $unitadmittimestamp - ($age_in_years * 365.25 - 182.625)::days
+      # Anchored on the HOSPITAL admission, not the unit admission: this table is one row
+      # per unit stay but a subject is a health-system stay. See "Birth" in the README.
+      dateofbirth: $hospitaladmittimestamp - ($age_in_years * 365.25 + 182.625)::days
       time_of_death: $hospitaldischargetimestamp if $hospitaldischargestatus == "Expired"
   dob:
-    code: MEDS_BIRTH # This is the MEDS official code for birth.
+    code: MEDS_BIRTH
     time: $dateofbirth
   gender:
     code: f"GENDER//{$gender ?? 'UNK'}"
@@ -64,7 +66,7 @@ patient:
     time: $unitdischargetimestamp
     numeric_value: $dischargeweight
   time_of_death:
-    code: MEDS_DEATH # This is the MEDS official code for death.
+    code: MEDS_DEATH
     time: $time_of_death
 
 admissionDx:
