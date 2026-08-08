@@ -61,6 +61,43 @@ minutes relative to unit admission, and health-system stays are ordered only at
 **Only relative time differences within a subject are meaningful.** Absolute dates in the
 output are not real and must not be interpreted as such.
 
+## Vital signs: only measurements that happened
+
+`vitalPeriodic` and `vitalAperiodic` are wide tables — one row per timestamp, one column per
+vital sign — and most cells are empty. A row that recorded a heart rate still carries columns
+for intracranial pressure, end-tidal CO2 and the pulmonary-artery pressures, which need
+invasive lines that most patients never have.
+
+Each vital's code is therefore guarded so that a missing cell emits **no event**, rather than an
+event asserting the measurement was taken with no value attached. Without the guard the full
+cohort carries 2.60 billion vitals rows of which **69.8% are empty**; with it, 785 million, all
+of them real. Per-vital emptiness in the raw data ranges from 0.5% (heart rate) to 98.2%
+(intracranial pressure).
+
+The guard is written `if $x == $x`, which is true for any present value — including `0`, `inf`
+and `NaN` — and null for a missing one, which nulls the code and drops the row. It reads oddly
+because dftly has no null test; `if $x` will not type-check against a float column and a bare
+`null` parses as the string `"null"`. Tracked in
+[dftly#113](https://github.com/mmcdermott/dftly/issues/113); this becomes `if is_present($x)`
+once that lands.
+
+`NaN` and `inf` are deliberately preserved rather than dropped — they are recorded values, and
+changing that is a data-modelling decision rather than a bug fix.
+
+## Numeric-value guards
+
+`numeric_value` is strict-cast downstream, so a String source column containing a single
+non-numeric row aborts the stage. Which columns are String is not inferable from the demo — it
+depends on what junk happens to appear — so the guarded set comes from the official eICU DDL
+(`MIT-LCP/eicu-code`, `postgres_create_tables.sql`): `age`, `medication.dosage`, and
+`infusiondrug.{infusionrate, patientweight}`. Numeric-typed columns are passed through bare,
+since the schema forbids junk in them.
+
+The guard regex is exactly Rust's `f64::from_str` grammar, so it is value-for-value identical to
+polars' non-strict cast. A narrower hand-rolled pattern silently drops real values such as
+`1e5`, `25.` and `+5`; `tests/test_numeric_guard.py` pins the equivalence by differential
+fuzzing.
+
 ## Which eICU tables are extracted
 
 eICU-CRD v2.0 ships 31 tables. This pipeline reads 15 of them. The rest are excluded

@@ -21,12 +21,6 @@ classifiers = [
 ]
 # Each dep is pinned with a lower bound at the version we actively test against, and an
 # upper bound at the next known-or-expected breaking major.
-#
-# INTERIM (0.7 migration): MEDS-Extract 0.7.0 is not released yet, so `meds-extract`
-# resolves from the upstream `dev` branch via [tool.uv.sources] below. Git builds of
-# that branch self-identify as `0.6.2.devN` (the 0.6.2 tag is not an ancestor of dev),
-# so the specifier here must admit dev pre-releases; switch to
-# `meds-extract[download]>=0.7.0,<0.8` and drop the git source once 0.7.0 is on PyPI.
 # `meds-transforms>=0.6.7` is the floor MEDS-Extract 0.7 requires.
 #
 # `requests`/`beautifulsoup4` are gone: the bespoke `download.py` scraper was replaced
@@ -42,12 +36,9 @@ classifiers = [
 # `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
 # it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
 dependencies = [
-    "meds-extract[download]>=0.6.2.dev0,<0.8",
+    "meds-extract[download]>=0.7.0,<0.8",
     "hydra-joblib-launcher~=1.2",
 ]
-
-[tool.uv.sources]
-meds-extract = { git = "https://github.com/mmcdermott/MEDS_extract", branch = "dev" }
 
 [dependency-groups]
 # `pytest-rerunfailures` lets CI auto-retry the e2e demo download test on the narrow set

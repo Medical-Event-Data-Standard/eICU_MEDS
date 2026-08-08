@@ -1,69 +1,9 @@
-# eICU-CRD → MEDS event conversion config (MESSY syntax, MEDS-Extract 0.7).
-#
-# ── Subject identity ────────────────────────────────────────────────────────────
-# eICU has no stable cross-stay patient identifier that is temporally orderable:
-# `uniquepid` links a person across health-system stays, but those stays are ordered
-# only at *year* granularity. Following the original pipeline, the MEDS subject is the
-# **health system stay** (`patienthealthsystemstayid`), within which events are well
-# ordered. This costs cross-stay longitudinality and is a deliberate trade.
-#
-# ── Pseudotimes (the reason this file looks the way it does) ────────────────────
-# eICU ships no absolute timestamps: every table carries an integer *offset in minutes*
-# relative to unit admission. Only the `patient` table can anchor those offsets, via:
-#
-#   hospital_discharge = <hospitaldischargeyear>-12-31 @ hospitaldischargetime24
-#   unit_admit         = hospital_discharge - hospitaldischargeoffset minutes
-#
-# The Dec-31 anchor is arbitrary and constant across all subjects (it is the original
-# pipeline's convention, preserved here). ONLY RELATIVE TIME DIFFERENCES ARE MEANINGFUL
-# IN eICU — absolute times are not real.
-#
-# Under 0.7 this no longer needs a pre-MEDS pass. `_table.join` pulls the four raw
-# anchor columns off `patient`, and `_table.cols` — which is applied *after* the join
-# and evaluates entries in order, so later entries may reference earlier ones — rebuilds
-# `unitadmittimestamp` on each table. Events then offset from it.
-#
-# ── `- (-$offset)::minutes` ─────────────────────────────────────────────────────
-# Adding a Duration to a Datetime is what these expressions mean, but dftly's `+`
-# (`Add`) lowers to `pl.sum_horizontal`, which casts operands to a common supertype and
-# so fails with "casting from Duration('μs') to Datetime('μs') not supported".
-# Subtraction lowers to `pl.Expr.sub`, which handles Datetime − Duration natively — so
-# every "anchor + offset" is written as "anchor − (−offset)". Filed upstream; once `Add`
-# lowers to `pl.Expr.add` these can all become plain `+ $offset::minutes`.
-#
-# ── NUMERIC-GUARD ───────────────────────────────────────────────────────────────
-# `numeric_value` is strict-cast downstream, so a String source column containing any
-# non-numeric row aborts the stage. Which columns are String is NOT inferable from the
-# demo — it depends on what junk happens to appear — so the guarded set is taken from
-# the official eICU DDL (MIT-LCP/eicu-code postgres_create_tables.sql) instead:
-#
-#   VARCHAR  -> age, medication.dosage, infusiondrug.{infusionrate, patientweight,
-#               drugrate, drugamount, volumeoffluid}
-#   NUMERIC/INT/DOUBLE -> lab.labresult, patient.{admission,discharge}{weight,height},
-#               and every vitalPeriodic / vitalAperiodic measurement
-#
-# Only the VARCHAR columns used as `numeric_value` are guarded; the numeric-typed ones
-# are passed through bare, since the upstream schema forbids junk in them and wrapping
-# ~29M vitals rows would cost for nothing. (`drugrate`/`drugamount`/`volumeoffluid` are
-# VARCHAR but ride along as free-text passthrough columns, which need no guard.)
-#
-# The guard regex is exactly Rust's `f64::from_str` grammar — optional sign, decimal or
-# leading/trailing-dot forms, optional exponent, plus inf/infinity/nan — so
-# `regex_extract(...)::float64` is value-for-value identical to polars'
-# `cast(Float64, strict=False)`, which is what the pre-0.7 pipeline applied. A narrower
-# hand-rolled pattern silently drops real values (`1e5`, `25.`, `+5`); `tests/
-# test_numeric_guard.py` pins the equivalence by differential fuzzing so it cannot
-# regress. inf/NaN passthrough is inherited from the old behavior and is deliberately
-# NOT changed here — that belongs in its own change, not a migration.
-
 _defaults:
   subject_id: $patienthealthsystemstayid
 
 patient:
   _table:
     join:
-      # Hospital-level attributes are static per `hospitalid` and are folded into the
-      # admission code, replacing the pre-MEDS hospital join.
       hospital:
         key: hospitalid
         cols: [numbedscategory, teachingstatus, region]
@@ -73,16 +13,8 @@ patient:
       unitadmittimestamp: $hospitaldischargetimestamp - $hospitaldischargeoffset::minutes
       unitdischargetimestamp: $unitadmittimestamp - (-$unitdischargeoffset)::minutes
       hospitaladmittimestamp: $unitadmittimestamp - (-$hospitaladmitoffset)::minutes
-      # `age` is a string column: numeric for most subjects, the literal ">  89" for
-      # HIPAA-capped ages, and empty when unknown. `regex_extract` yields null for both
-      # non-numeric cases, keeping the (always-strict) `::float64` cast safe on every
-      # row; the conditional then restores 90 for the capped group, as the original
-      # pipeline did. Birth is assumed at the midpoint of the birth year, hence the
-      # half-year (182.625 day) correction.
       age_in_years: 90 if $age == "> 89" else regex_extract("^[0-9]+$", $age)::float64
       dateofbirth: $unitadmittimestamp - ($age_in_years * 365.25 - 182.625)::days
-      # A conditional with no `else` yields null when the test fails — living subjects
-      # get a null death time and the extraction's computed-time filter drops the row.
       time_of_death: $hospitaldischargetimestamp if $hospitaldischargestatus == "Expired"
   dob:
     code: MEDS_BIRTH # This is the MEDS official code for birth.
@@ -150,12 +82,6 @@ admissionDx:
         f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
         - $hospitaldischargeoffset::minutes
   admission_diagnosis:
-    # Keyed on the full `|` path, not `admitdxname`, for the same reason `diagnosis` is:
-    # the leaf does not identify the concept. `admitdxname` is exactly the last path
-    # element (verified: 626,858/626,858 rows), and 46 names are reached by more than one
-    # path — `posterior` alone appears under `Acute MI location` and elsewhere. Keying on
-    # the name would silently merge 487 distinct admission diagnoses into 431 codes.
-    # The name is dropped rather than carried, being derivable from the code.
     code: f"ADMISSION_DIAGNOSIS//{$admitdxpath ?? 'UNK'}"
     time: $unitadmittimestamp - (-$admitdxenteredoffset)::minutes
     admission_dx_id: $admissiondxid
@@ -208,78 +134,19 @@ diagnosis:
   _table:
     join: *anchor_join
     cols: *anchor_cols
-  # One row of `diagnosis` is ONE clinical problem, identified by its hierarchical
-  # eCareManager path. `icd9code` is not a per-row coding decision and not a list of
-  # distinct diagnoses — it is a vendor lookup from that path to its ICD equivalents,
-  # verified empirically: of 861 distinct coded paths in the demo, zero appear with more
-  # than one distinct `icd9code` value, and none appear both coded and uncoded.
-  #
-  #   Sci Data 5:180178 (Pollard et al. 2018), which ships as the PhysioNet description:
-  #     "Most problems are mapped to International Classification of Disease (ICD) codes
-  #      [...] For example, ''endocrine|glucose metabolism|diabetes mellitus|Type II|
-  #      controlled'' is mapped to ICD-9 code 250.00 [...] and ICD-10 code E11.9"
-  #     https://doi.org/10.1038/sdata.2018.178
-  #
-  #   MIT-LCP/eicu-code notebooks/diagnosis.ipynb:
-  #     "icd9code - a mapping from the problem to ICD-9 and ICD-10 code (the name of the
-  #      column is antiquated)"
-  #     https://eicu.mit.edu/tutorials/diagnosis/
-  #
-  #   Omar Badawi (Philips, paper co-author), MIT-LCP/eicu-code#239:
-  #     "the diagnosis strings are not ICD 9 or 10 diagnoses. They were custom made and
-  #      the codes you see were generated by a mapping of the custom strings to their ICD
-  #      counterparts."
-  #     https://github.com/MIT-LCP/eicu-code/issues/239
-  #
-  # So the code here is the path itself — one event per row, no splitting — and the ICD
-  # codes become its `parent_codes`.
-  #
-  # The full path is kept rather than its last `|` element: the leaf does NOT determine
-  # the path. 719 of 2,302 distinct leaves are shared by several paths (`closed`, `open`,
-  # `severe`, `right`, `suspected` are generic qualifiers), affecting 55.4% of rows.
   diagnosis:
     code: f"DIAGNOSIS//{$diagnosisstring}"
     time: $unitadmittimestamp - (-$diagnosisoffset)::minutes
     diagnosis_priority: $diagnosispriority
     _metadata:
-      # `dx_icd_map` is built by pre_MEDS.py: one row per (diagnosisstring, icd_code),
-      # exploded out of the comma-joined cell and deduplicated. That explode is the ONLY
-      # reason a pre-MEDS stage exists — dftly has no list type, so it cannot be expressed
-      # here (mmcdermott/dftly#87). Everything below is declarative.
-      #
-      # `parent_codes` is reduced by unioning across the metadata rows that share a join
-      # key, so the N rows for one problem become one List(String) of N parents.
-      # `diagnosisstring` is the join key: it name-matches the component column of this
-      # event's code expression.
-      #
-      # No `description` is emitted — it would restate the code, which already is the path.
       dx_icd_map:
         diagnosisstring: $diagnosisstring
-        # Vocabulary is decided by grammar, matching MIMIC's `ICD9CM/...` / `ICD10CM/...`
-        # parent key format. eICU codes already carry their dots, so unlike MIMIC no
-        # normalization is needed — only the vocabulary prefix.
-        #
-        # A parent is emitted ONLY when the vocabulary is unambiguous. The grammars overlap
-        # on V-codes (`V08`, `V42.7`, `V42.83`, `V62.84` are legal under both) and `31.1` —
-        # an ICD-9 procedure code that leaked in — matches neither. Those get no parent
-        # rather than a guessed one: the conditional has no final `else`, so it yields null,
-        # and nulls are dropped by the union. 6,444 of 4,555,096 codes (0.1%) are affected.
-        #
-        # Note the maintainer guidance in MIT-LCP/eicu-code#176 — "ICD9 does not include
-        # any letters, so some basic regex should be able to select ICD9 or ICD10" — is
-        # wrong: ICD-9 E-codes and V-codes are letter-initial and collide with the ICD-10
-        # shape. Hence the explicit two-grammar test rather than a letter check.
-        #
-        # Each `and` operand is parenthesised because dftly's regex-match binds looser than
-        # `and` (mmcdermott/dftly#85); without the parens this does not parse.
         parent_codes: >-
           f"ICD9CM/{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
           $icd_code) and (not (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code)))
           else f"ICD10CM/{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
           (not (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_code)))
 
-# The credentialed release spells this `infusionDrug.csv.gz`; the demo ships it
-# lowercase and is normalized up to this name on download (see the `sources:` block).
 infusionDrug:
   _table:
     join: *anchor_join
@@ -292,9 +159,6 @@ infusionDrug:
     infusion_rate: $infusionrate
     drug_amount: $drugamount
     volume_of_fluid: $volumeoffluid
-    # NUMERIC-GUARD (see the header note). `infusionrate` and `patientweight` are
-    # VARCHAR(255) in the eICU DDL and really do carry junk — `drugrate` ships a literal
-    # "ERROR" — so a bare `$infusionrate` aborts the stage on the strict cast.
     numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $infusionrate)::float64'
     medication_id: $infusiondrugid
   patient_weight:
@@ -306,23 +170,6 @@ lab:
   _table:
     join: *anchor_join
     cols: *anchor_cols
-  # Split into draw and result, mirroring MIMIC's `lab_specimen_collected` /
-  # `lab_result` pair, because eICU carries two distinct times and the earlier one is
-  # NOT when the value existed:
-  #
-  #   labResultOffset        "minutes from unit admit time that the lab value was drawn"
-  #   labResultRevisedOffset "minutes from unit admit time that the revised lab value
-  #                           was entered"
-  #   https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/lab.md
-  #
-  # Attaching the value to the draw time leaks: across the full release the entry lags
-  # the draw in 72.2% of rows, by a median of 42 minutes (p90 105, p99 588). A model
-  # keyed on draw time would see results up to hours before they were available.
-  #
-  # So the draw event carries no value, and the value rides on the entry event.
-  # Caveat: in 5.0% of rows the revised offset precedes the draw offset, which is
-  # incoherent as stated; those are passed through as recorded rather than reordered,
-  # since correcting them would invent a time the source does not contain.
   lab_specimen_drawn:
     code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
     time: $unitadmittimestamp - (-$labresultoffset)::minutes
@@ -341,12 +188,6 @@ medication:
   drug_started:
     code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
-    # NUMERIC-GUARD (see the header note). `dosage` is VARCHAR(60) and overwhelmingly
-    # free text ("1000 MG", "5,000 UNITS", "1 SPRAY") — only ~1% of demo rows are bare
-    # numbers. The pre-0.7 lenient cast silently nulled the rest and this reproduces
-    # that, so `numeric_value` is null for almost every medication event. The raw string
-    # is preserved in `dosage` below so nothing is lost; parsing it into value + unit is
-    # worth its own issue.
     numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $dosage)::float64'
     dosage: $dosage
     medication_id: $medicationid
@@ -369,52 +210,52 @@ vitalAperiodic:
     join: *anchor_join
     cols: *anchor_cols
   non_invasive_systolic:
-    code: '"VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC"'
+    code: '"VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC" if $noninvasivesystolic == $noninvasivesystolic'
     time: &vap_time $unitadmittimestamp - (-$observationoffset)::minutes
     vital_id: &vap_id $vitalaperiodicid
     numeric_value: $noninvasivesystolic
   non_invasive_diastolic:
-    code: '"VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC"'
+    code: '"VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC" if $noninvasivediastolic == $noninvasivediastolic'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $noninvasivediastolic
   non_invasive_mean:
-    code: '"VITALS//APERIODIC//BP//NONINVASIVE_MEAN"'
+    code: '"VITALS//APERIODIC//BP//NONINVASIVE_MEAN" if $noninvasivemean == $noninvasivemean'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $noninvasivemean
   paop:
-    code: '"VITALS//APERIODIC//PAOP"'
+    code: '"VITALS//APERIODIC//PAOP" if $paop == $paop'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $paop
   cardiac_output:
-    code: '"VITALS//APERIODIC//CARDIAC_OUTPUT"'
+    code: '"VITALS//APERIODIC//CARDIAC_OUTPUT" if $cardiacoutput == $cardiacoutput'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $cardiacoutput
   cardiac_input:
-    code: '"VITALS//APERIODIC//CARDIAC_INPUT"'
+    code: '"VITALS//APERIODIC//CARDIAC_INPUT" if $cardiacinput == $cardiacinput'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $cardiacinput
   svr:
-    code: '"VITALS//APERIODIC//SVR"'
+    code: '"VITALS//APERIODIC//SVR" if $svr == $svr'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $svr
   svri:
-    code: '"VITALS//APERIODIC//SVRI"'
+    code: '"VITALS//APERIODIC//SVRI" if $svri == $svri'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $svri
   pvr:
-    code: '"VITALS//APERIODIC//PVR"'
+    code: '"VITALS//APERIODIC//PVR" if $pvr == $pvr'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $pvr
   pvri:
-    code: '"VITALS//APERIODIC//PVRI"'
+    code: '"VITALS//APERIODIC//PVRI" if $pvri == $pvri'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $pvri
@@ -424,108 +265,88 @@ vitalPeriodic:
     join: *anchor_join
     cols: *anchor_cols
   temperature:
-    code: '"VITALS//PERIODIC//TEMPERATURE"'
+    code: '"VITALS//PERIODIC//TEMPERATURE" if $temperature == $temperature'
+    # `- (-x)` not `+ x`: dftly lowers Add to sum_horizontal, which cannot add a Duration
+    # to a Datetime. `if $x == $x` drops rows whose cell is empty; see the README.
     time: &vp_time $unitadmittimestamp - (-$observationoffset)::minutes
     vital_id: &vp_id $vitalperiodicid
     numeric_value: $temperature
   saO2:
-    code: '"VITALS//PERIODIC//SAO2"'
+    code: '"VITALS//PERIODIC//SAO2" if $sao2 == $sao2'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $sao2
   heartRate:
-    code: '"VITALS//PERIODIC//HEARTRATE"'
+    code: '"VITALS//PERIODIC//HEARTRATE" if $heartrate == $heartrate'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $heartrate
   respiration:
-    code: '"VITALS//PERIODIC//RESPIRATION"'
+    code: '"VITALS//PERIODIC//RESPIRATION" if $respiration == $respiration'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $respiration
   cvp:
-    code: '"VITALS//PERIODIC//CVP"'
+    code: '"VITALS//PERIODIC//CVP" if $cvp == $cvp'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $cvp
   etCo2:
-    code: '"VITALS//PERIODIC//ETCO2"'
+    code: '"VITALS//PERIODIC//ETCO2" if $etco2 == $etco2'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $etco2
   systemic_systolic:
-    code: '"VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC"'
+    code: '"VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC" if $systemicsystolic == $systemicsystolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $systemicsystolic
   systemic_diastolic:
-    code: '"VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC"'
+    code: '"VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC" if $systemicdiastolic == $systemicdiastolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $systemicdiastolic
   systemic_mean:
-    code: '"VITALS//PERIODIC//BP//SYSTEMIC_MEAN"'
+    code: '"VITALS//PERIODIC//BP//SYSTEMIC_MEAN" if $systemicmean == $systemicmean'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $systemicmean
   pa_systolic:
-    code: '"VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC"'
+    code: '"VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC" if $pasystolic == $pasystolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $pasystolic
   pa_diastolic:
-    code: '"VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC"'
+    code: '"VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC" if $padiastolic == $padiastolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $padiastolic
   pa_mean:
-    code: '"VITALS//PERIODIC//BP//PULM_ART_MEAN"'
+    code: '"VITALS//PERIODIC//BP//PULM_ART_MEAN" if $pamean == $pamean'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $pamean
   st1:
-    code: '"VITALS//PERIODIC//ST1"'
+    code: '"VITALS//PERIODIC//ST1" if $st1 == $st1'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $st1
   st2:
-    code: '"VITALS//PERIODIC//ST2"'
+    code: '"VITALS//PERIODIC//ST2" if $st2 == $st2'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $st2
   st3:
-    code: '"VITALS//PERIODIC//ST3"'
+    code: '"VITALS//PERIODIC//ST3" if $st3 == $st3'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $st3
   ICP:
-    code: '"VITALS//PERIODIC//ICP"'
+    code: '"VITALS//PERIODIC//ICP" if $icp == $icp'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $icp
 
-# Where the raw data lives. This block is consumed by `meds-extract-download` (invoked
-# by the `MEDS_extract-eICU` runner) and is a reserved key stripped before event
-# conversion, so the credential interpolations never need to be set to run the pipeline
-# and never land in logs or the config copy written to the output tree.
-#
-# The download CLI resolves interpolations only for the selected bucket, so demo/CI runs
-# never need the credential env vars below; a `key=dataset` run without them fails up
-# front with a clear missing-env-var error. eICU has no external concept-map metadata to
-# fetch, so there is no `common` bucket.
-# The `User-Agent` is REQUIRED for the credentialed release and is not cosmetic.
-# physionet.org serves credentialed paths under `/files/` only to clients whose UA
-# begins with `Wget/<version>` — their documented bulk-download tool. Every other
-# client is refused with a bare `403` and no `WWW-Authenticate` challenge, *before*
-# credentials are considered: an unauthenticated request, a deliberately-wrong
-# credential, and a correct credential are byte-identical 403s under curl's,
-# httpx's, requests', or a browser's default UA. That makes the failure look like
-# bad credentials or a missing data-use agreement, which is how it was first
-# misdiagnosed here. httpx (what this downloader uses) is refused by default.
-#
-# The prefix is what PhysioNet matches, so a trailing identifier is preserved —
-# `Wget/1.21.4 eICU-MEDS` satisfies their allowlist while still naming the real
-# client, rather than impersonating wget outright.
 sources:
   dataset:
     - type: physionet
@@ -537,34 +358,14 @@ sources:
   demo:
     - type: physionet
       base_url: https://physionet.org/files/eicu-crd-demo/2.0.1
-      # The open demo is served to any UA today; set the same header so the two
-      # buckets do not diverge if PhysioNet ever applies the rule uniformly.
       headers:
         User-Agent: Wget/1.21.4 eICU-MEDS
-      # Normalized to the full release's name by the entry below.
       exclude:
         - infusiondrug.csv.gz
-    # CASING NORMALIZATION. The demo and the credentialed release disagree on the
-    # case of exactly two filenames: the demo ships `infusiondrug.csv.gz` and
-    # `admissiondrug.csv.gz` where the full release has `infusionDrug.csv.gz` and
-    # `admissionDrug.csv.gz`. All 29 other names match byte-for-byte.
-    #
-    # This matters because 0.7 reads the raw download directly and resolves a table
-    # by exact path (`resolve_source_files` builds `dir / f"{prefix}{ext}"`), so one
-    # config prefix cannot match both. The old pipeline hid this by lowercasing every
-    # prefix in pre-MEDS. The failure is at least loud — `shard_events` raises
-    # `FileNotFoundError` naming the prefix — but it does block the run.
-    #
-    # Rather than rename the authoritative release, the *demo* is normalized up to the
-    # official spelling (which is also the DDL's table name), so the credentialed
-    # download stays byte-faithful and the e2e exercises this path on every CI run.
-    # `admissiondrug` is deliberately left alone — no table in this config reads it.
     - type: http
       headers:
         User-Agent: Wget/1.21.4 eICU-MEDS
       urls:
         - url: https://physionet.org/files/eicu-crd-demo/2.0.1/infusiondrug.csv.gz
           rel_path: infusionDrug.csv.gz
-          # Pinned because the downloader refuses to skip an existing file it cannot
-          # verify, which would break every resumed run. The 2.0.1 release is immutable.
           sha256: 3b9f024d28682884a820763ac516ae68b247ebf17903fee4f38240c04886d527
