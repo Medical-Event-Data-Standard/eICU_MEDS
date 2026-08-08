@@ -44,13 +44,13 @@ patient:
     icustay_id: $patientunitstayid
     ward_id: $wardid
   unit_admission_weight:
-    code: ICU_ADMISSION_WEIGHT
+    code: '"ICU_ADMISSION_WEIGHT" if $admissionweight == $admissionweight'
     time: $unitadmittimestamp
     hadm_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $admissionweight
   unit_admission_height:
-    code: ICU_ADMISSION_HEIGHT
+    code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
     time: $unitadmittimestamp
     hadm_id: $hospitalid
     icustay_id: $patientunitstayid
@@ -62,7 +62,7 @@ patient:
     icustay_id: $patientunitstayid
     ward_id: $wardid
   unit_discharge_weight:
-    code: ICU_DISCHARGE_WEIGHT
+    code: '"ICU_DISCHARGE_WEIGHT" if $dischargeweight == $dischargeweight'
     time: $unitdischargetimestamp
     numeric_value: $dischargeweight
   time_of_death:
@@ -152,7 +152,9 @@ diagnosis:
 infusionDrug:
   _table:
     join: *anchor_join
-    cols: *anchor_cols
+    cols:
+      <<: *anchor_cols
+      _patient_weight: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $patientweight)::float64'
   infusion:
     code: INFUSION_DRUG
     time: $unitadmittimestamp - (-$infusionoffset)::minutes
@@ -164,9 +166,9 @@ infusionDrug:
     numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $infusionrate)::float64'
     medication_id: $infusiondrugid
   patient_weight:
-    code: SUBJECT_WEIGHT_AT_INFUSION
+    code: '"SUBJECT_WEIGHT_AT_INFUSION" if $_patient_weight == $_patient_weight'
     time: $unitadmittimestamp - (-$infusionoffset)::minutes
-    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $patientweight)::float64'
+    numeric_value: $_patient_weight
 
 lab:
   _table:
