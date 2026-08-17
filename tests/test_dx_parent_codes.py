@@ -22,7 +22,7 @@ from eICU_MEDS.pre_MEDS import build_dx_icd_map
 def parent_codes_expr():
     """The shipped ``parent_codes`` expression from the diagnosis event's metadata block."""
     cfg = MessyConfig.load(EVENT_CFG)
-    table = next(t for t in cfg.tables if t.input_prefix == "diagnosis")
+    table = next(t for t in cfg.event_tables if t.input_prefix == "diagnosis")
     (event,) = table.events
     return Parser.to_polars({"v": event.metadata["dx_icd_map"]["parent_codes"]})["v"]
 
