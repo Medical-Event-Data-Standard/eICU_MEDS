@@ -1,627 +1,375 @@
-# File: `src/eICU_MEDS/configs/event_configs.yaml`
-# Note that there is no "subject_id" for eICU -- patients are only differentiable during the course of a
-# single health system stay. Accordingly, we set the "patient" id here as the "patientHealthSystemStayID"
+_defaults:
+  subject_id: $patienthealthsystemstayid
 
-# Original: subject_id_col
-subject_id_col: patienthealthsystemstayid
-
-# Original: patient
 patient:
+  _table:
+    join:
+      hospital:
+        key: hospitalid
+        cols: [numbedscategory, teachingstatus, region]
+    cols:
+      hospitaldischargetimestamp: >-
+        f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
+      unitadmittimestamp: $hospitaldischargetimestamp - $hospitaldischargeoffset::minutes
+      unitdischargetimestamp: $unitadmittimestamp - (-$unitdischargeoffset)::minutes
+      hospitaladmittimestamp: $unitadmittimestamp - (-$hospitaladmitoffset)::minutes
+      age_in_years: 90 if $age == "> 89" else regex_extract("^[0-9]+$", $age)::float64
+      # Anchored on the HOSPITAL admission, not the unit admission: this table is one row
+      # per unit stay but a subject is a health-system stay. See "Birth" in the README.
+      dateofbirth: $hospitaladmittimestamp - ($age_in_years * 365.25 + 182.625)::days
+      time_of_death: $hospitaldischargetimestamp if $hospitaldischargestatus == "Expired"
   dob:
-    code: MEDS_BIRTH # This is the MEDS official code for BIRTH.
-    time: col(dateofbirth)
+    code: MEDS_BIRTH
+    time: $dateofbirth
   gender:
-    code:
-      - GENDER
-      - col(gender)
+    code: f"GENDER//{$gender ?? 'UNK'}"
     time: null
   ethnicity:
-    code:
-      - RACE
-      - col(ethnicity)
+    code: f"RACE//{$ethnicity ?? 'UNK'}"
     time: null
   hosp_admission:
-    code:
-      - HOSPITAL_ADMISSION
-      - col(hospitaladmitsource)
-      - col(hospitalregion)
-      - col(hospitalteachingstatus)
-      - col(hospitalnumbedscategory)
-    time: col(hospitaladmittimestamp)
-    hadm_id: hospitalid
+    code: >-
+      f"HOSPITAL_ADMISSION//{$hospitaladmitsource ?? 'UNK'}//{$region ?? 'UNK'}//{$teachingstatus ??
+      'UNK'}//{$numbedscategory ?? 'UNK'}"
+    time: $hospitaladmittimestamp
+    hadm_id: $hospitalid
   hosp_discharge:
-    code:
-      - "HOSPITAL_DISCHARGE"
-      - col(hospitaldischargestatus)
-      - col(hospitaldischargelocation)
-    time: col(hospitaldischargetimestamp)
-    hadm_id: hospitalid
+    code: f"HOSPITAL_DISCHARGE//{$hospitaldischargestatus ?? 'UNK'}//{$hospitaldischargelocation ?? 'UNK'}"
+    time: $hospitaldischargetimestamp
+    hadm_id: $hospitalid
   unit_admission:
-    code:
-      - ICU_ADMISSION
-      - col(unitadmitsource)
-      - col(unitstaytype)
-    time: col(unitadmittimestamp)
-    hadm_id: hospitalid
-    icustay_id: patientunitstayid
-    ward_id: wardid
+    code: f"ICU_ADMISSION//{$unitadmitsource ?? 'UNK'}//{$unitstaytype ?? 'UNK'}"
+    time: $unitadmittimestamp
+    hadm_id: $hospitalid
+    icustay_id: $patientunitstayid
+    ward_id: $wardid
   unit_admission_weight:
-    code:
-      - ICU_ADMISSION_WEIGHT
-    time: col(unitadmittimestamp)
-    hadm_id: hospitalid
-    icustay_id: patientunitstayid
-    numeric_value: "unitadmissionweight"
+    code: '"ICU_ADMISSION_WEIGHT" if $admissionweight == $admissionweight'
+    time: $unitadmittimestamp
+    hadm_id: $hospitalid
+    icustay_id: $patientunitstayid
+    numeric_value: $admissionweight
   unit_admission_height:
-    code:
-      - ICU_ADMISSION_HEIGHT
-    time: col(unitadmittimestamp)
-    hadm_id: hospitalid
-    icustay_id: patientunitstayid
-    numeric_value: "unitadmissionheight"
+    code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
+    time: $unitadmittimestamp
+    hadm_id: $hospitalid
+    icustay_id: $patientunitstayid
+    numeric_value: $admissionheight
   unit_discharge:
-    code:
-      - ICU_DISCHARGE
-      - col(unitdischargestatus)
-      - col(unitdischargelocation)
-    time: col(unitdischargetimestamp)
-    hadm_id: hospitalid
-    icustay_id: patientunitstayid
-    ward_id: wardid
+    code: f"ICU_DISCHARGE//{$unitdischargestatus ?? 'UNK'}//{$unitdischargelocation ?? 'UNK'}"
+    time: $unitdischargetimestamp
+    hadm_id: $hospitalid
+    icustay_id: $patientunitstayid
+    ward_id: $wardid
   unit_discharge_weight:
-    code:
-      - ICU_DISCHARGE_WEIGHT
-    time: col(unitdischargetimestamp)
-    numeric_value: unitdischargeweight
+    code: '"ICU_DISCHARGE_WEIGHT" if $dischargeweight == $dischargeweight'
+    time: $unitdischargetimestamp
+    numeric_value: $dischargeweight
   time_of_death:
-    code:
-      - MEDS_DEATH
-    time: col(time_of_death)
+    code: MEDS_DEATH
+    time: $time_of_death
 
-# Original: admissionDx
-admissiondx:
+admissionDx:
+  _table:
+    join: &anchor_join
+      patient:
+        key: patientunitstayid
+        cols:
+          - patienthealthsystemstayid
+          - hospitaldischargeyear
+          - hospitaldischargetime24
+          - hospitaldischargeoffset
+    cols: &anchor_cols
+      unitadmittimestamp: >-
+        f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
+        - $hospitaldischargeoffset::minutes
   admission_diagnosis:
-    code:
-      - ADMISSION_DIAGNOSIS
-      - col(admitdxname)
-    time: col(admitDxEnteredTimestamp)
-    admission_dx_id: admissiondxid
-    icustay_id: patientunitstayid
+    code: f"ADMISSION_DIAGNOSIS//{$admitdxpath ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$admitdxenteredoffset)::minutes
+    admission_dx_id: $admissiondxid
+    icustay_id: $patientunitstayid
 
-# Original: allergy
 allergy:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   allergy:
-    code:
-      - ALLERGY
-      - col(allergytype)
-    #      - col(allergyname)
-    time: col(allergyEnteredTimestamp)
-    text_value: allergyname
+    code: f"ALLERGY//{$allergytype ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$allergyenteredoffset)::minutes
+    text_value: $allergyname
 
-# Original: carePlanGeneral
-careplangeneral:
+carePlanGeneral:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   cplItem:
-    code:
-      - CAREPLAN_GENERAL
-      - col(cplgroup)
-      - col(cplitemvalue)
-    time: col(carePlanGeneralItemEnteredTimestamp)
+    code: f"CAREPLAN_GENERAL//{$cplgroup ?? 'UNK'}//{$cplitemvalue ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$cplitemoffset)::minutes
 
-# Original: carePlanEOL
-careplaneol:
+carePlanEOL:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   cplEolDiscussion:
-    code:
-      - CAREPLAN_EOL
-    time: col(carePlanEolDiscussionOccurredTimestamp)
+    code: CAREPLAN_EOL
+    time: $unitadmittimestamp - (-$cpleoldiscussionoffset)::minutes
 
-# Original: carePlanGoal
-careplangoal:
+carePlanGoal:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   cplGoal:
-    code:
-      - CAREPLAN_GOAL
-      - col(cplgoalcategory)
-      - col(cplgoalvalue)
-      - col(cplgoalstatus)
-    time: col(carePlanGoalEnteredTimestamp)
+    code: f"CAREPLAN_GOAL//{$cplgoalcategory ?? 'UNK'}//{$cplgoalvalue ?? 'UNK'}//{$cplgoalstatus ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$cplgoaloffset)::minutes
 
-# Original: carePlanInfectiousDisease
-careplaninfectiousdisease:
+carePlanInfectiousDisease:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   cplInfectDisease:
-    code:
-      - CAREPLAN_INFECTIOUS_DISEASE
-      - col(infectdiseasesite)
-      - col(infectdiseaseassessment)
-      - col(treatment)
-      - col(responsetotherapy)
-    time: col(carePlanInfectDiseaseEnteredTimestamp)
+    code: >-
+      f"CAREPLAN_INFECTIOUS_DISEASE//{$infectdiseasesite ?? 'UNK'}//{$infectdiseaseassessment ??
+      'UNK'}//{$treatment ?? 'UNK'}//{$responsetotherapy ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$cplinfectdiseaseoffset)::minutes
 
-# Original: diagnosis
 diagnosis:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   diagnosis:
-    code:
-      - DIAGNOSIS
-      - ICD
-      - "9"
-      - col(icd9code)
-    diagnosis_priority: col(diagnosispriority)
-    time: col(diagnosisEnteredTimestamp)
-    diagnosis_string: diagnosisstring
+    code: f"DIAGNOSIS//{$diagnosisstring}"
+    time: $unitadmittimestamp - (-$diagnosisoffset)::minutes
+    diagnosis_priority: $diagnosispriority
+    _metadata:
+      dx_icd_map:
+        diagnosisstring: $diagnosisstring
+        parent_codes: >-
+          f"ICD9CM/{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
+          $icd_code) and (not (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code)))
+          else f"ICD10CM/{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
+          (not (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_code)))
 
-# Original: infusionDrug
-infusiondrug:
+infusionDrug:
+  _table:
+    join: *anchor_join
+    cols:
+      <<: *anchor_cols
+      _patient_weight: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $patientweight)::float64'
   infusion:
-    code:
-      - INFUSION_DRUG
-    #      - col(infusiondrugid)
-    #      - col(drugname)
-    time: col(infusionEnteredTimestamp)
-    text_value: drugname
-    drug_rate: drugrate
-    infusion_rate: infusionrate
-    drug_amount: drugamount
-    volume_of_fluid: volumeoffluid
-    numeric_value: infusionrate
-    medication_id: infusiondrugid
+    code: INFUSION_DRUG
+    time: $unitadmittimestamp - (-$infusionoffset)::minutes
+    text_value: $drugname
+    drug_rate: $drugrate
+    infusion_rate: $infusionrate
+    drug_amount: $drugamount
+    volume_of_fluid: $volumeoffluid
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $infusionrate)::float64'
+    medication_id: $infusiondrugid
   patient_weight:
-    code:
-      - SUBJECT_WEIGHT_AT_INFUSION
-    time: col(infusionEnteredTimestamp)
-    numeric_value: patientweight
+    code: '"SUBJECT_WEIGHT_AT_INFUSION" if $_patient_weight == $_patient_weight'
+    time: $unitadmittimestamp - (-$infusionoffset)::minutes
+    numeric_value: $_patient_weight
 
-# Original: lab
 lab:
-  lab:
-    code:
-      - LAB
-      - col(labname)
-      - col(labmeasurenamesystem)
-    time: col(labResultDrawnTimestamp)
-    numeric_value: labresult
-    text_value: labresulttext
-    lab_type_id: labtypeid
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
+  lab_specimen_drawn:
+    code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$labresultoffset)::minutes
+    lab_type_id: $labtypeid
+  lab_result:
+    code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$labresultrevisedoffset)::minutes
+    numeric_value: $labresult
+    text_value: $labresulttext
+    lab_type_id: $labtypeid
 
-# Original: medication
 medication:
-  # drug_ordered:
-  #   code:
-  #     - MEDICATION
-  #     - ORDERED
-  #     - col(drugname)
-  #   time: col(drugordertimestamp)
-  #   medication_id: "medicationid"
-  #   drug_iv_admixture: "drugivadmixture"
-  #   dosage: "dosage"
-  #   route_admin: "routeadmin"
-  #   frequency: "frequency"
-  #   loading_dose: "loadingdose"
-  #   prn: "prn"
-  #   gtc: "gtc"
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   drug_started:
-    code:
-      - MEDICATION
-      - STARTED
-      - col(drugname)
-    time: col(drugstarttimestamp)
-    numeric_value: dosage
-    medication_id: "medicationid"
+    code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$drugstartoffset)::minutes
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $dosage)::float64'
+    dosage: $dosage
+    medication_id: $medicationid
   drug_stopped:
-    code:
-      - MEDICATION
-      - STOPPED
-      - col(drugname)
-    time: col(drugstoptimestamp)
-    medication_id: "medicationid"
+    code: f"MEDICATION//STOPPED//{$drugname ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$drugstopoffset)::minutes
+    medication_id: $medicationid
 
-# Original: treatment
 treatment:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   treatment:
-    code:
-      - "TREATMENT"
-      - "ENTERED"
-      - col(treatmentstring)
-    time: col(treatmentEnteredTimestamp)
-    text_value: treatmentstring
+    code: f"TREATMENT//ENTERED//{$treatmentstring ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$treatmentoffset)::minutes
+    text_value: $treatmentstring
 
-# Original: vitalAperiodic
-vitalaperiodic:
+vitalAperiodic:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   non_invasive_systolic:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "BP"
-      - "NONINVASIVE_SYSTOLIC"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "noninvasivesystolic"
+    code: '"VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC" if $noninvasivesystolic == $noninvasivesystolic'
+    time: &vap_time $unitadmittimestamp - (-$observationoffset)::minutes
+    vital_id: &vap_id $vitalaperiodicid
+    numeric_value: $noninvasivesystolic
   non_invasive_diastolic:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "BP"
-      - "NONINVASIVE_DIASTOLIC"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "noninvasivediastolic"
-
+    code: '"VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC" if $noninvasivediastolic == $noninvasivediastolic'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $noninvasivediastolic
   non_invasive_mean:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "BP"
-      - "NONINVASIVE_MEAN"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "noninvasivemean"
-
+    code: '"VITALS//APERIODIC//BP//NONINVASIVE_MEAN" if $noninvasivemean == $noninvasivemean'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $noninvasivemean
   paop:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "PAOP"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "paop"
-
+    code: '"VITALS//APERIODIC//PAOP" if $paop == $paop'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $paop
   cardiac_output:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "CARDIAC_OUTPUT"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "cardiacoutput"
-
+    code: '"VITALS//APERIODIC//CARDIAC_OUTPUT" if $cardiacoutput == $cardiacoutput'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $cardiacoutput
   cardiac_input:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "CARDIAC_INPUT"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "cardiacinput"
-
+    code: '"VITALS//APERIODIC//CARDIAC_INPUT" if $cardiacinput == $cardiacinput'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $cardiacinput
   svr:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "SVR"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "svr"
-
+    code: '"VITALS//APERIODIC//SVR" if $svr == $svr'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $svr
   svri:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "SVRI"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "svri"
-
+    code: '"VITALS//APERIODIC//SVRI" if $svri == $svri'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $svri
   pvr:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "PVR"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "pvr"
-
+    code: '"VITALS//APERIODIC//PVR" if $pvr == $pvr'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $pvr
   pvri:
-    code:
-      - "VITALS"
-      - "APERIODIC"
-      - "PVRI"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalaperiodicid"
-    numeric_value: "pvri"
+    code: '"VITALS//APERIODIC//PVRI" if $pvri == $pvri'
+    time: *vap_time
+    vital_id: *vap_id
+    numeric_value: $pvri
 
-# Original: vitalPeriodic
-vitalperiodic:
+vitalPeriodic:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
   temperature:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "TEMPERATURE"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "temperature"
-
+    code: '"VITALS//PERIODIC//TEMPERATURE" if $temperature == $temperature'
+    # `- (-x)` not `+ x`: dftly lowers Add to sum_horizontal, which cannot add a Duration
+    # to a Datetime. `if $x == $x` drops rows whose cell is empty; see the README.
+    time: &vp_time $unitadmittimestamp - (-$observationoffset)::minutes
+    vital_id: &vp_id $vitalperiodicid
+    numeric_value: $temperature
   saO2:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "SAO2"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "sao2"
-
+    code: '"VITALS//PERIODIC//SAO2" if $sao2 == $sao2'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $sao2
   heartRate:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "HEARTRATE"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "heartrate"
-
+    code: '"VITALS//PERIODIC//HEARTRATE" if $heartrate == $heartrate'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $heartrate
   respiration:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "RESPIRATION"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "respiration"
-
+    code: '"VITALS//PERIODIC//RESPIRATION" if $respiration == $respiration'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $respiration
   cvp:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "CVP"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "cvp"
-
+    code: '"VITALS//PERIODIC//CVP" if $cvp == $cvp'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $cvp
   etCo2:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "ETCO2"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "etco2"
-
+    code: '"VITALS//PERIODIC//ETCO2" if $etco2 == $etco2'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $etco2
   systemic_systolic:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "BP"
-      - "SYSTEMIC_SYSTOLIC"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "systemicsystolic"
-
+    code: '"VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC" if $systemicsystolic == $systemicsystolic'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $systemicsystolic
   systemic_diastolic:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "BP"
-      - "SYSTEMIC_DIASTOLIC"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "systemicdiastolic"
-
+    code: '"VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC" if $systemicdiastolic == $systemicdiastolic'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $systemicdiastolic
   systemic_mean:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "BP"
-      - "SYSTEMIC_MEAN"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "systemicmean"
-
+    code: '"VITALS//PERIODIC//BP//SYSTEMIC_MEAN" if $systemicmean == $systemicmean'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $systemicmean
   pa_systolic:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "BP"
-      - "PULM_ART_SYSTOLIC"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "pasystolic"
-
+    code: '"VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC" if $pasystolic == $pasystolic'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $pasystolic
   pa_diastolic:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "BP"
-      - "PULM_ART_DIASTOLIC"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "padiastolic"
-
+    code: '"VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC" if $padiastolic == $padiastolic'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $padiastolic
   pa_mean:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "BP"
-      - "PULM_ART_MEAN"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "pamean"
-
+    code: '"VITALS//PERIODIC//BP//PULM_ART_MEAN" if $pamean == $pamean'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $pamean
   st1:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "ST1"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "st1"
-
+    code: '"VITALS//PERIODIC//ST1" if $st1 == $st1'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $st1
   st2:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "ST2"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "st2"
-
+    code: '"VITALS//PERIODIC//ST2" if $st2 == $st2'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $st2
   st3:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "ST3"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "st3"
-
+    code: '"VITALS//PERIODIC//ST3" if $st3 == $st3'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $st3
   ICP:
-    code:
-      - "VITALS"
-      - "PERIODIC"
-      - "ICP"
-    time: col(observationEnteredTimestamp)
-    vital_id: "vitalperiodicid"
-    numeric_value: "icp"
-# nurseCare:
-#   nurse_care_performed:
-#     code:
-#       - NURSE_CARE
-#       - "PERFORMED"
-#       - NOT YET DONE
-#     time: col(nurseCarePerformedTimestamp)
-#     nurse_care_id: "nursecareid"
-#     cell_label: "celllabel"
-#     cell_attribute: "cellattribute"
-#     cell_attribute_value: "cellattributevalue"
+    code: '"VITALS//PERIODIC//ICP" if $icp == $icp'
+    time: *vp_time
+    vital_id: *vp_id
+    numeric_value: $icp
 
-#   nurse_care_entered:
-#     code:
-#       - "NURSE_CARE"
-#       - "ENTERED"
-#       - NOT YET DONE
-#     time: col(nurseCareEnteredTimestamp)
-#     nurse_care_id: "nursecareid"
-#     cell_label: "celllabel"
-#     cell_attribute: "cellattribute"
-#     cell_attribute_value: "cellattributevalue"
-
-# nurseCharting:
-#   nurse_charting_performed:
-#     code:
-#       - "NURSE_CHARTING"
-#       - "PERFORMED"
-#       - NOT YET DONE
-#     time: col(nursingChartPerformedTimestamp)
-#     nurse_charting_id: "nursingchartid"
-#     cell_type_cat: "nursingchartcelltypecat"
-#     cell_type_val_name: "nursingchartcelltypevalname"
-#     cell_type_val_label: "nursingchartcelltypevallabel"
-#     cell_value: "nursingchartvalue"
-
-#   nurse_charting_entered:
-#     code:
-#       - "NURSE_CHARTING"
-#       - "ENTERED"
-#       - NOT YET DONE
-#     time: col(nursingChartEnteredTimestamp)
-#     nurse_charting_id: "nursingchartid"
-#     cell_type_cat: "nursingchartcelltypecat"
-#     cell_type_val_name: "nursingchartcelltypevalname"
-#     cell_type_val_label: "nursingchartcelltypevallabel"
-#     cell_value: "nursingchartvalue"
-
-# pastHistory:
-#   past_history_taken:
-#     code:
-#       - "PAST_HISTORY"
-#       - "TAKEN"
-#       - NOT YET DONE
-#     time: col(pastHistoryTakenTimestamp)
-#     past_history_id: "pasthistoryid"
-#     note_type: "pasthistorynotetype"
-#     path: "pasthistorypath"
-#     value: "pasthistoryvalue"
-#     value_text: "pasthistoryvaluetext"
-
-#   past_history_entered:
-#     code:
-#       - "PAST_HISTORY"
-#       - "ENTERED"
-#       - NOT YET DONE
-#     time: col(pastHistoryEnteredTimestamp)
-#     past_history_id: "pasthistoryid"
-#     note_type: "pasthistorynotetype"
-#     path: "pasthistorypath"
-#     value: "pasthistoryvalue"
-#     value_text: "pasthistoryvaluetext"
-
-# physicalExam:
-#   physical_exam_entered:
-#     code:
-#       - "PHYSICAL_EXAM"
-#       - "ENTERED"
-#       - NOT YET DONE
-#     time: col(physicalExamEnteredTimestamp)
-#     physical_exam_id: "physicalexamid"
-#     text: "physicalexamtext"
-#     path: "physicalexampath"
-#     value: "physicalexamvalue"
-
-# respiratoryCare:
-#   resp_care_status:
-#     code:
-#       - "RESP_CARE"
-#       - "STATUS"
-#       - NOT YET DONE
-#     time: col(respCareStatusEnteredTimestamp)
-#     resp_care_id: "respcareid"
-#     airwaytype: "airwaytype"
-#     airwaysize: "airwaysize"
-#     airwayposition: "airwayposition"
-#     cuffpressure: "cuffpressure"
-#     apneaparms: "apneaparms"
-#     lowexhmvlimit: "lowexhmvlimit"
-#     hiexhmvlimit: "hiexhmvlimit"
-#     lowexhtvlimit: "lowexhtvlimit"
-#     hipeakpreslimit: "hipeakpreslimit"
-#     lowpeakpreslimit: "lowpeakpreslimit"
-#     hirespratelimit: "hirespratelimit"
-#     lowrespratelimit: "lowrespratelimit"
-#     sighpreslimit: "sighpreslimit"
-#     lowironoxlimit: "lowironoxlimit"
-#     highironoxlimit: "highironoxlimit"
-#     meanairwaypreslimit: "meanairwaypreslimit"
-#     peeplimit: "peeplimit"
-#     cpaplimit: "cpaplimit"
-#     setapneainterval: "setapneainterval"
-#     setapneatv: "setapneatv"
-#     setapneaippeephigh: "setapneaippeephigh"
-#     setapnearr: "setapnearr"
-#     setapneapeakflow: "setapneapeakflow"
-#     setapneainsptime: "setapneainsptime"
-#     setapneaie: "setapneaie"
-#     setapneafio2: "setapneafio2"
-
-#   vent_start:
-#     code:
-#       - "VENT"
-#       - "START"
-#       - NOT YET DONE
-#     time: col(ventStartTimestamp)
-#     resp_care_id: "respcareid"
-
-#   vent_end:
-#     code:
-#       - "VENT"
-#       - "END"
-#       - NOT YET DONE
-#     time: col(ventEndTimestamp)
-#     resp_care_id: "respcareid"
-
-# respiratoryCharting:
-#   resp_charting_performed:
-#     code:
-#       - "RESP_CHARTING"
-#       - "PERFORMED"
-#       - NOT YET DONE
-#     time: col(respChartPerformedTimestamp)
-#     resp_chart_id: "respchartid"
-#     type_cat: "respcharttypecat"
-#     value_label: "respchartvaluelabel"
-#     value: "respchartvalue"
-
-#   resp_charting_entered:
-#     code:
-#       - "RESP_CHARTING"
-#       - "ENTERED"
-#       - NOT YET DONE
-#     time: col(respChartEnteredTimestamp)
-#     resp_chart_id: "respchartid"
-#     type_cat: "respcharttypecat"
-#     value_label: "respchartvaluelabel"
-#     value: "respchartvalue"
+sources:
+  dataset:
+    - type: physionet
+      base_url: https://physionet.org/files/eicu-crd/2.0
+      username: ${oc.env:DATASET_DOWNLOAD_USERNAME}
+      password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
+      headers:
+        User-Agent: Wget/1.21.4 eICU-MEDS
+  demo:
+    - type: physionet
+      base_url: https://physionet.org/files/eicu-crd-demo/2.0.1
+      headers:
+        User-Agent: Wget/1.21.4 eICU-MEDS
+      exclude:
+        - infusiondrug.csv.gz
+    - type: http
+      headers:
+        User-Agent: Wget/1.21.4 eICU-MEDS
+      urls:
+        - url: https://physionet.org/files/eicu-crd-demo/2.0.1/infusiondrug.csv.gz
+          rel_path: infusionDrug.csv.gz
+          sha256: 3b9f024d28682884a820763ac516ae68b247ebf17903fee4f38240c04886d527
