@@ -67,9 +67,15 @@ def main(cfg: DictConfig):
         pre_MEDS_dir = raw_input_dir
 
     # Step 2: MEDS Cohort Creation
+    raw_version = (
+        dataset_info.demo_dataset_version if cfg.get("do_demo", False) else dataset_info.raw_dataset_version
+    )
     env = {
         "DATASET_NAME": dataset_info.dataset_name,
-        "DATASET_VERSION": f"{dataset_info.raw_dataset_version}:{PKG_VERSION}",
+        # Demo and full are different releases, so a demo cohort must not be stamped with the
+        # full release version -- downstream consumers read this out of dataset.json to identify
+        # what they are holding.
+        "DATASET_VERSION": f"{raw_version}:{PKG_VERSION}",
         "EVENT_CONVERSION_CONFIG_FP": str(EVENT_CFG.resolve()),
         "PRE_MEDS_DIR": str(pre_MEDS_dir.resolve()),
         "MEDS_OUTPUT_DIR": str(MEDS_output_dir.resolve()),
