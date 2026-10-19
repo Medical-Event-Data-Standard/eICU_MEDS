@@ -29,7 +29,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      # Cache the raw eICU demo download. The key tracks the source spec, and the
+      # prefix fallback restores the previous cache when it changes: every demo file
+      # is sha256-verified on download, so only changed or missing files are refetched.
+      - name: Cache eICU demo download
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
+          restore-keys: eicu-demo-raw-
+
       - name: Run tests
+        env:
+          EICU_MEDS_DEMO_RAW_DIR: ~/.cache/eICU_MEDS/demo_raw
         # `--reruns`/`--only-rerun` (from pytest-rerunfailures) retries the e2e
         # demo-download test when PhysioNet returns transient network errors.
         # These are upstream failures, not real regressions, and blocking CI on

@@ -1,3 +1,4 @@
+import os
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -16,6 +17,13 @@ def test_e2e():
             "do_overwrite=True",
             "do_demo=True",
         ]
+
+        # Point the download at a persistent directory (e.g. one restored by CI's
+        # actions/cache) so the demo is not refetched on every run. Files already
+        # there are verified against PhysioNet's SHA256SUMS and skipped.
+        cached_raw_dir = os.environ.get("EICU_MEDS_DEMO_RAW_DIR")
+        if cached_raw_dir:
+            command_parts.append(f"raw_input_dir={Path(cached_raw_dir).expanduser().resolve()!s}")
 
         full_cmd = " ".join(command_parts)
         command_out = subprocess.run(full_cmd, shell=True, capture_output=True)
