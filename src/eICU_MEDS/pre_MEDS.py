@@ -49,6 +49,11 @@ DX_MAP_PREFIX = "dx_icd_map"
 # a code, and splitting on a regex would be needless here — the separator is literal.
 CODE_SEPARATOR = ", "
 
+# The demo ships `infusiondrug.csv.gz`; the event config reads the release spelling. The
+# download layer renames it, but a demo fetched any other way (`do_download=False`) still
+# carries the lowercase name, so normalize it here too.
+RAW_RENAMES = {"infusiondrug.csv.gz": "infusionDrug.csv.gz"}
+
 
 def build_dx_icd_map(diagnosis: pl.LazyFrame) -> pl.LazyFrame:
     """Explode ``icd9code`` into one row per ``(diagnosisstring, icd_code)`` pair.
@@ -149,6 +154,7 @@ def main(
 
     Raises:
         FileNotFoundError: If the raw ``diagnosis`` table is missing.
+        FileExistsError: If ``output_dir`` holds parquet tables from the pre-0.7 extractor.
     """
     input_dir, output_dir = Path(input_dir), Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -157,10 +163,27 @@ def main(
     if not raw_files:
         raise FileNotFoundError(f"No *.csv.gz files found under {input_dir.resolve()!s}.")
 
+    # The pre-0.7 extractor wrote processed `<table>.parquet` files here. Left in place they
+    # compete with the raw `<table>.csv.gz` for the same prefix and extraction fails, so stop
+    # early rather than deleting files we did not write.
+    stale = sorted(fp.name for fp in output_dir.glob("*.parquet") if fp.name != f"{DX_MAP_PREFIX}.parquet")
+    if stale:
+        raise FileExistsError(
+            f"{output_dir.resolve()!s} holds tables from a previous extractor version ({', '.join(stale)}). "
+            "Remove them or point pre_MEDS_dir at a fresh directory."
+        )
+
+    # Match exact names: on a case-insensitive filesystem `Path.exists()` would report the
+    # release spelling as present when only the demo's lowercase file is.
+    raw_names = {fp.name for fp in raw_files}
+
     verb = "Copying" if do_copy else "Symlinking"
     logger.info(f"{verb} {len(raw_files)} raw tables into {output_dir.resolve()!s}.")
     for fp in raw_files:
-        _link_or_copy(fp, output_dir / fp.name, do_copy)
+        name = RAW_RENAMES.get(fp.name, fp.name)
+        if name != fp.name and name in raw_names:
+            continue  # the release spelling is already present; prefer it
+        _link_or_copy(fp, output_dir / name, do_copy)
 
     out_fp = output_dir / f"{DX_MAP_PREFIX}.parquet"
     if out_fp.is_file() and not do_overwrite:

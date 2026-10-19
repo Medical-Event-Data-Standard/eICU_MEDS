@@ -40,10 +40,13 @@ credentials:
 MEDS_extract-eICU root_output_dir=data/eicu_demo do_demo=True
 ```
 
-You can also point the two directories somewhere else directly:
+You can also point the raw and output directories somewhere else directly.
+`root_output_dir` is still required, since the intermediate `pre_MEDS` tables and the
+logs are written under it:
 
 ```bash
-MEDS_extract-eICU raw_input_dir=$RAW_INPUT_DIR MEDS_output_dir=$MEDS_OUTPUT_DIR
+MEDS_extract-eICU root_output_dir=$ROOT_OUTPUT_DIR \
+    raw_input_dir=$RAW_INPUT_DIR MEDS_output_dir=$MEDS_OUTPUT_DIR
 ```
 
 ## A note on time in eICU
