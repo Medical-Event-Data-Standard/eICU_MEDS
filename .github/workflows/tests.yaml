@@ -7,7 +7,64 @@ on:
     branches: [main, "release/*", "dev"]
 
 jobs:
+  # Fetch the eICU demo once, into a cache both test jobs restore. PhysioNet
+  # throttles each connection to ~50 KB/s, so a cold download can outlast a job.
+  # Progress is therefore cached even when this job fails: every demo file is
+  # sha256-verified against SHA256SUMS, so the next run only fetches what is
+  # still missing, and a re-run eventually completes.
+  download_demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup package
+        uses: ./.github/actions/setup
+        with:
+          python-version: "3.12"
+
+      # The `eicu-demo-raw-<hash>` key is only ever saved complete. Partial
+      # downloads are saved under per-run keys and restored as a fallback.
+      - name: Restore eICU demo download
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
+          restore-keys: |
+            eicu-demo-raw-partial-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}-
+            eicu-demo-raw-
+
+      - name: Download eICU demo
+        id: download
+        if: steps.restore.outputs.cache-hit != 'true'
+        # A step timeout fails the step instead of cancelling the job, so the
+        # partial-progress save below still runs.
+        timeout-minutes: 90
+        run: |
+          uv run meds-extract-download \
+            spec="$PWD/src/eICU_MEDS/configs/event_configs.yaml" \
+            output_dir="$HOME/.cache/eICU_MEDS/demo_raw" \
+            key=demo concurrency=8
+
+      - name: Save complete eICU demo download
+        if: steps.download.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
+
+      - name: Save partial eICU demo download
+        if: always() && steps.download.outcome == 'failure'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-partial-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+
   run_tests_ubuntu:
+    needs: download_demo
     runs-on: ubuntu-latest
 
     strategy:
@@ -15,10 +72,8 @@ jobs:
         python-version: ["3.11", "3.12"]
       fail-fast: false
 
-    # The e2e test downloads the full eICU demo (~200 MB over PhysioNet's
-    # per-connection rate limit) before extracting ~30M events, so 30 minutes is
-    # not enough headroom.
-    timeout-minutes: 60
+    # The demo download happens in `download_demo`; this covers extracting ~30M events.
+    timeout-minutes: 30
 
     steps:
       - name: Checkout
@@ -29,15 +84,12 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      # Cache the raw eICU demo download. The key tracks the source spec, and the
-      # prefix fallback restores the previous cache when it changes: every demo file
-      # is sha256-verified on download, so only changed or missing files are refetched.
-      - name: Cache eICU demo download
-        uses: actions/cache@v4
+      - name: Restore eICU demo download
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cache/eICU_MEDS/demo_raw
           key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
-          restore-keys: eicu-demo-raw-
+          fail-on-cache-miss: true
 
       - name: Run tests
         env:
