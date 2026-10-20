@@ -101,6 +101,19 @@ def test_dataset_requires_credentials(monkeypatch):
             s.close()
 
 
+def test_demo_include_covers_every_table_the_config_reads():
+    """The demo bucket fetches only the tables the config reads or joins; keep the two in sync."""
+    raw = OmegaConf.load(EVENT_CFG)
+    physionet, override = raw.sources["demo"]
+
+    fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
+    fetched |= {e.rel_path.removesuffix(".csv.gz") for e in override.urls}
+    tables = {k for k in raw if not k.startswith("_") and k != "sources"}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("join") or {}}
+
+    assert fetched == tables | joined
+
+
 def test_buckets_point_at_the_declared_dataset_versions():
     """The bucket URLs must track the versions recorded in ``dataset.yaml``.
 

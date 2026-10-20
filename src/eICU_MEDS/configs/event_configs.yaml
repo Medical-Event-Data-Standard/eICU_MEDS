@@ -364,6 +364,24 @@ sources:
       base_url: https://physionet.org/files/eicu-crd-demo/2.0.1
       headers:
         User-Agent: Wget/1.21.4 eICU-MEDS
+      # Only the tables this config reads. The release also ships an 81 MB SQLite copy
+      # of the same data and the excluded tables; together they are ~75% of the download,
+      # which PhysioNet throttles to ~50 KB/s per connection.
+      include:
+        - patient.csv.gz
+        - hospital.csv.gz
+        - admissionDx.csv.gz
+        - allergy.csv.gz
+        - carePlanGeneral.csv.gz
+        - carePlanEOL.csv.gz
+        - carePlanGoal.csv.gz
+        - carePlanInfectiousDisease.csv.gz
+        - diagnosis.csv.gz
+        - lab.csv.gz
+        - medication.csv.gz
+        - treatment.csv.gz
+        - vitalAperiodic.csv.gz
+        - vitalPeriodic.csv.gz
       exclude:
         - infusiondrug.csv.gz
     - type: http
