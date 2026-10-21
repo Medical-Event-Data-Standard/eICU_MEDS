@@ -25,7 +25,8 @@ MEDS_extract-eICU root_output_dir=data/eicu_meds
 
 When you run this, the program will:
 
-1. Download the raw eICU-CRD files for the currently supported version into
+1. Download the raw eICU-CRD tables this ETL reads (see
+    [Which eICU tables are extracted](#which-eicu-tables-are-extracted)) for the currently supported version into
     `$ROOT_OUTPUT_DIR/raw_input` (via MEDS-Extract's download layer; files that already
     exist and verify against PhysioNet's `SHA256SUMS.txt` are skipped, so an interrupted
     run resumes rather than restarting).
