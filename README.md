@@ -17,7 +17,7 @@ This repository contains the code for downloading the
 [Medical Event Data Standard (MEDS)](https://medical-event-data-standard.org/) format.
 
 ```bash
-pip install eICU-MEDS # use `pip install -e .` for local installation in editing mode
+pip install eICU-MEDS
 export DATASET_DOWNLOAD_USERNAME=$PHYSIONET_USERNAME
 export DATASET_DOWNLOAD_PASSWORD=$PHYSIONET_PASSWORD
 MEDS_extract-eICU root_output_dir=data/eicu_meds
@@ -146,13 +146,8 @@ scheme of its own):
 If you want to convert a large dataset, you can use parallelization with MEDS-transforms
 (the MEDS-transformation step that takes the longest).
 
-Using local parallelization with the `hydra-joblib-launcher` package, you can set the number of workers:
-
-```
-pip install hydra-joblib-launcher --upgrade
-```
-
-Then, you can set the number of workers as environment variable:
+Local parallelization uses the `hydra-joblib-launcher` package, which is installed as a dependency of
+`eICU-MEDS`. You can set the number of workers as an environment variable:
 
 ```bash
 export N_WORKERS=8
@@ -164,3 +159,19 @@ subjects you have in your dataset:
 ```bash
 export N_SUBJECTS_PER_SHARD=100000
 ```
+
+## Development
+
+Contributors should use [`uv`](https://docs.astral.sh/uv/) to set up a development environment from the
+lockfile:
+
+```bash
+git clone https://github.com/Medical-Event-Data-Standard/eICU_MEDS.git
+cd eICU_MEDS
+uv sync --group dev
+uv run pre-commit install
+uv run pytest src/ tests/ --doctest-modules
+```
+
+The end-to-end test (`tests/e2e_demo_test.py`) downloads the public eICU demo from PhysioNet, so it is
+slow on a first run.
