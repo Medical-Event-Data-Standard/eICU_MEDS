@@ -10,28 +10,52 @@ authors = [
 ]
 description = "An ETL pipeline to extract the eICU dataset into the MEDS format."
 readme = "README.md"
-requires-python = ">=3.11"
+# Mirrors MEDS-Extract's own floor and ceiling. Upstream narrowed to >=3.11.4,<3.14; a
+# looser range here admits interpreters it cannot be installed on, and uv refuses to
+# resolve at all ("the requested Python version (>=3.11) does not satisfy Python>=3.11.4,<3.14").
+requires-python = ">=3.11.4,<3.14"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+# Each dep is pinned with a lower bound at the version we actively test against, and an
+# upper bound at the next known-or-expected breaking major.
+# `meds-transforms>=0.6.7` is the floor MEDS-Extract 0.7 requires.
+#
+# `requests`/`beautifulsoup4` are gone: the bespoke `download.py` scraper was replaced
+# by MEDS-Extract's download layer (the `[download]` extra, httpx + tenacity), driven
+# by the `sources:` block in `configs/event_configs.yaml`.
+# Only MEDS-Extract and the joblib launcher are declared here. `polars`, `meds-transforms`
+# and `hydra-core` used to be pinned directly as well, and that is exactly the drift the
+# MIMIC-IV migration warns about: MEDS-Extract already fences those, so a second copy of the
+# pin goes stale independently. It did — `meds-transforms>=0.6.7,<0.7` here against
+# MEDS-Extract's own `>=0.7.0,<0.8` made the project unresolvable outright. They arrive
+# transitively at whatever versions MEDS-Extract fences.
+#
+# `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
+# it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
 dependencies = [
-  "meds-transforms~=0.2.4", "requests", "beautifulsoup4", "hydra-core", "polars<1.27.0"
+    "meds-extract[download]>=0.7.0,<0.8",
+    "hydra-joblib-launcher~=1.2",
+]
+
+[dependency-groups]
+# `pytest-rerunfailures` lets CI auto-retry the e2e demo download test on the narrow set
+# of network exceptions seen coming out of PhysioNet (connection reset / IncompleteRead
+# mid-stream) instead of turning a bad upstream minute into a failed CI build.
+dev = [
+    "pre-commit~=3.8",
+    "ruff>=0.11,<1.0",
+    "pytest~=9.0",
+    "pytest-cov~=7.1",
+    "pytest-rerunfailures==16.1",
 ]
 
 [tool.setuptools_scm]
 
 [project.optional-dependencies]
-dev = ["pre-commit<4"]
-tests = ["pytest", "pytest-cov", "rootutils", "hydra-joblib-launcher"]
-local_parallelism = ["hydra-joblib-launcher"]
-slurm_parallelism = ["hydra-submitit-launcher"]
-docs = [
-  "mkdocs==1.6.0", "mkdocs-material==9.5.31", "mkdocstrings[python,shell]==0.25.2", "mkdocs-gen-files==0.5.0",
-  "mkdocs-literate-nav==0.6.1", "mkdocs-section-index==0.3.9", "mkdocs-git-authors-plugin==0.9.0",
-  "mkdocs-git-revision-date-localized-plugin==1.2.6"
-]
+slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
 
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"
@@ -39,3 +63,35 @@ MEDS_extract-eICU = "eICU_MEDS.__main__:main"
 [project.urls]
 Homepage = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS"
 Issues = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues"
+
+[tool.coverage.run]
+# The e2e tests exercise the runner, download, and pipeline through subprocesses (the
+# `MEDS_extract-eICU` console script, which in turn spawns `meds-extract-download` and
+# `MEDS_transform-pipeline`). `patch = ["subprocess"]` (coverage.py >= 7.10) propagates
+# measurement into those children — transitively, since each patched process patches its
+# own children — so the code they execute counts toward coverage instead of appearing
+# untested.
+# https://pytest-cov.readthedocs.io/en/latest/subprocess-support.html
+patch = ["subprocess"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 110
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "RUF", # Ruff-specific rules
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "SIM108", # ternary operator suggestions
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

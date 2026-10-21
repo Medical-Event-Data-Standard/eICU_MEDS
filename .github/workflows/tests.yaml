@@ -7,7 +7,64 @@ on:
     branches: [main, "release/*", "dev"]
 
 jobs:
+  # Fetch the eICU demo once, into a cache both test jobs restore. PhysioNet
+  # throttles each connection to ~50 KB/s, so a cold download can outlast a job.
+  # Progress is therefore cached even when this job fails: every demo file is
+  # sha256-verified against SHA256SUMS, so the next run only fetches what is
+  # still missing, and a re-run eventually completes.
+  download_demo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup package
+        uses: ./.github/actions/setup
+        with:
+          python-version: "3.12"
+
+      # The `eicu-demo-raw-<hash>` key is only ever saved complete. Partial
+      # downloads are saved under per-run keys and restored as a fallback.
+      - name: Restore eICU demo download
+        id: restore
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
+          restore-keys: |
+            eicu-demo-raw-partial-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}-
+            eicu-demo-raw-
+
+      - name: Download eICU demo
+        id: download
+        if: steps.restore.outputs.cache-hit != 'true'
+        # A step timeout fails the step instead of cancelling the job, so the
+        # partial-progress save below still runs.
+        timeout-minutes: 90
+        run: |
+          uv run meds-extract-download \
+            spec="$PWD/src/eICU_MEDS/configs/event_configs.yaml" \
+            output_dir="$HOME/.cache/eICU_MEDS/demo_raw" \
+            key=demo concurrency=8
+
+      - name: Save complete eICU demo download
+        if: steps.download.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
+
+      - name: Save partial eICU demo download
+        if: always() && steps.download.outcome == 'failure'
+        uses: actions/cache/save@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-partial-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
+
   run_tests_ubuntu:
+    needs: download_demo
     runs-on: ubuntu-latest
 
     strategy:
@@ -15,34 +72,50 @@ jobs:
         python-version: ["3.11", "3.12"]
       fail-fast: false
 
+    # The demo download happens in `download_demo`; this covers extracting ~30M events.
     timeout-minutes: 30
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
+      - name: Setup package
+        uses: ./.github/actions/setup
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Install packages
-        run: |
-          pip install -e .[tests]
+      - name: Restore eICU demo download
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/eICU_MEDS/demo_raw
+          key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
+          fail-on-cache-miss: true
 
-      #----------------------------------------------
-      #              run test suite
-      #----------------------------------------------
       - name: Run tests
+        env:
+          EICU_MEDS_DEMO_RAW_DIR: ~/.cache/eICU_MEDS/demo_raw
+        # `--reruns`/`--only-rerun` (from pytest-rerunfailures) retries the e2e
+        # demo-download test when PhysioNet returns transient network errors.
+        # These are upstream failures, not real regressions, and blocking CI on
+        # them means no PR can land during a bad PhysioNet minute. The pattern is
+        # intentionally scoped to network-shaped failures: anything else fails
+        # hard on first occurrence.
         run: |
-          pytest src/ tests/ -v --doctest-modules --cov=src --junitxml=junit.xml -s
+          uv run pytest src/ tests/ -v --doctest-modules \
+            --cov=src --cov-report=xml --cov-report=term \
+            --junitxml=junit.xml -s \
+            --reruns 3 --reruns-delay 20 \
+            --only-rerun "RemoteProtocolError|ConnectError|ConnectTimeout|ReadTimeout|ReadError|HTTPStatusError|IncompleteRead|[Cc]onnection broken"
 
       - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4.0.1
+        uses: codecov/codecov-action@v5.5.4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          fail_ci_if_error: false
       - name: Upload test results to Codecov
         if: ${{ !cancelled() }}
-        uses: codecov/test-results-action@v1
+        uses: codecov/test-results-action@v1.2.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./junit.xml
