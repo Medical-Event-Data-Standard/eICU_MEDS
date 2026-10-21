@@ -17,7 +17,7 @@ This repository contains the code for downloading the
 [Medical Event Data Standard (MEDS)](https://medical-event-data-standard.org/) format.
 
 ```bash
-pip install eICU-MEDS # use `pip install -e .` for local installation in editing mode
+pip install eICU-MEDS
 export DATASET_DOWNLOAD_USERNAME=$PHYSIONET_USERNAME
 export DATASET_DOWNLOAD_PASSWORD=$PHYSIONET_PASSWORD
 MEDS_extract-eICU root_output_dir=data/eicu_meds
@@ -146,21 +146,31 @@ scheme of its own):
 If you want to convert a large dataset, you can use parallelization with MEDS-transforms
 (the MEDS-transformation step that takes the longest).
 
-Using local parallelization with the `hydra-joblib-launcher` package, you can set the number of workers:
-
-```
-pip install hydra-joblib-launcher --upgrade
-```
-
-Then, you can set the number of workers as environment variable:
+Local parallelization uses the `hydra-joblib-launcher` package, which is installed as a dependency of
+`eICU-MEDS`. You can set the number of workers as an environment variable:
 
 ```bash
 export N_WORKERS=8
 ```
 
-Moreover, you can set the number of subjects per shard to balance the parallelization overhead based on how many
-subjects you have in your dataset:
+The number of subjects per shard is fixed at 1,000 in the `split_and_shard_subjects` stage of
+`src/eICU_MEDS/configs/ETL.yaml`; no environment variable or command-line option changes it. Other MEDS ETLs
+do the same (MIMIC-IV fixes it in its spec's `etl:` block): MEDS-Extract treats shard size as a property of
+the dataset, while worker counts belong to the machine running it. To use a different shard size, edit that
+file in a local checkout (see [Development](#development)).
+
+## Development
+
+Contributors should use [`uv`](https://docs.astral.sh/uv/) to set up a development environment from the
+lockfile:
 
 ```bash
-export N_SUBJECTS_PER_SHARD=100000
+git clone https://github.com/Medical-Event-Data-Standard/eICU_MEDS.git
+cd eICU_MEDS
+uv sync --group dev
+uv run pre-commit install
+uv run pytest src/ tests/ --doctest-modules
 ```
+
+The end-to-end test (`tests/e2e_demo_test.py`) downloads the public eICU demo from PhysioNet, so it is
+slow on a first run.

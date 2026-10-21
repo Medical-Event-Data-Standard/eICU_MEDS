@@ -115,7 +115,7 @@ def build_dx_icd_map(diagnosis: pl.LazyFrame) -> pl.LazyFrame:
         .drop_nulls("diagnosisstring")
         .unique()
         .with_columns(pl.col("icd9code").fill_null("").str.split(CODE_SEPARATOR).alias("icd_code"))
-        .explode("icd_code")
+        .explode("icd_code", empty_as_null=True)
         .with_columns(pl.col("icd_code").str.strip_chars())
         .filter(pl.col("icd_code") != "")
         .select("diagnosisstring", "icd_code")

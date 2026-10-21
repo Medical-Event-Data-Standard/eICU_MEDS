@@ -13,7 +13,6 @@ MAIN_CFG = files(__package_name__).joinpath("configs/main.yaml")
 EVENT_CFG = files(__package_name__).joinpath("configs/event_configs.yaml")
 ETL_CFG = files(__package_name__).joinpath("configs/ETL.yaml")
 PRE_MEDS_PY = files(__package_name__).joinpath("pre_MEDS.py")
-PRE_MEDS_CFG = files(__package_name__).joinpath("configs/pre_MEDS.yaml")
 DATASET_CFG = files(__package_name__).joinpath("dataset.yaml")
 
 dataset_info = OmegaConf.load(DATASET_CFG)
@@ -28,7 +27,6 @@ __all__ = [
     "EVENT_CFG",
     "HAS_PRE_MEDS",
     "MAIN_CFG",
-    "PRE_MEDS_CFG",
     "__package_name__",
     "__version__",
     "dataset_info",
