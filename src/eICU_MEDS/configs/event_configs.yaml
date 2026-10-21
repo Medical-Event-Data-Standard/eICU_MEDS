@@ -359,6 +359,25 @@ sources:
       password: ${oc.env:DATASET_DOWNLOAD_PASSWORD}
       headers:
         User-Agent: Wget/1.21.4 eICU-MEDS
+      # Only the tables this config reads, as for the demo below. The full release ships
+      # several large tables the config never touches (nurseCharting alone is most of the
+      # download). The release already uses the `infusionDrug` spelling, so no override.
+      include:
+        - patient.csv.gz
+        - hospital.csv.gz
+        - admissionDx.csv.gz
+        - allergy.csv.gz
+        - carePlanGeneral.csv.gz
+        - carePlanEOL.csv.gz
+        - carePlanGoal.csv.gz
+        - carePlanInfectiousDisease.csv.gz
+        - diagnosis.csv.gz
+        - infusionDrug.csv.gz
+        - lab.csv.gz
+        - medication.csv.gz
+        - treatment.csv.gz
+        - vitalAperiodic.csv.gz
+        - vitalPeriodic.csv.gz
   demo:
     - type: physionet
       base_url: https://physionet.org/files/eicu-crd-demo/2.0.1

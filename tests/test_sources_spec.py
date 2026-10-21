@@ -114,6 +114,22 @@ def test_demo_include_covers_every_table_the_config_reads():
     assert fetched == tables | joined
 
 
+def test_dataset_include_covers_every_table_the_config_reads():
+    """The dataset bucket fetches only the tables the config reads or joins; keep the two in sync.
+
+    Unlike the demo, the credentialed release already uses the ``infusionDrug`` spelling, so
+    every table comes straight from the one PhysioNet source.
+    """
+    raw = OmegaConf.load(EVENT_CFG)
+    (physionet,) = raw.sources["dataset"]
+
+    fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
+    tables = {k for k in raw if not k.startswith("_") and k != "sources"}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("join") or {}}
+
+    assert fetched == tables | joined
+
+
 def test_buckets_point_at_the_declared_dataset_versions():
     """The bucket URLs must track the versions recorded in ``dataset.yaml``.
 
