@@ -153,12 +153,11 @@ Local parallelization uses the `hydra-joblib-launcher` package, which is install
 export N_WORKERS=8
 ```
 
-Moreover, you can set the number of subjects per shard to balance the parallelization overhead based on how many
-subjects you have in your dataset:
-
-```bash
-export N_SUBJECTS_PER_SHARD=100000
-```
+The number of subjects per shard is fixed at 1,000 in the `split_and_shard_subjects` stage of
+`src/eICU_MEDS/configs/ETL.yaml`; no environment variable or command-line option changes it. Other MEDS ETLs
+do the same (MIMIC-IV fixes it in its spec's `etl:` block): MEDS-Extract treats shard size as a property of
+the dataset, while worker counts belong to the machine running it. To use a different shard size, edit that
+file in a local checkout (see [Development](#development)).
 
 ## Development
 
