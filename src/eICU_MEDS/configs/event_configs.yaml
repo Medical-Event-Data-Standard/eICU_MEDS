@@ -64,6 +64,8 @@ patient:
   unit_discharge_weight:
     code: '"ICU_DISCHARGE_WEIGHT" if $dischargeweight == $dischargeweight'
     time: $unitdischargetimestamp
+    hadm_id: $hospitalid
+    icustay_id: $patientunitstayid
     numeric_value: $dischargeweight
   time_of_death:
     code: MEDS_DEATH
