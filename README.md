@@ -104,14 +104,14 @@ fuzzing.
 
 ## Which eICU tables are extracted
 
-eICU-CRD v2.0 ships 31 tables. This pipeline reads 15 of them. The rest are excluded
+eICU-CRD v2.0 ships 31 tables. This pipeline reads 16 of them. The rest are excluded
 deliberately — the reasoning is recorded here rather than in a code comment, because
 "this table is missing" is otherwise indistinguishable from an oversight.
 
 **Extracted:** `patient`, `hospital` (joined for site attributes), `admissionDx`,
 `allergy`, `carePlanEOL`, `carePlanGeneral`, `carePlanGoal`,
 `carePlanInfectiousDisease`, `diagnosis`, `infusionDrug`, `lab`, `medication`,
-`treatment`, `vitalAperiodic`, `vitalPeriodic`.
+`pastHistory`, `treatment`, `vitalAperiodic`, `vitalPeriodic`.
 
 **Excluded — deliberate, on the merits:**
 
@@ -139,7 +139,6 @@ scheme of its own):
 | `nurseAssessment`     |  15,602,498 | Structured nursing assessments.                                                                     |
 | `physicalExam`        |   9,212,316 | Physical examination findings.                                                                      |
 | `nurseCare`           |   8,311,132 | Nursing care entries.                                                                               |
-| `pastHistory`         |   1,149,180 | Comorbidity / prior history, as a `/`-separated hierarchy.                                          |
 | `respiratoryCare`     |     865,381 | Ventilator settings and airway management.                                                          |
 
 ## MEDS-transforms settings

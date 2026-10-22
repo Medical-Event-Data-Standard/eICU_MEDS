@@ -87,6 +87,11 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert valueless.is_empty(), f"Events emitted without a value:\n{valueless}"
 
+    n_past_history = (
+        df.filter(pl.col("code").str.starts_with("PAST_HISTORY//")).select(pl.len()).collect().item()
+    )
+    assert n_past_history > 0, "No PAST_HISTORY events emitted; the pastHistory table is not extracted."
+
     births = (
         df.filter(pl.col("code") == "MEDS_BIRTH")
         .group_by("subject_id")
