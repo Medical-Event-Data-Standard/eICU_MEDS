@@ -65,6 +65,25 @@ minutes relative to unit admission, and health-system stays are ordered only at
 **Only relative time differences within a subject are meaningful.** Absolute dates in the
 output are not real and must not be interpreted as such.
 
+## Death
+
+`MEDS_DEATH` is emitted at hospital discharge when `hospitalDischargeStatus == "Expired"`, and from
+no other field. The
+[documentation](https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/patient.md)
+describes `Expired` as the patient's condition on leaving the hospital, and on the full release it
+agrees with the independently populated `hospitalDischargeLocation == "Death"` on every one of the
+200,859 rows (18,004 deaths).
+
+Hospital rather than unit status is the key because it is the more complete of the two: 7,315 rows
+record a unit discharge `Alive` followed by a hospital death, which unit status would miss.
+
+The converse is deliberately **not** used. 222 rows (0.1%) have `unitDischargeStatus == "Expired"`
+while hospital status is `Alive` or blank, and these emit no `MEDS_DEATH`. They contradict
+themselves: in 142 of them the hospital stay continues past the unit discharge at which the
+patient supposedly died, some to a discharge home. Rows with a blank hospital status (1,751) are
+likewise not treated as deaths. See
+[#11](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/11).
+
 ## Vital signs: only measurements that happened
 
 `vitalPeriodic` and `vitalAperiodic` are wide tables — one row per timestamp, one column per
