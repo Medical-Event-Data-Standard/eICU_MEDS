@@ -200,6 +200,18 @@ medication:
     time: $unitadmittimestamp - (-$drugstopoffset)::minutes
     medication_id: $medicationid
 
+pastHistory:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
+  # The value is always the leaf of the path, so the path alone is the code. Timed at entry,
+  # not at the note's offset, so the history is not visible before it was recorded.
+  past_history:
+    code: f"PAST_HISTORY//{$pasthistorypath}"
+    time: $unitadmittimestamp - (-$pasthistoryenteredoffset)::minutes
+    past_history_id: $pasthistoryid
+    icustay_id: $patientunitstayid
+
 treatment:
   _table:
     join: *anchor_join
@@ -375,6 +387,7 @@ sources:
         - infusionDrug.csv.gz
         - lab.csv.gz
         - medication.csv.gz
+        - pastHistory.csv.gz
         - treatment.csv.gz
         - vitalAperiodic.csv.gz
         - vitalPeriodic.csv.gz
@@ -398,6 +411,7 @@ sources:
         - diagnosis.csv.gz
         - lab.csv.gz
         - medication.csv.gz
+        - pastHistory.csv.gz
         - treatment.csv.gz
         - vitalAperiodic.csv.gz
         - vitalPeriodic.csv.gz
