@@ -189,14 +189,18 @@ medication:
   _table:
     join: *anchor_join
     cols: *anchor_cols
+  # A cancelled order may or may not have been given before cancellation, and eICU does not
+  # say which, so it gets its own code instead of asserting administration. See the README.
   drug_started:
-    code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
+    code: >-
+      f"MEDICATION//ORDER_CANCELLED//{$drugname ?? 'UNK'}" if $drugordercancelled == "Yes"
+      else f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
     numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $dosage)::float64'
     dosage: $dosage
     medication_id: $medicationid
   drug_stopped:
-    code: f"MEDICATION//STOPPED//{$drugname ?? 'UNK'}"
+    code: f"MEDICATION//STOPPED//{$drugname ?? 'UNK'}" if $drugordercancelled != "Yes"
     time: $unitadmittimestamp - (-$drugstopoffset)::minutes
     medication_id: $medicationid
 
