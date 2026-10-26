@@ -121,6 +121,26 @@ polars' non-strict cast. A narrower hand-rolled pattern silently drops real valu
 `1e5`, `25.` and `+5`; `tests/test_numeric_guard.py` pins the equivalence by differential
 fuzzing.
 
+## Code metadata: no descriptions
+
+`metadata/codes.parquet` has `code`, `parent_codes` and `code_template` columns, and
+deliberately **no `description`**. eICU ships no code dictionary — nothing like MIMIC-IV's
+`d_labitems`, which maps numeric item IDs to names — because its tables record the names
+themselves (`labName`, `drugName`, `treatmentString`, `diagnosisString`, ...). The codes built
+from them are therefore already human-readable (`LAB//RESULT//creatinine//mg/dL`,
+`DIAGNOSIS//<diagnosisString>`), and a description would only repeat the code. Earlier releases
+declared no code metadata either, so any `description` column they wrote was empty.
+
+MEDS 0.4 makes `description` optional (only `code` is required). Users that validate against
+the MEDS 0.3 schema, which requires the column, need to treat it as optional — e.g. by adding an
+all-null column — and models that build features from code descriptions should fall back to the
+code string.
+
+The one piece of code metadata eICU does support is ICD parent codes for diagnoses: each
+`DIAGNOSIS//...` code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code`
+column of `diagnosis` (via the `dx_icd_map` table built in pre-MEDS). In the demo, 860 of the
+1,091 diagnosis codes have one.
+
 ## Which eICU tables are extracted
 
 eICU-CRD v2.0 ships 31 tables. This pipeline reads 15 of them. The rest are excluded
