@@ -87,6 +87,18 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert valueless.is_empty(), f"Events emitted without a value:\n{valueless}"
 
+    # A cancelled order must not also assert administration (#10).
+    cancelled = df.filter(pl.col("code").str.starts_with("MEDICATION//ORDER_CANCELLED//"))
+    assert cancelled.select(pl.len()).collect().item() > 0, "No cancelled medication orders emitted."
+    n_cancelled_given = (
+        df.filter(pl.col("code").str.contains(r"^MEDICATION//(STARTED|STOPPED)//"))
+        .join(cancelled.select("medication_id").unique(), on="medication_id")
+        .select(pl.len())
+        .collect()
+        .item()
+    )
+    assert n_cancelled_given == 0, f"{n_cancelled_given} STARTED/STOPPED events belong to cancelled orders."
+
     births = (
         df.filter(pl.col("code") == "MEDS_BIRTH")
         .group_by("subject_id")

@@ -121,6 +121,20 @@ polars' non-strict cast. A narrower hand-rolled pattern silently drops real valu
 `1e5`, `25.` and `+5`; `tests/test_numeric_guard.py` pins the equivalence by differential
 fuzzing.
 
+## Cancelled medication orders
+
+`medication.drugOrderCancelled` is `Yes` on 205,273 of 7,301,853 rows (2.8%). The
+[documentation](https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/medication.md)
+says only that the *order* was cancelled, not whether a dose was given first, and the data does not
+settle it: cancelled orders almost always carry real start/stop offsets, but their median duration
+is 60 minutes against ~24 hours for live orders.
+
+Such a row therefore emits a single `MEDICATION//ORDER_CANCELLED//<drug>` at the start offset
+(carrying the dosage) instead of `MEDICATION//STARTED//<drug>` and `MEDICATION//STOPPED//<drug>`.
+Filtering on `STARTED` gives orders that stood; consumers who want to treat cancelled orders as
+possibly given can add the `ORDER_CANCELLED` codes back. See
+[#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10).
+
 ## Which eICU tables are extracted
 
 eICU-CRD v2.0 ships 31 tables. This pipeline reads 15 of them. The rest are excluded
