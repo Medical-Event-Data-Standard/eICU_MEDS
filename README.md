@@ -131,7 +131,7 @@ from them are therefore already human-readable (`LAB//RESULT//creatinine//mg/dL`
 `DIAGNOSIS//<diagnosisString>`), and a description would only repeat the code. Earlier releases
 declared no code metadata either, so any `description` column they wrote was empty.
 
-MEDS 0.4 makes `description` optional (only `code` is required). Consumers that validate against
+MEDS 0.4 makes `description` optional (only `code` is required). Users that validate against
 the MEDS 0.3 schema, which requires the column, need to treat it as optional — e.g. by adding an
 all-null column — and models that build features from code descriptions should fall back to the
 code string.
