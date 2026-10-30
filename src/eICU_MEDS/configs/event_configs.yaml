@@ -290,13 +290,19 @@ pastHistory:
   _table:
     join: *anchor_join
     cols: *anchor_cols
-  # The value is always the leaf of the path, so the path alone is the code. Timed at entry,
-  # not at the note's offset, so the history is not visible before it was recorded.
+  # The value is always the leaf of the path, so the path alone is the code; the display text
+  # rides along as text_value. Timed at entry, not at the note's offset, so the history is not
+  # visible before it was recorded.
   past_history:
     code: f"PAST_HISTORY//{$pasthistorypath}"
     time: $unitadmittimestamp - (-$pasthistoryenteredoffset)::minutes
+    text_value: $pasthistoryvaluetext
     past_history_id: $pasthistoryid
     icustay_id: $patientunitstayid
+    _metadata:
+      _self:
+        description: >-
+          f"Past history item path: {$pasthistorypath} (eICU pastHistory.pastHistoryPath)"
 
 treatment:
   _table:

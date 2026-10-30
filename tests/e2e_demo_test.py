@@ -97,10 +97,14 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert unlinked.is_empty(), f"Unit-stay events missing hadm_id/icustay_id:\n{unlinked}"
 
-    n_past_history = (
-        df.filter(pl.col("code").str.starts_with("PAST_HISTORY//")).select(pl.len()).collect().item()
+    n_past_history, n_textless = (
+        df.filter(pl.col("code").str.starts_with("PAST_HISTORY//"))
+        .select(pl.len(), pl.col("text_value").is_null().sum())
+        .collect()
+        .row(0)
     )
     assert n_past_history > 0, "No PAST_HISTORY events emitted; the pastHistory table is not extracted."
+    assert n_textless == 0, f"{n_textless} PAST_HISTORY events carry no text_value."
 
     births = (
         df.filter(pl.col("code") == "MEDS_BIRTH")
