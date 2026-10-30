@@ -258,10 +258,8 @@ lab:
         labname: $labname
         description: >-
           f"{$description} (eICU lab.labName '{$labname}')"
-        # LOINC parent only where the table carries one (bridged through WeavEHR to MIMIC-IV's
-        # d_labitems_to_loinc); the row's parent_codes stays null otherwise.
-        parent_codes: >-
-          f"LOINC/{$loinc_code}"
+        # No LOINC parent here: the lab-name -> LOINC crosswalk is a suMEDS crosswalk table
+        # (`eicu/lab_loinc`) and applied with `sumeds_rules.yaml`; see the README.
 
 medication:
   _table:

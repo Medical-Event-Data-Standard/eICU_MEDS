@@ -133,17 +133,16 @@ site picklist abbreviations (`Hgb`, `-polys`, `WBC x 1000`), and vocabulary-base
 (OHDSI Athena) cannot resolve either. So every code now gets the documented meaning of what it
 encodes, through three routes, with the source of each description recorded:
 
-| Code family                                                                                                                                                                            | Route                                                                                                                                                                                               | Source of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LAB//RESULT//…`, `LAB//SPECIMEN_DRAWN//…`                                                                                                                                             | `src/eICU_MEDS/metadata/lab_descriptions.csv`, joined by `_metadata` on the raw `labname` (a partial match, so one row covers every unit variant); pre-MEDS writes it as `lab_descriptions.parquet` | per row, in the table's `source` column: the WeavEHR concept the lab name maps to ([aidh-ms/WeavEHR](https://github.com/aidh-ms/WeavEHR) `configs/datasets/eicu-crd/2.0/mappings`, MIT, commit 210a539), the MIMIC-IV lab item mapped to the same concept and its LOINC code ([mimic-code](https://github.com/MIT-LCP/mimic-code) `d_labitems_to_loinc.csv`, MIT), the canonical column in [eicu-code](https://github.com/MIT-LCP/eicu-code) `pivoted-lab.sql` / `pivoted-bg.sql` (MIT), or, for the long tail, a plain expansion of the picklist name marked `expansion` |
-| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH` | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` by the ETL's last step (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                         |
-| every other family (patient events, diagnoses, admission diagnoses, allergies, care plan items, medications, treatments)                                                               | `_metadata: _self: description:` templates in `configs/event_configs.yaml`, evaluated per event                                                                                                     | the code's own components, named after the eICU-CRD column they come from (`patient.unitAdmitSource`, `diagnosis.diagnosisString`, …)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Code family                                                                                                                                                                            | Route                                                                                                                                                                                               | Source of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LAB//RESULT//…`, `LAB//SPECIMEN_DRAWN//…`                                                                                                                                             | `src/eICU_MEDS/metadata/lab_descriptions.csv`, joined by `_metadata` on the raw `labname` (a partial match, so one row covers every unit variant); pre-MEDS writes it as `lab_descriptions.parquet` | per row, in the table's `source` column: the WeavEHR concept the lab name maps to ([aidh-ms/WeavEHR](https://github.com/aidh-ms/WeavEHR) `configs/datasets/eicu-crd/2.0/mappings`, MIT, commit 210a539), the label of the MIMIC-IV lab item mapped to the same concept ([mimic-code](https://github.com/MIT-LCP/mimic-code) `d_labitems_to_loinc.csv`, MIT), the canonical column in [eicu-code](https://github.com/MIT-LCP/eicu-code) `pivoted-lab.sql` / `pivoted-bg.sql` (MIT), or, for the long tail, a plain expansion of the picklist name marked `expansion` |
+| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH` | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` by the ETL's last step (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                   |
+| every other family (patient events, diagnoses, admission diagnoses, allergies, care plan items, medications, treatments)                                                               | `_metadata: _self: description:` templates in `configs/event_configs.yaml`, evaluated per event                                                                                                     | the code's own components, named after the eICU-CRD column they come from (`patient.unitAdmitSource`, `diagnosis.diagnosisString`, …)                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
-Where a lab name is bridged to a MIMIC-IV item with a LOINC code, the lab result code also
-gets `parent_codes: ["LOINC/<code>"]` (50 lab names), so Athena-based tooling can resolve it.
-The bridge is an inference across two curated mappings (eICU name → WeavEHR concept ← MIMIC-IV
-item), and the LOINC code inherits the MIMIC item's specimen (serum/plasma versus blood); the
-`source` column records both ends of every bridge. Diagnoses keep their ICD parents (below).
+The lab table carries descriptions only. eICU records no LOINC code for its lab names, so the
+ETL writes no LOINC parent for them; the lab-name to LOINC crosswalk is part of suMEDS's
+versioned ontology data and is applied after extraction (see [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)).
+Diagnoses keep their ICD parents (below), which come from eICU's own `icd9code` column.
 
 The lab table lists only lab names that are already public: the 147 in the open eICU-CRD demo
 (ODbL) and one more in [eicu-code](https://github.com/MIT-LCP/eicu-code) (MIT). It ships nothing
@@ -175,6 +174,41 @@ ICD parent codes for diagnoses are the other piece of code metadata: each `DIAGN
 code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code` column of
 `diagnosis` (via the `dx_icd_map` table built in pre-MEDS). In the demo, 860 of the 1,091
 diagnosis codes have one; in the full release, 3,129 of the 3,933.
+
+## Enriching code metadata with suMEDS
+
+The ETL writes what eICU itself records. Links to external vocabularies that eICU does not
+record, and parents among eICU's own codes, are added afterwards by
+[suMEDS](https://github.com/rvandewater/SumMEDS) with the rules file shipped in this package,
+`src/eICU_MEDS/sumeds_rules.yaml`. The crosswalk tables and ontology packs come from suMEDS's
+versioned ontology data (sumeds-ontologies, pinned release), so this repository does not ship
+them, and no Athena download or LOINC account is needed:
+
+```bash
+suMEDS-enrich $MEDS_DIR/metadata/codes.parquet -o codes_enriched.parquet \
+  --rules "$(python -c 'from importlib.resources import files; print(files("eICU_MEDS") / "sumeds_rules.yaml")')"
+```
+
+This needs a suMEDS release with ontology rules (rvandewater/SumMEDS, `ontology-enrichment`).
+The rules add:
+
+- **LOINC for lab results** (`eicu-lab-loinc`, a crosswalk): `LAB//RESULT//{labname}//{unit}`
+    gets `LOINC//<code>` in `parent_codes`, plus `vocabulary_id` and `concept_code`, for the 50
+    lab names in the crosswalk table `eicu/lab_loinc`, each validated against the LOINC
+    pack. The links are an inference across two curated mappings (eICU name → WeavEHR concept ←
+    MIMIC-IV item with its LOINC code in mimic-code `d_labitems_to_loinc.csv`), so the LOINC code
+    inherits the MIMIC item's specimen (serum/plasma versus blood); the table records both ends.
+- **Parents among eICU codes** (`eicu-diagnosis-paths`, `eicu-admission-diagnosis-paths`,
+    `eicu-treatment-paths`, hierarchy rules): a `|`-separated path gets the nearest shorter path
+    that is itself a code, e.g. `TREATMENT//ENTERED//a|b|c` gets `TREATMENT//ENTERED//a|b`. On
+    the full release that adds 2,929 diagnosis and 2,096 treatment parents; admission diagnosis
+    paths are recorded only as leaves, so that rule adds none today.
+
+The ETL alone no longer emits LOINC parents for lab codes (builds of `main` after #27 wrote
+`LOINC/<code>` for the same 50 lab names), and it never emitted parents among eICU codes:
+`metadata/codes.parquet` from the ETL has ICD parents for diagnoses only, and suMEDS supplies
+the rest: it links the same 50 lab codes to the same LOINC codes the ETL used to write, and it
+never removes or rewrites the ETL's own parents or descriptions.
 
 ## Which eICU tables are extracted
 
