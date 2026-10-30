@@ -232,6 +232,26 @@ infusionDrug:
     time: $unitadmittimestamp - (-$infusionoffset)::minutes
     numeric_value: $_patient_weight
 
+intakeOutput:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
+  # One event per flowsheet row, valued by cellValueNumeric (cellValueText is the same number as
+  # text). The intake/output/dialysis/net totals are not emitted: they are cumulative up to the
+  # row's offset and repeated across rows entered together. Timed at entry, as for the charted
+  # tables.
+  intake_output:
+    code: f"INTAKE_OUTPUT//{$cellpath}"
+    time: $unitadmittimestamp - (-$intakeoutputentryoffset)::minutes
+    numeric_value: $cellvaluenumeric
+    intake_output_id: $intakeoutputid
+    icustay_id: $patientunitstayid
+    _metadata:
+      _self:
+        description: >-
+          f"Intake/output flowsheet item path: {$cellpath} (eICU intakeOutput.cellPath); the volume
+          or weight is in numeric_value (cellValueNumeric)"
+
 lab:
   _table:
     join: *anchor_join
@@ -526,6 +546,7 @@ sources:
         - carePlanInfectiousDisease.csv.gz
         - diagnosis.csv.gz
         - infusionDrug.csv.gz
+        - intakeOutput.csv.gz
         - lab.csv.gz
         - medication.csv.gz
         - nurseCharting.csv.gz
@@ -552,6 +573,7 @@ sources:
         - carePlanGoal.csv.gz
         - carePlanInfectiousDisease.csv.gz
         - diagnosis.csv.gz
+        - intakeOutput.csv.gz
         - lab.csv.gz
         - medication.csv.gz
         - nurseCharting.csv.gz
