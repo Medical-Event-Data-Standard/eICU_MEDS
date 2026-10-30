@@ -152,10 +152,14 @@ its prior metadata stage's output, `split_and_shard_subjects`, which writes no
 `codes.parquet`). The post-pipeline fill only ever writes a description where the pipeline
 left null, never extends the vocabulary, and is idempotent.
 
-On the demo (eICU-CRD demo 2.0.1) every one of the 6,481 codes is described: 294 lab codes
-(all 158 lab names of the full release are in the table, so full-release builds are covered
-too), 34 literal codes, and 6,153 component-coded codes. Event data is untouched: per-code
-event counts are identical to a build without this metadata.
+On the demo (eICU-CRD demo 2.0.1) every one of the 6,481 codes is described: 294 lab codes,
+34 literal codes, and 6,153 component-coded codes. Event data is untouched: per-code event
+counts are identical to a build without this metadata.
+
+On the full release (eICU-CRD 2.0) every one of the 11,833 codes is described: 316 lab codes
+(a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names, all of them in the
+table), 34 literal codes, and 11,483 component-coded codes. Every code in the data is in
+`codes.parquet`, and the file validates against `meds.CodeMetadataSchema`.
 
 MEDS 0.4 makes `description` optional, so consumers must still not rely on it being
 non-null for datasets built with older releases.
@@ -163,7 +167,7 @@ non-null for datasets built with older releases.
 ICD parent codes for diagnoses are the other piece of code metadata: each `DIAGNOSIS//...`
 code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code` column of
 `diagnosis` (via the `dx_icd_map` table built in pre-MEDS). In the demo, 860 of the 1,091
-diagnosis codes have one.
+diagnosis codes have one; in the full release, 3,129 of the 3,933.
 
 ## Which eICU tables are extracted
 
@@ -216,6 +220,13 @@ Local parallelization uses the `hydra-joblib-launcher` package, which is install
 ```bash
 export N_WORKERS=8
 ```
+
+Size `N_WORKERS` to memory, not cores: each worker is a separate process with its own working
+set. On the full release, `N_WORKERS=4` exhausted a 24 GB laptop, with each of the four workers
+holding 7.5 to 8 GB during `split_and_shard_subjects`. That is a metadata stage, so every worker
+repeats the whole computation rather than taking a share of it. The same build run serially
+(`N_WORKERS` unset, polars limited to four threads with `POLARS_MAX_THREADS=4`) peaked at 4.8 GB
+and took 20 minutes on a 10-core machine.
 
 The number of subjects per shard is fixed at 1,000 in the `split_and_shard_subjects` stage of
 `src/eICU_MEDS/configs/ETL.yaml`; no environment variable or command-line option changes it. Other MEDS ETLs
