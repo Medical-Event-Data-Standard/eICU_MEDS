@@ -11,6 +11,7 @@ from meds import CodeMetadataSchema
 from eICU_MEDS.code_descriptions import (
     LAB_DESCRIPTIONS_PREFIX,
     apply_static_descriptions,
+    lab_fallback_description,
     read_lab_descriptions,
     read_static_code_descriptions,
     write_lab_descriptions,
@@ -114,3 +115,42 @@ def test_apply_static_descriptions_fills_only_nulls(tmp_path):
     assert apply_static_descriptions(fp) == 0  # idempotent
     # The file must stay valid MEDS code metadata as read from disk (string, not large_string).
     CodeMetadataSchema.validate(pq.read_table(fp))
+
+
+def test_lab_fallback_description_parses_units_and_skips_other_codes():
+    codes = pl.Series(
+        [
+            "LAB//RESULT//total protein//g/dL",
+            "LAB//SPECIMEN_DRAWN//O2 Sat (%)//%",
+            "LAB//RESULT//WBC x 1000//K/mcL",
+            "LAB//RESULT//UNK//UNK",
+            "VITALS//PERIODIC//HEARTRATE",
+            "MEDICATION//STARTED//LAB//x",
+        ]
+    )
+    assert pl.select(lab_fallback_description(pl.lit(codes))).to_series().to_list() == [
+        "Lab result (eICU lab.labName 'total protein')",
+        "Lab specimen drawn (eICU lab.labName 'O2 Sat (%)')",
+        "Lab result (eICU lab.labName 'WBC x 1000')",
+        "Lab result (eICU lab.labName 'UNK')",
+        None,
+        None,
+    ]
+
+
+def test_unlisted_lab_codes_get_the_fallback_and_listed_ones_keep_the_table(tmp_path):
+    codes = pl.DataFrame(
+        {
+            "code": ["LAB//RESULT//Hgb//g/dL", "LAB//RESULT//not in the table//mg/dL"],
+            "description": ["Hemoglobin (eICU lab.labName 'Hgb')", None],
+            "parent_codes": [["LOINC/718-7"], None],
+        }
+    )
+    fp = tmp_path / "codes.parquet"
+    codes.write_parquet(fp)
+    assert apply_static_descriptions(fp) == 1
+    by_code = dict(pl.read_parquet(fp).select("code", "description").iter_rows())
+    assert by_code["LAB//RESULT//Hgb//g/dL"] == "Hemoglobin (eICU lab.labName 'Hgb')"
+    assert (
+        by_code["LAB//RESULT//not in the table//mg/dL"] == "Lab result (eICU lab.labName 'not in the table')"
+    )
