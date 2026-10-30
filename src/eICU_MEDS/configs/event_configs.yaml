@@ -328,6 +328,27 @@ pastHistory:
         description: >-
           f"Past history item path: {$pasthistorypath} (eICU pastHistory.pastHistoryPath)"
 
+respiratoryCharting:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
+  # The same varchar value cell as nurseCharting, split the same way.
+  respiratory_charting:
+    code: >-
+      f"RESPIRATORY_CHARTING//{$respcharttypecat ?? 'UNK'}//{$respchartvaluelabel ?? 'UNK'}" if (/\S/ in
+      $respchartvalue)
+    time: $unitadmittimestamp - (-$respchartentryoffset)::minutes
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $respchartvalue)::float64'
+    text_value: '$respchartvalue if not (/^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$/ in $respchartvalue)'
+    resp_chart_id: $respchartid
+    icustay_id: $patientunitstayid
+    _metadata:
+      _self:
+        description: >-
+          f"Respiratory-charted observation; category {$respcharttypecat ?? 'UNK'}
+          (respiratoryCharting.respChartTypeCat), label {$respchartvaluelabel ?? 'UNK'}
+          (respChartValueLabel)"
+
 treatment:
   _table:
     join: *anchor_join
@@ -509,6 +530,7 @@ sources:
         - medication.csv.gz
         - nurseCharting.csv.gz
         - pastHistory.csv.gz
+        - respiratoryCharting.csv.gz
         - treatment.csv.gz
         - vitalAperiodic.csv.gz
         - vitalPeriodic.csv.gz
@@ -534,6 +556,7 @@ sources:
         - medication.csv.gz
         - nurseCharting.csv.gz
         - pastHistory.csv.gz
+        - respiratoryCharting.csv.gz
         - treatment.csv.gz
         - vitalAperiodic.csv.gz
         - vitalPeriodic.csv.gz
