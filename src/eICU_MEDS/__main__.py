@@ -9,6 +9,7 @@ from omegaconf import DictConfig
 
 from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, dataset_info
 from . import __version__ as PKG_VERSION
+from .code_descriptions import apply_static_descriptions
 from .commands import coerce_download_workers, resolve_console_script, run_command
 
 if HAS_PRE_MEDS:  # pragma: no cover
@@ -106,6 +107,19 @@ def main(cfg: DictConfig):
         command_parts.append("--overrides")
         command_parts.extend(overrides)
     run_command(command_parts, env=env)
+
+    # Step 3: descriptions of literal codes
+    #
+    # Vitals, weights, MEDS_BIRTH/MEDS_DEATH and the other literal codes have no code components,
+    # so no `_metadata` block can describe them (see `code_descriptions.py` for why the
+    # pre-existing codes.parquet route does not reach them either). Fill them in from the packaged
+    # table once the pipeline has written the final vocabulary; extracted descriptions win.
+    codes_fp = MEDS_output_dir / "metadata" / "codes.parquet"
+    if codes_fp.is_file():
+        n_filled = apply_static_descriptions(codes_fp)
+        logger.info(f"Filled descriptions of {n_filled} literal codes in {codes_fp.resolve()!s}.")
+    else:  # pragma: no cover
+        logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
 
 
 if __name__ == "__main__":

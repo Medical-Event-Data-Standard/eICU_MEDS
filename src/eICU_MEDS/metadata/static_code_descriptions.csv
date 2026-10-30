@@ -1,0 +1,35 @@
+code,description,source
+VITALS//PERIODIC//TEMPERATURE,Temperature in degrees Celsius (vitalPeriodic.temperature),eicu-docs:vitalPeriodic.temperature 'patient's temperature value in celsius'; weavehr:temperature (C); mimic-items:223762 Temperature Celsius
+VITALS//PERIODIC//SAO2,"Pulse oximetry oxygen saturation (SpO2), % (vitalPeriodic.saO2)",eicu-docs:vitalPeriodic.saO2 'patient's spO2 value'; weavehr:oxygen_saturation (%); mimic-items:220277 O2 saturation pulseoxymetry
+VITALS//PERIODIC//HEARTRATE,"Heart rate, beats per minute (vitalPeriodic.heartRate)",eicu-docs:vitalPeriodic.heartRate; weavehr:heart_rate (bpm); mimic-items:220045 Heart Rate
+VITALS//PERIODIC//RESPIRATION,"Respiratory rate, breaths per minute (vitalPeriodic.respiration)",eicu-docs:vitalPeriodic.respiration; weavehr:respiratory_rate (insp/min); mimic-items:220210 Respiratory Rate
+VITALS//PERIODIC//CVP,"Central venous pressure (vitalPeriodic.cvp); unit not documented, values above ~200 are likely mmH2O rather than mmHg",eicu-docs:vitalPeriodic.cvp; mimic-items:220074 Central Venous Pressure (mmHg); weavehr eICU table config splits cvp at 200 into mmHg / mmH2O
+VITALS//PERIODIC//ETCO2,End-tidal carbon dioxide (vitalPeriodic.etCo2),eicu-docs:vitalPeriodic.etCo2; mimic-items:228640 EtCO2
+VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC,"Systemic (invasive, arterial line) blood pressure, systolic, mmHg (vitalPeriodic.systemicSystolic)",eicu-docs:vitalPeriodic.systemicSystolic; weavehr:systolic_blood_pressure (mmHg); mimic-items:220050 Arterial Blood Pressure systolic
+VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC,"Systemic (invasive, arterial line) blood pressure, diastolic, mmHg (vitalPeriodic.systemicDiastolic)",eicu-docs:vitalPeriodic.systemicDiastolic; weavehr:diastolic_blood_pressure (mmHg); mimic-items:220051 Arterial Blood Pressure diastolic
+VITALS//PERIODIC//BP//SYSTEMIC_MEAN,"Systemic (invasive, arterial line) blood pressure, mean, mmHg (vitalPeriodic.systemicMean)",eicu-docs:vitalPeriodic.systemicMean; weavehr:mean_arterial_pressure (mmHg); mimic-items:220052 Arterial Blood Pressure mean
+VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC,"Pulmonary artery pressure, systolic (vitalPeriodic.paSystolic)",eicu-docs:vitalPeriodic.paSystolic; mimic-items:220059 Pulmonary Artery Pressure systolic (mmHg)
+VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC,"Pulmonary artery pressure, diastolic (vitalPeriodic.paDiastolic)",eicu-docs:vitalPeriodic.paDiastolic; mimic-items:220060 Pulmonary Artery Pressure diastolic (mmHg)
+VITALS//PERIODIC//BP//PULM_ART_MEAN,"Pulmonary artery pressure, mean (vitalPeriodic.paMean)",eicu-docs:vitalPeriodic.paMean; mimic-items:220061 Pulmonary Artery Pressure mean (mmHg)
+VITALS//PERIODIC//ST1,"ST-segment deviation, ECG lead 1 (vitalPeriodic.st1)",eicu-docs:vitalPeriodic.st1 'patient's st1 value'; expansion
+VITALS//PERIODIC//ST2,"ST-segment deviation, ECG lead 2 (vitalPeriodic.st2)",eicu-docs:vitalPeriodic.st2; expansion
+VITALS//PERIODIC//ST3,"ST-segment deviation, ECG lead 3 (vitalPeriodic.st3)",eicu-docs:vitalPeriodic.st3; expansion
+VITALS//PERIODIC//ICP,Intracranial pressure (vitalPeriodic.ICP),eicu-docs:vitalPeriodic.ICP; mimic-items:220765 Intra Cranial Pressure (mmHg)
+VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC,"Non-invasive (cuff) blood pressure, systolic, mmHg (vitalAperiodic.nonInvasiveSystolic)",eicu-docs:vitalAperiodic.nonInvasiveSystolic; mimic-items:220179 Non Invasive Blood Pressure systolic
+VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC,"Non-invasive (cuff) blood pressure, diastolic, mmHg (vitalAperiodic.nonInvasiveDiastolic)",eicu-docs:vitalAperiodic.nonInvasiveDiastolic; mimic-items:220180 Non Invasive Blood Pressure diastolic
+VITALS//APERIODIC//BP//NONINVASIVE_MEAN,"Non-invasive (cuff) blood pressure, mean, mmHg (vitalAperiodic.nonInvasiveMean)",eicu-docs:vitalAperiodic.nonInvasiveMean; weavehr:mean_arterial_pressure (mmHg); mimic-items:220181 Non Invasive Blood Pressure mean
+VITALS//APERIODIC//PAOP,Pulmonary artery occlusion (wedge) pressure (vitalAperiodic.paop),eicu-docs:vitalAperiodic.paop; mimic-items:223771 PCWP (mmHg)
+VITALS//APERIODIC//CARDIAC_OUTPUT,Cardiac output (vitalAperiodic.cardiacOutput),eicu-docs:vitalAperiodic.cardiacOutput; mimic-items:220088 Cardiac Output (thermodilution) (L/min)
+VITALS//APERIODIC//CARDIAC_INPUT,"Cardiac input (vitalAperiodic.cardiacInput; documented only as 'patient cardiac input value', commonly read as cardiac index)",eicu-docs:vitalAperiodic.cardiacInput; expansion
+VITALS//APERIODIC//SVR,Systemic vascular resistance (vitalAperiodic.svr),eicu-docs:vitalAperiodic.svr; expansion
+VITALS//APERIODIC//SVRI,Systemic vascular resistance index (vitalAperiodic.svri),eicu-docs:vitalAperiodic.svri; expansion; mimic-items:228185 SVRI (PiCCO)
+VITALS//APERIODIC//PVR,Pulmonary vascular resistance (vitalAperiodic.pvr),eicu-docs:vitalAperiodic.pvr; expansion
+VITALS//APERIODIC//PVRI,Pulmonary vascular resistance index (vitalAperiodic.pvri),eicu-docs:vitalAperiodic.pvri; expansion
+ICU_ADMISSION_WEIGHT,Admission weight of the patient in kilograms (patient.admissionWeight),eicu-docs:patient.admissionWeight
+ICU_ADMISSION_HEIGHT,Admission height of the patient in cm (patient.admissionHeight),eicu-docs:patient.admissionHeight
+ICU_DISCHARGE_WEIGHT,Patient weight at time of unit discharge in kilograms (patient.dischargeWeight),eicu-docs:patient.dischargeWeight
+SUBJECT_WEIGHT_AT_INFUSION,Patient weight recorded during the drug infusion in kilograms (infusionDrug.patientWeight),eicu-docs:infusionDrug.patientWeight
+INFUSION_DRUG,"Infusion drug administration; the drug name with its rate unit is in text_value (infusionDrug.drugName, e.g. 'Propofol (mcg/kg/min)') and numeric_value is infusionDrug.infusionRate","eicu-docs:infusionDrug.drugName, infusionRate"
+CAREPLAN_EOL,End-of-life discussion recorded in the care plan (carePlanEOL.cplEolDiscussionOffset),eicu-docs:carePlanEOL.cplEolDiscussionOffset
+MEDS_BIRTH,"Birth (MEDS standard code); derived from patient.age at hospital admission, see README 'Birth'",MEDS standard; eicu-docs:patient.age
+MEDS_DEATH,"Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', see README 'Death'",MEDS standard; eicu-docs:patient.hospitalDischargeStatus
