@@ -145,6 +145,12 @@ The bridge is an inference across two curated mappings (eICU name → WeavEHR co
 item), and the LOINC code inherits the MIMIC item's specimen (serum/plasma versus blood); the
 `source` column records both ends of every bridge. Diagnoses keep their ICD parents (below).
 
+The lab table lists only lab names that are already public: the 147 in the open eICU-CRD demo
+(ODbL) and one more in [eicu-code](https://github.com/MIT-LCP/eicu-code) (MIT). It ships nothing
+that exists only in the credentialed release. A lab name outside the table gets a generic
+description from the ETL's last step, built from the code itself, for example
+`Lab result (eICU lab.labName '<labname>')`.
+
 Why three routes: MEDS-Extract attaches `_metadata` by joining on the code's *components*, so
 a literal code has none to join on, and the pre-existing `metadata/codes.parquet` it documents
 for that case is not read by the standard extraction pipeline (`extract_code_metadata` reads
@@ -157,9 +163,10 @@ On the demo (eICU-CRD demo 2.0.1) every one of the 6,481 codes is described: 294
 counts are identical to a build without this metadata.
 
 On the full release (eICU-CRD 2.0) every one of the 11,833 codes is described: 316 lab codes
-(a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names, all of them in the
-table), 34 literal codes, and 11,483 component-coded codes. Every code in the data is in
-`codes.parquet`, and the file validates against `meds.CodeMetadataSchema`.
+(a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names; 148 names are in the
+table and the other 10 get the generic description), 34 literal codes, and 11,483
+component-coded codes. Every code in the data is in `codes.parquet`, and the file validates
+against `meds.CodeMetadataSchema`.
 
 MEDS 0.4 makes `description` optional, so consumers must still not rely on it being
 non-null for datasets built with older releases.

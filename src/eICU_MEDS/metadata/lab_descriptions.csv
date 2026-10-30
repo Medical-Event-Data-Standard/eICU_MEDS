@@ -12,7 +12,6 @@ albumin,Albumin,1751-7,weavehr:albumin; mimic-loinc:50862 Albumin -> LOINC 1751-
 alkaline phos.,Alkaline phosphatase,6768-6,weavehr:alkaline_phosphatase; mimic-loinc:50863 Alkaline Phosphatase -> LOINC 6768-6; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 ALT (SGPT),"Alanine aminotransferase (ALT, SGPT)",1742-6,weavehr:alanine_aminotransferase; mimic-loinc:50861 Alanine Aminotransferase (ALT) -> LOINC 1742-6; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 Amikacin - peak,"Amikacin drug level, peak",,expansion,plain reading of the eICU lab picklist name
-Amikacin - random,"Amikacin drug level, random",,expansion,plain reading of the eICU lab picklist name
 Amikacin - trough,"Amikacin drug level, trough",,expansion,plain reading of the eICU lab picklist name
 ammonia,Ammonia,,expansion,plain reading of the eICU lab picklist name
 amylase,Amylase,,expansion,plain reading of the eICU lab picklist name
@@ -38,7 +37,6 @@ CPK-MB INDEX,Creatine kinase MB index (CK-MB as a percentage of total CK),,expan
 creatinine,Creatinine,2160-0,weavehr:creatinine; mimic-loinc:50912 Creatinine -> LOINC 2160-0; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 CRP,C-reactive protein,1988-5,weavehr:C_reactive_protein; mimic-loinc:50889 C-Reactive Protein -> LOINC 1988-5,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 CRP-hs,"C-reactive protein, high sensitivity",,expansion,plain reading of the eICU lab picklist name
-Cyclosporin,Cyclosporine drug level,,expansion,plain reading of the eICU lab picklist name
 Device,Oxygen delivery or ventilation device recorded with the blood gas (categorical; value in text_value),,expansion,plain reading of the eICU lab picklist name
 Digoxin,Digoxin drug level,,expansion,plain reading of the eICU lab picklist name
 direct bilirubin,"Bilirubin, direct (conjugated)",1968-7,"weavehr:bilirubin_direct; mimic-loinc:50883 Bilirubin, Direct -> LOINC 1968-7",concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
@@ -61,15 +59,11 @@ HCO3,"Bicarbonate (HCO3), blood gas",,expansion,plain reading of the eICU lab pi
 Hct,Hematocrit,4544-3,weavehr:hematocrit; mimic-loinc:51221 Hematocrit -> LOINC 4544-3; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 HDL,High-density lipoprotein (HDL) cholesterol,,expansion,plain reading of the eICU lab picklist name
 Hgb,Hemoglobin,718-7,weavehr:hemoglobin; mimic-loinc:51222 Hemoglobin -> LOINC 718-7; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
-HIV 1&2 AB,HIV-1 and HIV-2 antibody test,,expansion,plain reading of the eICU lab picklist name
 HSV 1&2 IgG AB,Herpes simplex virus 1 and 2 IgG antibody,,expansion,plain reading of the eICU lab picklist name
-HSV 1&2 IgG AB titer,Herpes simplex virus 1 and 2 IgG antibody titer,,expansion,plain reading of the eICU lab picklist name
 ionized calcium,"Calcium, ionized (free calcium)",1994-3,weavehr:calcium_ionized; mimic-loinc:50808 Free Calcium -> LOINC 1994-3,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 lactate,Lactate,32693-4,weavehr:lactate; mimic-loinc:50813 Lactate -> LOINC 32693-4; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 LDH,Lactate dehydrogenase (LDH),,expansion,plain reading of the eICU lab picklist name
 LDL,Low-density lipoprotein (LDL) cholesterol,,expansion,plain reading of the eICU lab picklist name
-Legionella pneumophila Ab,Legionella pneumophila antibody,,expansion,plain reading of the eICU lab picklist name
-Lidocaine,Lidocaine drug level,,expansion,plain reading of the eICU lab picklist name
 lipase,Lipase,,expansion,plain reading of the eICU lab picklist name
 Lithium,Lithium drug level,,expansion,plain reading of the eICU lab picklist name
 LPM O2,"Supplemental oxygen flow in liters per minute, recorded with the blood gas",,expansion,plain reading of the eICU lab picklist name
@@ -98,7 +92,6 @@ potassium,Potassium,2823-3,weavehr:potassium; mimic-loinc:50971 Potassium -> LOI
 prealbumin,Prealbumin,,expansion,plain reading of the eICU lab picklist name
 Pressure Control,"Pressure control level, ventilator setting recorded with the blood gas",,expansion,plain reading of the eICU lab picklist name
 Pressure Support,"Pressure support level, ventilator setting recorded with the blood gas",,expansion,plain reading of the eICU lab picklist name
-Procainamide,Procainamide drug level,,expansion,plain reading of the eICU lab picklist name
 prolactin,Prolactin,,expansion,plain reading of the eICU lab picklist name
 protein - CSF,Protein in cerebrospinal fluid,,expansion,plain reading of the eICU lab picklist name
 protein C,Protein C activity,,expansion,plain reading of the eICU lab picklist name
@@ -111,7 +104,6 @@ RBC,Red blood cell count (erythrocytes),789-8,weavehr:red_blood_cell_count; mimi
 RDW,Red cell distribution width (RDW),788-0,weavehr:erythrocyte_distribution_width; mimic-loinc:51277 RDW -> LOINC 788-0,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 Respiratory Rate,Respiratory rate recorded with the blood gas,,expansion,plain reading of the eICU lab picklist name
 reticulocyte count,"Reticulocyte count, %",,expansion,plain reading of the eICU lab picklist name
-RPR titer,"Rapid plasma reagin (RPR, syphilis) titer",,expansion,plain reading of the eICU lab picklist name
 salicylate,Salicylate drug level,,expansion,plain reading of the eICU lab picklist name
 serum ketones,Serum ketones,,expansion,plain reading of the eICU lab picklist name
 serum osmolality,Serum osmolality,,expansion,plain reading of the eICU lab picklist name
@@ -143,7 +135,6 @@ urinary creatinine,Creatinine in urine,,expansion,plain reading of the eICU lab 
 urinary osmolality,Urine osmolality,,expansion,plain reading of the eICU lab picklist name
 urinary sodium,Sodium in urine,,expansion,plain reading of the eICU lab picklist name
 urinary specific gravity,Urine specific gravity,,expansion,plain reading of the eICU lab picklist name
-Vancomycin - peak,"Vancomycin drug level, peak",,expansion,plain reading of the eICU lab picklist name
 Vancomycin - random,"Vancomycin drug level, random",,expansion,plain reading of the eICU lab picklist name
 Vancomycin - trough,"Vancomycin drug level, trough",,expansion,plain reading of the eICU lab picklist name
 Vent Other,Other ventilator setting recorded with the blood gas,,expansion,plain reading of the eICU lab picklist name
@@ -152,7 +143,6 @@ Vitamin B12,Vitamin B12 (cobalamin),,expansion,plain reading of the eICU lab pic
 WBC x 1000,"White blood cell count (leukocytes), in thousands per microliter",6690-2,weavehr:white_blood_cell_count; mimic-loinc:51301 White Blood Cells -> LOINC 6690-2; eicu-code,concept name from WeavEHR eICU mapping; label and LOINC code from the MIMIC-IV item mapped to the same WeavEHR concept
 WBC's in body fluid,White blood cell count in body fluid,,expansion,plain reading of the eICU lab picklist name
 WBC's in cerebrospinal fluid,White blood cell count in cerebrospinal fluid,,expansion,plain reading of the eICU lab picklist name
-WBC's in pericardial fluid,White blood cell count in pericardial fluid,,expansion,plain reading of the eICU lab picklist name
 WBC's in peritoneal fluid,White blood cell count in peritoneal fluid,,expansion,plain reading of the eICU lab picklist name
 WBC's in pleural fluid,White blood cell count in pleural fluid,,expansion,plain reading of the eICU lab picklist name
 WBC's in synovial fluid,White blood cell count in synovial fluid,,expansion,plain reading of the eICU lab picklist name

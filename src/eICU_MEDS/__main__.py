@@ -113,11 +113,14 @@ def main(cfg: DictConfig):
     # Vitals, weights, MEDS_BIRTH/MEDS_DEATH and the other literal codes have no code components,
     # so no `_metadata` block can describe them (see `code_descriptions.py` for why the
     # pre-existing codes.parquet route does not reach them either). Fill them in from the packaged
-    # table once the pipeline has written the final vocabulary; extracted descriptions win.
+    # table once the pipeline has written the final vocabulary; extracted descriptions win. Lab
+    # codes whose name the packaged lab table does not list get a generic description here too.
     codes_fp = MEDS_output_dir / "metadata" / "codes.parquet"
     if codes_fp.is_file():
         n_filled = apply_static_descriptions(codes_fp)
-        logger.info(f"Filled descriptions of {n_filled} literal codes in {codes_fp.resolve()!s}.")
+        logger.info(
+            f"Filled descriptions of {n_filled} literal and unlisted lab codes in {codes_fp.resolve()!s}."
+        )
     else:  # pragma: no cover
         logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
 

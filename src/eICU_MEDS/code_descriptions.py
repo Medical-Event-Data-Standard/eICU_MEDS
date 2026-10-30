@@ -11,7 +11,10 @@ Three routes, because MEDS-Extract attaches metadata differently depending on th
 
 * **Lab codes** (``LAB//RESULT//{labname}//{unit}``): ``lab_descriptions.csv`` is keyed on the
   raw ``labname`` and joined by the ``_metadata`` blocks of the two ``lab`` events. Pre-MEDS
-  writes it next to the raw tables as ``lab_descriptions.parquet``.
+  writes it next to the raw tables as ``lab_descriptions.parquet``. The table lists only lab
+  names that are public (the open eICU demo or MIT-LCP's ``eicu-code``), so it ships nothing
+  from the credentialed release; a lab name outside it gets a generic description built from
+  the code itself after the pipeline (:func:`apply_static_descriptions`).
 * **Component-coded events** (patient events, diagnoses, medications, ...): ``_self``
   templates in ``configs/event_configs.yaml``; nothing to ship.
 * **Literal codes** (vitals, weights, ``MEDS_BIRTH``, ...): ``static_code_descriptions.csv``.
@@ -38,6 +41,25 @@ METADATA_DIR = Path(__file__).parent / "metadata"
 LAB_DESCRIPTIONS_PREFIX = "lab_descriptions"
 LAB_DESCRIPTIONS_CSV = METADATA_DIR / "lab_descriptions.csv"
 STATIC_DESCRIPTIONS_CSV = METADATA_DIR / "static_code_descriptions.csv"
+# `LAB//{RESULT|SPECIMEN_DRAWN}//{labname}//{unit}`; units hold single slashes (`mg/dL`), never `//`.
+LAB_CODE_PATTERN = r"^LAB//(RESULT|SPECIMEN_DRAWN)//(.+)//[^/]*(?:/[^/]+)*$"
+
+
+def lab_fallback_description(code: pl.Expr) -> pl.Expr:
+    """A generic description for lab codes whose name is not in the packaged lab table.
+
+    It mirrors the ``_metadata`` templates of the two ``lab`` events, minus the table's
+    description, and is built at run time from the code string alone. Non-lab codes give null.
+
+    Examples:
+        >>> codes = ["LAB//RESULT//Hgb//g/dL", "LAB//SPECIMEN_DRAWN//Hgb//UNK", "MEDS_BIRTH"]
+        >>> pl.select(lab_fallback_description(pl.lit(pl.Series(codes)))).to_series().to_list()
+        ["Lab result (eICU lab.labName 'Hgb')", "Lab specimen drawn (eICU lab.labName 'Hgb')", None]
+    """
+    kind = code.str.extract(LAB_CODE_PATTERN, 1)
+    labname = code.str.extract(LAB_CODE_PATTERN, 2)
+    label = pl.when(kind == "RESULT").then(pl.lit("Lab result")).otherwise(pl.lit("Lab specimen drawn"))
+    return pl.when(labname.is_not_null()).then(pl.format("{} (eICU lab.labName '{}')", label, labname))
 
 
 def read_lab_descriptions(path: Path = LAB_DESCRIPTIONS_CSV) -> pl.DataFrame:
@@ -97,6 +119,7 @@ def write_lab_descriptions(output_dir: Path) -> Path:
 def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None) -> int:
     """Fill the ``description`` of literal codes in a finished ``codes.parquet``, in place.
 
+    Lab codes the packaged lab table does not describe get :func:`lab_fallback_description`.
     Only codes whose description is null are filled (an extracted description always wins,
     matching MEDS-Extract's own precedence), and only codes present in the file are touched:
     the vocabulary is never extended. The file is replaced atomically and is validated against
@@ -115,9 +138,9 @@ def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None
         >>> import tempfile
         >>> static = pl.DataFrame({"code": ["MEDS_BIRTH", "NOT_EMITTED"], "description": ["Birth", "x"]})
         >>> codes = pl.DataFrame(
-        ...     {"code": ["MEDS_BIRTH", "LAB//RESULT//Hgb//g/dL", "GENDER//Female"],
-        ...      "description": [None, "Hemoglobin", None],
-        ...      "parent_codes": [None, ["LOINC/718-7"], None]}
+        ...     {"code": ["MEDS_BIRTH", "LAB//RESULT//Hgb//g/dL", "LAB//RESULT//newlab//%", "GENDER//Female"],
+        ...      "description": [None, "Hemoglobin", None, None],
+        ...      "parent_codes": [None, ["LOINC/718-7"], None, None]}
         ... )
         >>> with tempfile.TemporaryDirectory() as d:
         ...     fp = Path(d) / "codes.parquet"
@@ -125,10 +148,11 @@ def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None
         ...     n = apply_static_descriptions(fp, static)
         ...     out = pl.read_parquet(fp)
         >>> n
-        1
+        2
         >>> out.sort("code").select("code", "description").to_dicts()  # doctest: +NORMALIZE_WHITESPACE
         [{'code': 'GENDER//Female', 'description': None},
          {'code': 'LAB//RESULT//Hgb//g/dL', 'description': 'Hemoglobin'},
+         {'code': 'LAB//RESULT//newlab//%', 'description': "Lab result (eICU lab.labName 'newlab')"},
          {'code': 'MEDS_BIRTH', 'description': 'Birth'}]
         >>> out.columns == codes.columns and out.height == codes.height
         True
@@ -141,7 +165,11 @@ def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None
         codes = codes.with_columns(pl.lit(None, dtype=pl.String).alias("description"))
     filled = (
         codes.join(static.rename({"description": "_static"}), on="code", how="left")
-        .with_columns(pl.coalesce("description", "_static").alias("description"))
+        .with_columns(
+            pl.coalesce("description", "_static", lab_fallback_description(pl.col("code"))).alias(
+                "description"
+            )
+        )
         .drop("_static")
         .select(codes.columns)
     )
