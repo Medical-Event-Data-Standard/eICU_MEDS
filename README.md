@@ -65,6 +65,25 @@ minutes relative to unit admission, and health-system stays are ordered only at
 **Only relative time differences within a subject are meaningful.** Absolute dates in the
 output are not real and must not be interpreted as such.
 
+## Death
+
+`MEDS_DEATH` is emitted at hospital discharge when `hospitalDischargeStatus == "Expired"`, and from
+no other field. The
+[documentation](https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/patient.md)
+describes `Expired` as the patient's condition on leaving the hospital, and on the full release it
+agrees with the independently populated `hospitalDischargeLocation == "Death"` on every one of the
+200,859 rows (18,004 deaths).
+
+Hospital rather than unit status is the key because it is the more complete of the two: 7,315 rows
+record a unit discharge `Alive` followed by a hospital death, which unit status would miss.
+
+The converse is deliberately **not** used. 222 rows (0.1%) have `unitDischargeStatus == "Expired"`
+while hospital status is `Alive` or blank, and these emit no `MEDS_DEATH`. They contradict
+themselves: in 142 of them the hospital stay continues past the unit discharge at which the
+patient supposedly died, some to a discharge home. Rows with a blank hospital status (1,751) are
+likewise not treated as deaths. See
+[#11](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/11).
+
 ## Vital signs: only measurements that happened
 
 `vitalPeriodic` and `vitalAperiodic` are wide tables — one row per timestamp, one column per
@@ -101,6 +120,61 @@ The guard regex is exactly Rust's `f64::from_str` grammar, so it is value-for-va
 polars' non-strict cast. A narrower hand-rolled pattern silently drops real values such as
 `1e5`, `25.` and `+5`; `tests/test_numeric_guard.py` pins the equivalence by differential
 fuzzing.
+
+## Code metadata: descriptions
+
+`metadata/codes.parquet` carries `code`, `description`, `parent_codes` and `code_template`. eICU
+ships no code dictionary (nothing like MIMIC-IV's `d_labitems`): its tables record the names
+themselves (`labName`, `drugName`, `treatmentString`, `diagnosisString`), so the codes are
+human-readable on their own and releases up to 0.1.0 wrote no `description`. That is enough
+for a reader, not for tooling that maps codes across datasets or builds features from
+descriptions: vital codes are column names (`VITALS//PERIODIC//HEARTRATE`), lab names are
+site picklist abbreviations (`Hgb`, `-polys`, `WBC x 1000`), and vocabulary-based enrichment
+(OHDSI Athena) cannot resolve either. So every code now gets the documented meaning of what it
+encodes, through three routes, with the source of each description recorded:
+
+| Code family                                                                                                                                                                            | Route                                                                                                                                                                                               | Source of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LAB//RESULT//…`, `LAB//SPECIMEN_DRAWN//…`                                                                                                                                             | `src/eICU_MEDS/metadata/lab_descriptions.csv`, joined by `_metadata` on the raw `labname` (a partial match, so one row covers every unit variant); pre-MEDS writes it as `lab_descriptions.parquet` | per row, in the table's `source` column: the WeavEHR concept the lab name maps to ([aidh-ms/WeavEHR](https://github.com/aidh-ms/WeavEHR) `configs/datasets/eicu-crd/2.0/mappings`, MIT, commit 210a539), the MIMIC-IV lab item mapped to the same concept and its LOINC code ([mimic-code](https://github.com/MIT-LCP/mimic-code) `d_labitems_to_loinc.csv`, MIT), the canonical column in [eicu-code](https://github.com/MIT-LCP/eicu-code) `pivoted-lab.sql` / `pivoted-bg.sql` (MIT), or, for the long tail, a plain expansion of the picklist name marked `expansion` |
+| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH` | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` by the ETL's last step (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                         |
+| every other family (patient events, diagnoses, admission diagnoses, allergies, care plan items, medications, treatments)                                                               | `_metadata: _self: description:` templates in `configs/event_configs.yaml`, evaluated per event                                                                                                     | the code's own components, named after the eICU-CRD column they come from (`patient.unitAdmitSource`, `diagnosis.diagnosisString`, …)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+
+Where a lab name is bridged to a MIMIC-IV item with a LOINC code, the lab result code also
+gets `parent_codes: ["LOINC/<code>"]` (50 lab names), so Athena-based tooling can resolve it.
+The bridge is an inference across two curated mappings (eICU name → WeavEHR concept ← MIMIC-IV
+item), and the LOINC code inherits the MIMIC item's specimen (serum/plasma versus blood); the
+`source` column records both ends of every bridge. Diagnoses keep their ICD parents (below).
+
+The lab table lists only lab names that are already public: the 147 in the open eICU-CRD demo
+(ODbL) and one more in [eicu-code](https://github.com/MIT-LCP/eicu-code) (MIT). It ships nothing
+that exists only in the credentialed release. A lab name outside the table gets a generic
+description from the ETL's last step, built from the code itself, for example
+`Lab result (eICU lab.labName '<labname>')`.
+
+Why three routes: MEDS-Extract attaches `_metadata` by joining on the code's *components*, so
+a literal code has none to join on, and the pre-existing `metadata/codes.parquet` it documents
+for that case is not read by the standard extraction pipeline (`extract_code_metadata` reads
+its prior metadata stage's output, `split_and_shard_subjects`, which writes no
+`codes.parquet`). The post-pipeline fill only ever writes a description where the pipeline
+left null, never extends the vocabulary, and is idempotent.
+
+On the demo (eICU-CRD demo 2.0.1) every one of the 6,481 codes is described: 294 lab codes,
+34 literal codes, and 6,153 component-coded codes. Event data is untouched: per-code event
+counts are identical to a build without this metadata.
+
+On the full release (eICU-CRD 2.0) every one of the 11,833 codes is described: 316 lab codes
+(a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names; 148 names are in the
+table and the other 10 get the generic description), 34 literal codes, and 11,483
+component-coded codes. Every code in the data is in `codes.parquet`, and the file validates
+against `meds.CodeMetadataSchema`.
+
+MEDS 0.4 makes `description` optional, so consumers must still not rely on it being
+non-null for datasets built with older releases.
+
+ICD parent codes for diagnoses are the other piece of code metadata: each `DIAGNOSIS//...`
+code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code` column of
+`diagnosis` (via the `dx_icd_map` table built in pre-MEDS). In the demo, 860 of the 1,091
+diagnosis codes have one; in the full release, 3,129 of the 3,933.
 
 ## Which eICU tables are extracted
 
@@ -152,6 +226,13 @@ Local parallelization uses the `hydra-joblib-launcher` package, which is install
 ```bash
 export N_WORKERS=8
 ```
+
+Size `N_WORKERS` to memory, not cores: each worker is a separate process with its own working
+set. On the full release, `N_WORKERS=4` exhausted a 24 GB laptop, with each of the four workers
+holding 7.5 to 8 GB during `split_and_shard_subjects`. That is a metadata stage, so every worker
+repeats the whole computation rather than taking a share of it. The same build run serially
+(`N_WORKERS` unset, polars limited to four threads with `POLARS_MAX_THREADS=4`) peaked at 4.8 GB
+and took 20 minutes on a 10-core machine.
 
 The number of subjects per shard is fixed at 1,000 in the `split_and_shard_subjects` stage of
 `src/eICU_MEDS/configs/ETL.yaml`; no environment variable or command-line option changes it. Other MEDS ETLs

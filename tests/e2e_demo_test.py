@@ -87,6 +87,16 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert valueless.is_empty(), f"Events emitted without a value:\n{valueless}"
 
+    # A subject spans several unit stays, so each per-stay measurement must say which one.
+    unlinked = (
+        df.filter(pl.col("code").is_in(VALUE_ONLY_CODES[:3]))
+        .filter(pl.col("hadm_id").is_null() | pl.col("icustay_id").is_null())
+        .group_by("code")
+        .len()
+        .collect()
+    )
+    assert unlinked.is_empty(), f"Unit-stay events missing hadm_id/icustay_id:\n{unlinked}"
+
     n_past_history = (
         df.filter(pl.col("code").str.starts_with("PAST_HISTORY//")).select(pl.len()).collect().item()
     )

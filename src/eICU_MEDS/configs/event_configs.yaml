@@ -24,25 +24,50 @@ patient:
   gender:
     code: f"GENDER//{$gender ?? 'UNK'}"
     time: null
+    _metadata:
+      _self:
+        description: >-
+          f"Patient gender: {$gender ?? 'UNK'} (eICU patient.gender)"
   ethnicity:
     code: f"RACE//{$ethnicity ?? 'UNK'}"
     time: null
+    _metadata:
+      _self:
+        description: >-
+          f"Patient ethnicity: {$ethnicity ?? 'UNK'} (eICU patient.ethnicity)"
   hosp_admission:
     code: >-
       f"HOSPITAL_ADMISSION//{$hospitaladmitsource ?? 'UNK'}//{$region ?? 'UNK'}//{$teachingstatus ??
       'UNK'}//{$numbedscategory ?? 'UNK'}"
     time: $hospitaladmittimestamp
     hadm_id: $hospitalid
+    _metadata:
+      _self:
+        description: >-
+          f"Hospital admission; admitted from {$hospitaladmitsource ?? 'UNK'} (patient.hospitalAdmitSource);
+          hospital region {$region ?? 'UNK'}, teaching status {$teachingstatus ?? 'UNK'}, bed count category
+          {$numbedscategory ?? 'UNK'} (hospital.region, teachingStatus, numBedsCategory)"
   hosp_discharge:
     code: f"HOSPITAL_DISCHARGE//{$hospitaldischargestatus ?? 'UNK'}//{$hospitaldischargelocation ?? 'UNK'}"
     time: $hospitaldischargetimestamp
     hadm_id: $hospitalid
+    _metadata:
+      _self:
+        description: >-
+          f"Hospital discharge; patient's condition upon leaving the hospital: {$hospitaldischargestatus ?? 'UNK'}
+          (patient.hospitalDischargeStatus); discharged to {$hospitaldischargelocation ?? 'UNK'}
+          (patient.hospitalDischargeLocation)"
   unit_admission:
     code: f"ICU_ADMISSION//{$unitadmitsource ?? 'UNK'}//{$unitstaytype ?? 'UNK'}"
     time: $unitadmittimestamp
     hadm_id: $hospitalid
     icustay_id: $patientunitstayid
     ward_id: $wardid
+    _metadata:
+      _self:
+        description: >-
+          f"ICU unit admission; admitted from {$unitadmitsource ?? 'UNK'} (patient.unitAdmitSource);
+          unit stay type {$unitstaytype ?? 'UNK'} (patient.unitStayType)"
   unit_admission_weight:
     code: '"ICU_ADMISSION_WEIGHT" if $admissionweight == $admissionweight'
     time: $unitadmittimestamp
@@ -61,9 +86,17 @@ patient:
     hadm_id: $hospitalid
     icustay_id: $patientunitstayid
     ward_id: $wardid
+    _metadata:
+      _self:
+        description: >-
+          f"ICU unit discharge; patient's condition upon leaving the unit: {$unitdischargestatus ?? 'UNK'}
+          (patient.unitDischargeStatus); discharged to {$unitdischargelocation ?? 'UNK'}
+          (patient.unitDischargeLocation)"
   unit_discharge_weight:
     code: '"ICU_DISCHARGE_WEIGHT" if $dischargeweight == $dischargeweight'
     time: $unitdischargetimestamp
+    hadm_id: $hospitalid
+    icustay_id: $patientunitstayid
     numeric_value: $dischargeweight
   time_of_death:
     code: MEDS_DEATH
@@ -85,6 +118,10 @@ admissionDx:
         - $hospitaldischargeoffset::minutes
   admission_diagnosis:
     code: f"ADMISSION_DIAGNOSIS//{$admitdxpath ?? 'UNK'}"
+    _metadata:
+      _self:
+        description: >-
+          f"Admission diagnosis (APACHE) item path: {$admitdxpath ?? 'UNK'} (eICU admissionDx.admitDxPath)"
     time: $unitadmittimestamp - (-$admitdxenteredoffset)::minutes
     admission_dx_id: $admissiondxid
     icustay_id: $patientunitstayid
@@ -95,6 +132,10 @@ allergy:
     cols: *anchor_cols
   allergy:
     code: f"ALLERGY//{$allergytype ?? 'UNK'}"
+    _metadata:
+      _self:
+        description: >-
+          f"Allergy of type {$allergytype ?? 'UNK'} (eICU allergy.allergyType: Drug or Non Drug)"
     time: $unitadmittimestamp - (-$allergyenteredoffset)::minutes
     text_value: $allergyname
 
@@ -104,6 +145,11 @@ carePlanGeneral:
     cols: *anchor_cols
   cplItem:
     code: f"CAREPLAN_GENERAL//{$cplgroup ?? 'UNK'}//{$cplitemvalue ?? 'UNK'}"
+    _metadata:
+      _self:
+        description: >-
+          f"Care plan item; group {$cplgroup ?? 'UNK'} (carePlanGeneral.cplGroup): {$cplitemvalue ?? 'UNK'}
+          (carePlanGeneral.cplItemValue)"
     time: $unitadmittimestamp - (-$cplitemoffset)::minutes
 
 carePlanEOL:
@@ -120,6 +166,12 @@ carePlanGoal:
     cols: *anchor_cols
   cplGoal:
     code: f"CAREPLAN_GOAL//{$cplgoalcategory ?? 'UNK'}//{$cplgoalvalue ?? 'UNK'}//{$cplgoalstatus ?? 'UNK'}"
+    _metadata:
+      _self:
+        description: >-
+          f"Care plan goal; category {$cplgoalcategory ?? 'UNK'} (carePlanGoal.cplGoalCategory):
+          {$cplgoalvalue ?? 'UNK'} (carePlanGoal.cplGoalValue); status {$cplgoalstatus ?? 'UNK'}
+          (carePlanGoal.cplGoalStatus: Active, Resolved or Deferred)"
     time: $unitadmittimestamp - (-$cplgoaloffset)::minutes
 
 carePlanInfectiousDisease:
@@ -131,6 +183,13 @@ carePlanInfectiousDisease:
       f"CAREPLAN_INFECTIOUS_DISEASE//{$infectdiseasesite ?? 'UNK'}//{$infectdiseaseassessment ??
       'UNK'}//{$treatment ?? 'UNK'}//{$responsetotherapy ?? 'UNK'}"
     time: $unitadmittimestamp - (-$cplinfectdiseaseoffset)::minutes
+    _metadata:
+      _self:
+        description: >-
+          f"Care plan infectious disease; site {$infectdiseasesite ?? 'UNK'} (carePlanInfectiousDisease.infectDiseaseSite);
+          assessment {$infectdiseaseassessment ?? 'UNK'} (infectDiseaseAssessment); treatment {$treatment ?? 'UNK'}
+          (treatment: Prophylactic, Empiric, Directed); response to therapy {$responsetotherapy ?? 'UNK'}
+          (responseToTherapy)"
 
 diagnosis:
   _table:
@@ -141,6 +200,9 @@ diagnosis:
     time: $unitadmittimestamp - (-$diagnosisoffset)::minutes
     diagnosis_priority: $diagnosispriority
     _metadata:
+      _self:
+        description: >-
+          f"Diagnosis path: {$diagnosisstring} (eICU diagnosis.diagnosisString; sections separated by '|')"
       dx_icd_map:
         diagnosisstring: $diagnosisstring
         parent_codes: >-
@@ -178,12 +240,28 @@ lab:
     code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
     time: $unitadmittimestamp - (-$labresultoffset)::minutes
     lab_type_id: $labtypeid
+    # Keyed on labname only (a partial match): the description broadcasts to every unit variant.
+    # `lab_descriptions` is the packaged table that pre-MEDS writes next to the raw files.
+    _metadata:
+      lab_descriptions:
+        labname: $labname
+        description: >-
+          f"Lab specimen drawn: {$description} (eICU lab.labName '{$labname}')"
   lab_result:
     code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
     time: $unitadmittimestamp - (-$labresultrevisedoffset)::minutes
     numeric_value: $labresult
     text_value: $labresulttext
     lab_type_id: $labtypeid
+    _metadata:
+      lab_descriptions:
+        labname: $labname
+        description: >-
+          f"{$description} (eICU lab.labName '{$labname}')"
+        # LOINC parent only where the table carries one (bridged through WeavEHR to MIMIC-IV's
+        # d_labitems_to_loinc); the row's parent_codes stays null otherwise.
+        parent_codes: >-
+          f"LOINC/{$loinc_code}"
 
 medication:
   _table:
@@ -192,12 +270,20 @@ medication:
   drug_started:
     code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
+    _metadata:
+      _self:
+        description: >-
+          f"Medication order started: {$drugname ?? 'UNK'} (eICU medication.drugName)"
     numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $dosage)::float64'
     dosage: $dosage
     medication_id: $medicationid
   drug_stopped:
     code: f"MEDICATION//STOPPED//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstopoffset)::minutes
+    _metadata:
+      _self:
+        description: >-
+          f"Medication order stopped: {$drugname ?? 'UNK'} (eICU medication.drugName)"
     medication_id: $medicationid
 
 pastHistory:
@@ -220,6 +306,10 @@ treatment:
     code: f"TREATMENT//ENTERED//{$treatmentstring ?? 'UNK'}"
     time: $unitadmittimestamp - (-$treatmentoffset)::minutes
     text_value: $treatmentstring
+    _metadata:
+      _self:
+        description: >-
+          f"Treatment path: {$treatmentstring ?? 'UNK'} (eICU treatment.treatmentString)"
 
 vitalAperiodic:
   _table:
