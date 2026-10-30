@@ -1,0 +1,44 @@
+# suMEDS enrichment rules for eICU-MEDS (format `sumeds-rules/0.1`, read by suMEDS >= the
+# release with ontology rules; https://github.com/rvandewater/SumMEDS).
+#
+# The ETL writes what eICU itself records: a description for every code and ICD-9-CM /
+# ICD-10-CM parents for `DIAGNOSIS//...` codes (from `diagnosis.icd9code`). Links to external
+# vocabularies that eICU does not record are applied by suMEDS from its versioned ontology data
+# (sumeds-ontologies, pinned release: crosswalk tables and ontology packs), so this repository
+# does not ship them:
+#
+# - crosswalk `eicu-lab-loinc`: `LAB//RESULT//{labname}//{unit}` to LOINC through the
+#   crosswalk table `eicu/lab_loinc` (keyed on the raw lab name), validated against the LOINC
+#   pack; a match adds the LOINC code and its ancestors to `parent_codes`.
+# - hierarchy rules: parents that are codes of this dataset, from the `|`-separated paths of
+#   `DIAGNOSIS`, `ADMISSION_DIAGNOSIS` and `TREATMENT` codes (the nearest existing ancestor).
+#
+#   suMEDS-enrich MEDS_output/metadata/codes.parquet -o codes_enriched.parquet \
+#     --rules "$(python -c 'from importlib.resources import files; print(files("eICU_MEDS") / "sumeds_rules.yaml")')"
+schema: sumeds-rules/0.1
+
+crosswalk:
+  # No lab name contains `//` or ends in `/` (checked against the packaged lab table in
+  # tests/test_sumeds_rules.py), so the lazy group stops exactly at the unit separator, also
+  # for units that start with `/`.
+  - id: eicu-lab-loinc
+    pattern: "^LAB//RESULT//(?P<key>.+?)//"
+    table: eicu/lab_loinc
+    key_column: labname
+    code_column: loinc_code
+    vocabulary: LOINC
+    validate: pack
+
+hierarchy:
+  - id: eicu-diagnosis-paths
+    pattern: "^(?P<prefix>DIAGNOSIS//)(?P<path>.+)$"
+    group: path
+    separator: "|"
+  - id: eicu-admission-diagnosis-paths
+    pattern: "^(?P<prefix>ADMISSION_DIAGNOSIS//)(?P<path>.+)$"
+    group: path
+    separator: "|"
+  - id: eicu-treatment-paths
+    pattern: "^(?P<prefix>TREATMENT//ENTERED//)(?P<path>.+)$"
+    group: path
+    separator: "|"
