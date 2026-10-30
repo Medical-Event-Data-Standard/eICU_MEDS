@@ -119,6 +119,16 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert n_intake_output > 0, "No INTAKE_OUTPUT events emitted; the intakeOutput table is not extracted."
 
+    # The exam path is the finding, so a blank text leaves an event with no value, never two.
+    n_physical_exam, n_two_values = (
+        df.filter(pl.col("code").str.starts_with("PHYSICAL_EXAM//"))
+        .select(pl.len(), (pl.col("numeric_value").is_not_null() & pl.col("text_value").is_not_null()).sum())
+        .collect()
+        .row(0)
+    )
+    assert n_physical_exam > 0, "No PHYSICAL_EXAM events emitted; the physicalExam table is not extracted."
+    assert n_two_values == 0, f"{n_two_values} PHYSICAL_EXAM events carry both a numeric and a text value."
+
     for prefix in CHARTED_PREFIXES:
         n_charted, n_not_one_value = (
             df.filter(pl.col("code").str.starts_with(prefix))

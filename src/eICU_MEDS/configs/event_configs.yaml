@@ -348,6 +348,26 @@ pastHistory:
         description: >-
           f"Past history item path: {$pasthistorypath} (eICU pastHistory.pastHistoryPath)"
 
+physicalExam:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
+  # The path ends in the picklist choice (physicalExamValue), so the path alone is the code. The
+  # entered text is the measurement for vital-sign, weight and I&O items and repeats the choice
+  # otherwise; it is split like the charted values. A blank text leaves the finding valueless
+  # rather than dropping it, since the path itself is the finding.
+  physical_exam:
+    code: f"PHYSICAL_EXAM//{$physicalexampath}"
+    time: $unitadmittimestamp - (-$physicalexamoffset)::minutes
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $physicalexamtext)::float64'
+    text_value: '$physicalexamtext if ((/\S/ in $physicalexamtext) and (not (/^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$/ in $physicalexamtext)))'
+    physical_exam_id: $physicalexamid
+    icustay_id: $patientunitstayid
+    _metadata:
+      _self:
+        description: >-
+          f"Physical exam item path: {$physicalexampath} (eICU physicalExam.physicalExamPath)"
+
 respiratoryCharting:
   _table:
     join: *anchor_join
@@ -551,6 +571,7 @@ sources:
         - medication.csv.gz
         - nurseCharting.csv.gz
         - pastHistory.csv.gz
+        - physicalExam.csv.gz
         - respiratoryCharting.csv.gz
         - treatment.csv.gz
         - vitalAperiodic.csv.gz
@@ -578,6 +599,7 @@ sources:
         - medication.csv.gz
         - nurseCharting.csv.gz
         - pastHistory.csv.gz
+        - physicalExam.csv.gz
         - respiratoryCharting.csv.gz
         - treatment.csv.gz
         - vitalAperiodic.csv.gz
