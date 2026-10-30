@@ -21,8 +21,9 @@ import pytest
 
 from eICU_MEDS import EVENT_CFG
 
-# Matches the argument of any `regex_extract("<pattern>", $col)` guard in the config.
-_GUARD_RE = re.compile(r'regex_extract\("(?P<pattern>\^\[\+-\].*?)",\s*\$')
+# Matches the argument of any `regex_extract("<pattern>", $col)` guard in the config, and of
+# the negated `/<pattern>/ in $col` form that routes the non-numeric remainder to text_value.
+_GUARD_RE = re.compile(r'(?:regex_extract\("|/)(?P<pattern>\^\[\+-\].*?)(?:",\s*|/ in )\$')
 
 
 def _guard_patterns() -> set[str]:
