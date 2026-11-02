@@ -126,6 +126,25 @@ polars' non-strict cast. A narrower hand-rolled pattern silently drops real valu
 `1e5`, `25.` and `+5`; `tests/test_numeric_guard.py` pins the equivalence by differential
 fuzzing.
 
+## Cancelled medication orders
+
+`medication.drugOrderCancelled` is `Yes` on 205,273 of 7,301,853 rows (2.8%). The
+[documentation](https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/medication.md)
+says only that the *order* was cancelled, not whether a dose was given first, and the data does not
+settle it.
+
+Such a row therefore emits a single `MEDICATION//ORDER_CANCELLED//<drug>` at the start offset
+(carrying the dosage) instead of `MEDICATION//STARTED//<drug>` and `MEDICATION//STOPPED//<drug>`.
+Filtering on `STARTED` gives orders that stood; consumers who want to treat cancelled orders as
+possibly given can add the `ORDER_CANCELLED` codes back. See
+[#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10).
+
+`ORDER_CANCELLED` marks an order, active from its start offset, that was later cancelled; eICU does
+not record when the cancellation happened. The stop offset is no substitute: it is exactly 0 on 47% of cancelled
+orders (1.7% of live ones), and where it is set it looks like the scheduled end (most often 60, 120,
+240 or 360 minutes after the start, or 90 days minus a minute). The start offset relates to the order
+time the same way for cancelled and live orders (median 1 minute before it).
+
 ## Charted observations
 
 Several tables record each observation as one varchar cell under picklist labels. Each row
@@ -189,13 +208,13 @@ its prior metadata stage's output, `split_and_shard_subjects`, which writes no
 `codes.parquet`). The post-pipeline fill only ever writes a description where the pipeline
 left null, never extends the vocabulary, and is idempotent.
 
-On the demo (eICU-CRD demo 2.0.1) every one of the 6,937 codes is described: 294 lab codes,
-34 literal codes, and 6,609 component-coded codes. Event data is untouched: per-code event
+On the demo (eICU-CRD demo 2.0.1) every one of the 7,143 codes is described: 294 lab codes,
+34 literal codes, and 6,815 component-coded codes. Event data is untouched: per-code event
 counts are identical to a build without this metadata.
 
-On the full release (eICU-CRD 2.0) every one of the 12,370 codes is described: 316 lab codes
+On the full release (eICU-CRD 2.0) every one of the 12,964 codes is described: 316 lab codes
 (a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names; 148 names are in the
-table and the other 10 get the generic description), 34 literal codes, and 12,020
+table and the other 10 get the generic description), 34 literal codes, and 12,614
 component-coded codes. Every code in the data is in `codes.parquet`, and the file validates
 against `meds.CodeMetadataSchema`.
 
