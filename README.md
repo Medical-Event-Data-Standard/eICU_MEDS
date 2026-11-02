@@ -63,7 +63,10 @@ minutes relative to unit admission, and health-system stays are ordered only at
     offsetting from it.
 
 **Only relative time differences within a subject are meaningful.** Absolute dates in the
-output are not real and must not be interpreted as such.
+output are not real and must not be interpreted as such: because every stay ends on December 31,
+the date of an event reveals how long until hospital discharge. See
+[docs/data_leakage.md](docs/data_leakage.md) for this and every other way the output can leak
+information, table by table.
 
 ## Death
 
