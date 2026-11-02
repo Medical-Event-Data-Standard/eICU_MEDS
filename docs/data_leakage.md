@@ -215,6 +215,55 @@ The other excluded tables (`admissionDrug`, `carePlanCareProvider`, `customLab`,
 for reasons other than leakage; see
 [Which eICU tables are extracted](../README.md#which-eicu-tables-are-extracted).
 
+## Comparison with the MIMIC-IV MEDS ETL
+
+The [MIMIC-IV MEDS ETL](https://github.com/Medical-Event-Data-Standard/MIMIC_IV_MEDS) (event config
+at commit `9b8e61c`, MIMIC-IV 3.1) faces the same choices, and comparing the two shows which of
+ours are stricter, which match, and where the two datasets simply differ. MIMIC-IV records a
+`storetime` next to most event times, so the lags below are measured on the open MIMIC-IV demo
+2.2: "stored later" is the share of rows stored after the time the ETL uses.
+
+### Timing
+
+| MIMIC-IV table       | Time the ETL uses      |  Stored later | Lag, median / 90th pct.                  | eICU equivalent and its time                                   |
+| -------------------- | ---------------------- | ------------: | ---------------------------------------- | -------------------------------------------------------------- |
+| `labevents` (result) | `storetime`            |             – | –                                        | `lab`: the result at `labResultRevisedOffset`, the same design |
+| `chartevents`        | `charttime`            |         78.6% | 19 min / 2.1 h                           | the charted tables: the entry offset                           |
+| `outputevents`       | `charttime`            |         74.5% | 17 min / 1.7 h                           | `intakeOutput`: the entry offset                               |
+| `inputevents`        | `starttime`            |         58.0% | 5 min / 4.3 h                            | `infusionDrug`: `infusionOffset` (entered)                     |
+| `procedureevents`    | `starttime`, `endtime` | 70.3% (start) | 65 min / 64 h (start)                    | `respiratoryCare`: not extracted                               |
+| `pharmacy`           | `starttime`            |          7.6% | entered a median 33 min before the start | `medication`: the start precedes the order entry in 53.9%      |
+| `microbiologyevents` | not extracted          |          100% | 73 h / 147 h                             | `microLab`: not extracted                                      |
+
+- **Labs** are handled the same way: the collection event carries no value, and the value arrives
+    when the result was stored.
+- **Bedside charting** is timed at when it happened in MIMIC-IV, so its values can appear before
+    they were stored. This pipeline's entry-time rule is stricter.
+- **Procedures.** MIMIC-IV times ventilation, line and dialysis starts and ends at when they
+    happened, although the start is stored 64 hours or more later for 10% of rows. That is the
+    precedent for timing `respiratoryCare` episodes at the clinical time, with the same leakage.
+- **Medication.** In MIMIC-IV the order is entered before the start in 90.5% of rows, so the start
+    time is safe. In eICU the start precedes the order entry in 53.9% of rows, which is the leak
+    described under `medication` above.
+- **Microbiology** could be timed at `storetime` in MIMIC-IV without leakage, but the ETL does not
+    extract it. eICU has no result time, so `microLab` cannot be extracted safely.
+- **Diagnoses and procedures** in MIMIC-IV are billing codes, timed at discharge. eICU's `diagnosis`
+    and `treatment` are entered during the stay and timed at entry.
+- **Subjects and dates.** The MIMIC-IV subject is the patient, and dates are real dates shifted per
+    patient, so neither the identity overlap nor the December 31 anchor described above arises there.
+
+### Coverage
+
+Both releases ship 31 tables. The MIMIC-IV ETL emits events from 16 and uses `prescriptions` and the
+`d_*` dictionaries only as lookups. This pipeline reads 22.
+
+| Where                 | Tables                                                                                                                                                                                                                                        |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Only in this pipeline | `allergy`, `pastHistory`, `physicalExam`, the four `carePlan*` tables, `admissionDx` and `hospital`. MIMIC-IV has no such tables; code status and GCS appear among its chartevents.                                                           |
+| Only in MIMIC-IV MEDS | `procedureevents`, whose eICU equivalent (`respiratoryCare`) is not extracted. `emar`, `drgcodes`, `hcpcsevents`, `omr`, and insurance, language and marital status have no eICU equivalent.                                                  |
+| Left out by both      | Microbiology (`microbiologyevents`, `microLab`), provider and service tables (`provider`, `caregiver`, `services`; `carePlanCareProvider`) and notes. MIMIC-IV also leaves out `datetimeevents`, `ingredientevents`, `poe` and `emar_detail`. |
+| Map onto each other   | `chartevents` ↔ `vitalPeriodic`, `vitalAperiodic`, `nurseCharting`, `respiratoryCharting`, `nurseAssessment`, `nurseCare`; `inputevents`/`outputevents` ↔ `infusionDrug`/`intakeOutput`; `pharmacy` ↔ `medication`; `labevents` ↔ `lab`.      |
+
 ## Checklist for adding a table
 
 1. Find every offset column in the
