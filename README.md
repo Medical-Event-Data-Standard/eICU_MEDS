@@ -156,6 +156,10 @@ path. Each row becomes one event whose code is the table's prefix followed by th
     rows for 13,001 and `nurseCare` for 13,052 of the 200,859 unit stays on the full release.
 - Vitals charted here overlap with `vitalPeriodic`/`vitalAperiodic`. They keep their own
     source-prefixed codes, and nothing is deduplicated across tables.
+- The two charted tables overlap in one measurement: on the full release, 79% of
+    `respiratoryCharting`'s `RR (patient)` values repeat `nurseCharting`'s `Respiratory Rate` for the
+    same stay at the same minute. Ventilator settings and measurements (PEEP, tidal volume, pressure
+    support, plateau pressure, compliance) appear only in `respiratoryCharting`.
 
 ## Intake and output
 
