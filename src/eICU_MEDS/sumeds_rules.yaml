@@ -1,5 +1,5 @@
-# suMEDS enrichment rules for eICU-MEDS (format `sumeds-rules/0.1`, read by suMEDS >= the
-# release with ontology rules; https://github.com/rvandewater/SumMEDS).
+# suMEDS enrichment rules for eICU-MEDS (format `sumeds-rules/0.1`, read by suMEDS >= 0.4;
+# https://github.com/rvandewater/SumMEDS).
 #
 # The ETL writes what eICU itself records: a description for every code and ICD-9-CM /
 # ICD-10-CM parents for `DIAGNOSIS//...` codes (from `diagnosis.icd9code`). Links to external

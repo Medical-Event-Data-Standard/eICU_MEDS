@@ -260,11 +260,12 @@ versioned ontology data (sumeds-ontologies, pinned release), so this repository 
 them, and no Athena download or LOINC account is needed:
 
 ```bash
+pip install "sumeds>=0.4"
 suMEDS-enrich $MEDS_DIR/metadata/codes.parquet -o codes_enriched.parquet \
   --rules "$(python -c 'from importlib.resources import files; print(files("eICU_MEDS") / "sumeds_rules.yaml")')"
 ```
 
-This needs a suMEDS release with ontology rules (rvandewater/SumMEDS, `ontology-enrichment`).
+This needs suMEDS 0.4 or later, the first release with ontology rules.
 The rules add:
 
 - **LOINC for lab results** (`eicu-lab-loinc`, a crosswalk): `LAB//RESULT//{labname}//{unit}`
