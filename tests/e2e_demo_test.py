@@ -75,7 +75,12 @@ VALUE_ONLY_CODES = (
 
 # Charted tables keep a varchar value: numbers go to numeric_value, the rest to text_value, and a
 # blank cell emits nothing, so every charted event carries exactly one of the two.
-CHARTED_PREFIXES = ("NURSE_CHARTING//", "RESPIRATORY_CHARTING//", "NURSE_ASSESSMENT//")
+CHARTED_PREFIXES = (
+    "NURSE_CHARTING//",
+    "RESPIRATORY_CHARTING//",
+    "NURSE_ASSESSMENT//",
+    "NURSE_CARE//",
+)
 
 
 def _validate_data_correctness(data_path: Path, metadata_path: Path):
