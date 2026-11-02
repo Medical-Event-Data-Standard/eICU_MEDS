@@ -63,7 +63,10 @@ minutes relative to unit admission, and health-system stays are ordered only at
     offsetting from it.
 
 **Only relative time differences within a subject are meaningful.** Absolute dates in the
-output are not real and must not be interpreted as such.
+output are not real and must not be interpreted as such: because every stay ends on December 31,
+the date of an event reveals how long until hospital discharge. See
+[docs/data_leakage.md](docs/data_leakage.md) for this and every other way the output can leak
+information, table by table.
 
 ## Death
 
@@ -114,8 +117,8 @@ non-numeric row aborts the stage. Which columns are String is not inferable from
 depends on what junk happens to appear — so the guarded set comes from the official eICU DDL
 (`MIT-LCP/eicu-code`, `postgres_create_tables.sql`): `age`, `medication.dosage`,
 `infusiondrug.{infusionrate, patientweight}`, `nurseCharting.nursingChartValue`,
-`respiratoryCharting.respChartValue`, `nurseAssessment.cellAttributeValue` and
-`physicalExam.physicalExamText`.
+`respiratoryCharting.respChartValue`, `nurseAssessment.cellAttributeValue`,
+`nurseCare.cellAttributeValue` and `physicalExam.physicalExamText`.
 Numeric-typed columns are passed through bare, since the schema forbids junk in them.
 
 Where the non-numeric remainder is worth keeping (charted values, below), the same pattern also
@@ -137,6 +140,7 @@ path. Each row becomes one event whose code is the table's prefix followed by th
 | `nurseCharting`       | `NURSE_CHARTING//<category>//<label>//<name>` | `nursingChartEntryOffset` |       151,604,232 |          284,600 |                  73% |                     57 min |
 | `respiratoryCharting` | `RESPIRATORY_CHARTING//<category>//<label>`   | `respChartEntryOffset`    |        20,168,176 |                3 |                  75% |                     47 min |
 | `nurseAssessment`     | `NURSE_ASSESSMENT//<cellAttributePath>`       | `nurseAssessEntryOffset`  |        15,602,498 |                0 |                   5% |                    195 min |
+| `nurseCare`           | `NURSE_CARE//<cellAttributePath>`             | `nurseCareEntryOffset`    |         8,311,132 |                0 |                   5% |                    206 min |
 
 - A value the numeric guard accepts goes to `numeric_value`. Anything else, such as GCS descriptors
     (`4-->(E4) spontaneous`), `Oral`, `WDL` or `Nasal cannula`, goes to `text_value`. A value written
@@ -149,7 +153,7 @@ path. Each row becomes one event whose code is the table's prefix followed by th
     pairs on the full release), and 198 codes from 194 labels in `respiratoryCharting`.
 - In the path-coded tables the path ends in the attribute (`…|Neurologic|Pupils|Right`) and
     determines the label, so the path alone is the code. They cover few stays: `nurseAssessment` has
-    rows for 13,001 of the 200,859 unit stays on the full release.
+    rows for 13,001 and `nurseCare` for 13,052 of the 200,859 unit stays on the full release.
 - Vitals charted here overlap with `vitalPeriodic`/`vitalAperiodic`. They keep their own
     source-prefixed codes, and nothing is deduplicated across tables.
 - The two charted tables overlap in one measurement: on the full release, 79% of
@@ -204,11 +208,11 @@ site picklist abbreviations (`Hgb`, `-polys`, `WBC x 1000`), and vocabulary-base
 (OHDSI Athena) cannot resolve either. So every code now gets the documented meaning of what it
 encodes, through three routes, with the source of each description recorded:
 
-| Code family                                                                                                                                                                                                                    | Route                                                                                                                                                                                               | Source of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LAB//RESULT//…`, `LAB//SPECIMEN_DRAWN//…`                                                                                                                                                                                     | `src/eICU_MEDS/metadata/lab_descriptions.csv`, joined by `_metadata` on the raw `labname` (a partial match, so one row covers every unit variant); pre-MEDS writes it as `lab_descriptions.parquet` | per row, in the table's `source` column: the WeavEHR concept the lab name maps to ([aidh-ms/WeavEHR](https://github.com/aidh-ms/WeavEHR) `configs/datasets/eicu-crd/2.0/mappings`, MIT, commit 210a539), the MIMIC-IV lab item mapped to the same concept and its LOINC code ([mimic-code](https://github.com/MIT-LCP/mimic-code) `d_labitems_to_loinc.csv`, MIT), the canonical column in [eicu-code](https://github.com/MIT-LCP/eicu-code) `pivoted-lab.sql` / `pivoted-bg.sql` (MIT), or, for the long tail, a plain expansion of the picklist name marked `expansion` |
-| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH`                                         | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` by the ETL's last step (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                         |
-| every other family (patient events, diagnoses, admission diagnoses, allergies, care plan items, intake/output, medications, nursing assessment, nurse charting, past history, physical exam, respiratory charting, treatments) | `_metadata: _self: description:` templates in `configs/event_configs.yaml`, evaluated per event                                                                                                     | the code's own components, named after the eICU-CRD column they come from (`patient.unitAdmitSource`, `diagnosis.diagnosisString`, …)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| Code family                                                                                                                                                                                                                                  | Route                                                                                                                                                                                               | Source of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LAB//RESULT//…`, `LAB//SPECIMEN_DRAWN//…`                                                                                                                                                                                                   | `src/eICU_MEDS/metadata/lab_descriptions.csv`, joined by `_metadata` on the raw `labname` (a partial match, so one row covers every unit variant); pre-MEDS writes it as `lab_descriptions.parquet` | per row, in the table's `source` column: the WeavEHR concept the lab name maps to ([aidh-ms/WeavEHR](https://github.com/aidh-ms/WeavEHR) `configs/datasets/eicu-crd/2.0/mappings`, MIT, commit 210a539), the MIMIC-IV lab item mapped to the same concept and its LOINC code ([mimic-code](https://github.com/MIT-LCP/mimic-code) `d_labitems_to_loinc.csv`, MIT), the canonical column in [eicu-code](https://github.com/MIT-LCP/eicu-code) `pivoted-lab.sql` / `pivoted-bg.sql` (MIT), or, for the long tail, a plain expansion of the picklist name marked `expansion` |
+| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH`                                                       | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` by the ETL's last step (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                         |
+| every other family (patient events, diagnoses, admission diagnoses, allergies, care plan items, intake/output, medications, nursing assessment, nursing care, nurse charting, past history, physical exam, respiratory charting, treatments) | `_metadata: _self: description:` templates in `configs/event_configs.yaml`, evaluated per event                                                                                                     | the code's own components, named after the eICU-CRD column they come from (`patient.unitAdmitSource`, `diagnosis.diagnosisString`, …)                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 
 Where a lab name is bridged to a MIMIC-IV item with a LOINC code, the lab result code also
 gets `parent_codes: ["LOINC/<code>"]` (50 lab names), so Athena-based tooling can resolve it.
@@ -229,13 +233,13 @@ its prior metadata stage's output, `split_and_shard_subjects`, which writes no
 `codes.parquet`). The post-pipeline fill only ever writes a description where the pipeline
 left null, never extends the vocabulary, and is idempotent.
 
-On the demo (eICU-CRD demo 2.0.1) every one of the 8,103 codes is described: 294 lab codes,
-34 literal codes, and 7,775 component-coded codes. Event data is untouched: per-code event
+On the demo (eICU-CRD demo 2.0.1) every one of the 8,122 codes is described: 294 lab codes,
+34 literal codes, and 7,794 component-coded codes. Event data is untouched: per-code event
 counts are identical to a build without this metadata.
 
-On the full release (eICU-CRD 2.0) every one of the 15,509 codes is described: 316 lab codes
+On the full release (eICU-CRD 2.0) every one of the 15,528 codes is described: 316 lab codes
 (a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names; 148 names are in the
-table and the other 10 get the generic description), 34 literal codes, and 15,159
+table and the other 10 get the generic description), 34 literal codes, and 15,178
 component-coded codes. Every code in the data is in `codes.parquet`, and the file validates
 against `meds.CodeMetadataSchema`.
 
@@ -249,14 +253,14 @@ diagnosis codes have one; in the full release, 3,129 of the 3,933.
 
 ## Which eICU tables are extracted
 
-eICU-CRD v2.0 ships 31 tables. This pipeline reads 21 of them. The rest are excluded
+eICU-CRD v2.0 ships 31 tables. This pipeline reads 22 of them. The rest are excluded
 deliberately — the reasoning is recorded here rather than in a code comment, because
 "this table is missing" is otherwise indistinguishable from an oversight.
 
 **Extracted:** `patient`, `hospital` (joined for site attributes), `admissionDx`,
 `allergy`, `carePlanEOL`, `carePlanGeneral`, `carePlanGoal`,
 `carePlanInfectiousDisease`, `diagnosis`, `infusionDrug`, `intakeOutput`, `lab`, `medication`,
-`nurseAssessment`, `nurseCharting`, `pastHistory`, `physicalExam`, `respiratoryCharting`, `treatment`, `vitalAperiodic`,
+`nurseAssessment`, `nurseCare`, `nurseCharting`, `pastHistory`, `physicalExam`, `respiratoryCharting`, `treatment`, `vitalAperiodic`,
 `vitalPeriodic`.
 
 **Excluded — deliberate, on the merits:**
@@ -277,10 +281,9 @@ were stubbed out but never finished (the original config shipped commented-out b
 for them marked `NOT YET DONE`, because their cell-label/value structure needs a code
 scheme of its own):
 
-| Table             |      Rows | Contains                                   |
-| ----------------- | --------: | ------------------------------------------ |
-| `nurseCare`       | 8,311,132 | Nursing care entries.                      |
-| `respiratoryCare` |   865,381 | Ventilator settings and airway management. |
+| Table             |    Rows | Contains                                   |
+| ----------------- | ------: | ------------------------------------------ |
+| `respiratoryCare` | 865,381 | Ventilator settings and airway management. |
 
 ## MEDS-transforms settings
 
