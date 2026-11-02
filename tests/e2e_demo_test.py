@@ -83,7 +83,11 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     df = pl.scan_parquet(data_path / "**/*.parquet")
 
     valueless = (
-        df.filter(pl.col("code").str.starts_with("VITALS//") | pl.col("code").is_in(VALUE_ONLY_CODES))
+        df.filter(
+            pl.col("code").str.starts_with("VITALS//")
+            | pl.col("code").str.starts_with("INTAKE_OUTPUT//")
+            | pl.col("code").is_in(VALUE_ONLY_CODES)
+        )
         .filter(pl.col("numeric_value").is_null())
         .group_by("code")
         .len()
@@ -109,6 +113,11 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert n_past_history > 0, "No PAST_HISTORY events emitted; the pastHistory table is not extracted."
     assert n_textless == 0, f"{n_textless} PAST_HISTORY events carry no text_value."
+
+    n_intake_output = (
+        df.filter(pl.col("code").str.starts_with("INTAKE_OUTPUT//")).select(pl.len()).collect().item()
+    )
+    assert n_intake_output > 0, "No INTAKE_OUTPUT events emitted; the intakeOutput table is not extracted."
 
     for prefix in CHARTED_PREFIXES:
         n_charted, n_not_one_value = (
