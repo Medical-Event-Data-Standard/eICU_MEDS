@@ -107,8 +107,9 @@ time exclude them. Labels that look for "any event after X" should not count the
     time of the original entry, and the data gives no way to detect it. Labs are the exception
     (`labResultRevisedOffset`), and care-plan rows behave like a history (below).
 - **The same measurement more than once.** Vital signs and GCS can arrive from `vitalPeriodic`,
-    `nurseCharting` and `physicalExam`, each at its own time. That isn't leakage, but the same value
-    is counted more than once and appears again later.
+    `nurseCharting` and `physicalExam`, each at its own time, and 79% of `respiratoryCharting`'s
+    `RR (patient)` values repeat `nurseCharting`'s `Respiratory Rate` at the same minute. That isn't
+    leakage, but the same value is counted more than once and can appear again later.
 - **Site fingerprints.** `nurseAssessment` and `nurseCare` cover about 13,000 of 200,859 unit stays,
     from a few hospitals. Their mere presence identifies the site, which matters for evaluation
     across hospitals; `HOSPITAL_ADMISSION//…` already carries region, teaching status and bed count.
