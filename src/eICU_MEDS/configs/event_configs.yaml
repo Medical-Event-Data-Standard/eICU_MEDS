@@ -306,6 +306,24 @@ medication:
           f"Medication order stopped: {$drugname ?? 'UNK'} (eICU medication.drugName)"
     medication_id: $medicationid
 
+nurseAssessment:
+  _table:
+    join: *anchor_join
+    cols: *anchor_cols
+  # The path ends in the attribute and determines the label, so it alone is the code. The value
+  # is split like the charted values, and a blank one emits nothing.
+  nurse_assessment:
+    code: f"NURSE_ASSESSMENT//{$cellattributepath}" if (/\S/ in $cellattributevalue)
+    time: $unitadmittimestamp - (-$nurseassessentryoffset)::minutes
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $cellattributevalue)::float64'
+    text_value: '$cellattributevalue if not (/^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$/ in $cellattributevalue)'
+    nurse_assess_id: $nurseassessid
+    icustay_id: $patientunitstayid
+    _metadata:
+      _self:
+        description: >-
+          f"Nursing assessment item path: {$cellattributepath} (eICU nurseAssessment.cellAttributePath)"
+
 nurseCharting:
   _table:
     join: *anchor_join
@@ -569,6 +587,7 @@ sources:
         - intakeOutput.csv.gz
         - lab.csv.gz
         - medication.csv.gz
+        - nurseAssessment.csv.gz
         - nurseCharting.csv.gz
         - pastHistory.csv.gz
         - physicalExam.csv.gz
@@ -597,6 +616,7 @@ sources:
         - intakeOutput.csv.gz
         - lab.csv.gz
         - medication.csv.gz
+        - nurseAssessment.csv.gz
         - nurseCharting.csv.gz
         - pastHistory.csv.gz
         - physicalExam.csv.gz
