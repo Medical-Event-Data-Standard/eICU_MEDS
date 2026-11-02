@@ -73,6 +73,10 @@ VALUE_ONLY_CODES = (
     "SUBJECT_WEIGHT_AT_INFUSION",
 )
 
+# Charted tables keep a varchar value: numbers go to numeric_value, the rest to text_value, and a
+# blank cell emits nothing, so every charted event carries exactly one of the two.
+CHARTED_PREFIXES = ("NURSE_CHARTING//", "RESPIRATORY_CHARTING//")
+
 
 def _validate_data_correctness(data_path: Path, metadata_path: Path):
     """Pins the data-correctness fixes on the demo output, so a regression fails CI."""
@@ -86,6 +90,35 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
         .collect()
     )
     assert valueless.is_empty(), f"Events emitted without a value:\n{valueless}"
+
+    # A subject spans several unit stays, so each per-stay measurement must say which one.
+    unlinked = (
+        df.filter(pl.col("code").is_in(VALUE_ONLY_CODES[:3]))
+        .filter(pl.col("hadm_id").is_null() | pl.col("icustay_id").is_null())
+        .group_by("code")
+        .len()
+        .collect()
+    )
+    assert unlinked.is_empty(), f"Unit-stay events missing hadm_id/icustay_id:\n{unlinked}"
+
+    n_past_history, n_textless = (
+        df.filter(pl.col("code").str.starts_with("PAST_HISTORY//"))
+        .select(pl.len(), pl.col("text_value").is_null().sum())
+        .collect()
+        .row(0)
+    )
+    assert n_past_history > 0, "No PAST_HISTORY events emitted; the pastHistory table is not extracted."
+    assert n_textless == 0, f"{n_textless} PAST_HISTORY events carry no text_value."
+
+    for prefix in CHARTED_PREFIXES:
+        n_charted, n_not_one_value = (
+            df.filter(pl.col("code").str.starts_with(prefix))
+            .select(pl.len(), (pl.col("numeric_value").is_null() == pl.col("text_value").is_null()).sum())
+            .collect()
+            .row(0)
+        )
+        assert n_charted > 0, f"No {prefix} events emitted."
+        assert n_not_one_value == 0, f"{n_not_one_value} {prefix} events carry both or neither value."
 
     # A cancelled order must not also assert administration (#10).
     cancelled = df.filter(pl.col("code").str.starts_with("MEDICATION//ORDER_CANCELLED//"))

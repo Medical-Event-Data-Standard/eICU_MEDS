@@ -38,12 +38,15 @@ from pathlib import Path
 
 import polars as pl
 
+from .code_descriptions import LAB_DESCRIPTIONS_PREFIX, write_lab_descriptions
+
 logger = logging.getLogger(__name__)
 
 # The table the mapping is derived from, and the name the derived table is written under.
 # `DX_MAP_PREFIX` must match the `_metadata` source prefix in `configs/event_configs.yaml`.
 DIAGNOSIS_PREFIX = "diagnosis"
 DX_MAP_PREFIX = "dx_icd_map"
+
 
 # eICU joins multiple codes with ", ". Splitting on the bare comma would also split inside
 # a code, and splitting on a regex would be needless here — the separator is literal.
@@ -143,8 +146,8 @@ def main(
 ) -> None:
     """Assemble the pre-MEDS input directory.
 
-    Passes every raw table through untouched and adds the derived
-    ``dx_icd_map.parquet``. Nothing here modifies event data.
+    Passes every raw table through untouched and adds the derived ``dx_icd_map.parquet``
+    plus the packaged ``lab_descriptions.parquet``. Nothing here modifies event data.
 
     Args:
         input_dir: Directory holding the raw eICU download.
@@ -166,7 +169,8 @@ def main(
     # The pre-0.7 extractor wrote processed `<table>.parquet` files here. Left in place they
     # compete with the raw `<table>.csv.gz` for the same prefix and extraction fails, so stop
     # early rather than deleting files we did not write.
-    stale = sorted(fp.name for fp in output_dir.glob("*.parquet") if fp.name != f"{DX_MAP_PREFIX}.parquet")
+    ours = {f"{DX_MAP_PREFIX}.parquet", f"{LAB_DESCRIPTIONS_PREFIX}.parquet"}
+    stale = sorted(fp.name for fp in output_dir.glob("*.parquet") if fp.name not in ours)
     if stale:
         raise FileExistsError(
             f"{output_dir.resolve()!s} holds tables from a previous extractor version ({', '.join(stale)}). "
@@ -184,6 +188,10 @@ def main(
         if name != fp.name and name in raw_names:
             continue  # the release spelling is already present; prefer it
         _link_or_copy(fp, output_dir / name, do_copy)
+
+    # Always rewritten: the table ships with the package, so it must track the installed version.
+    lab_fp = write_lab_descriptions(output_dir)
+    logger.info(f"Wrote the packaged lab-description table to {lab_fp.resolve()!s}.")
 
     out_fp = output_dir / f"{DX_MAP_PREFIX}.parquet"
     if out_fp.is_file() and not do_overwrite:
