@@ -157,13 +157,13 @@ its prior metadata stage's output, `split_and_shard_subjects`, which writes no
 `codes.parquet`). The post-pipeline fill only ever writes a description where the pipeline
 left null, never extends the vocabulary, and is idempotent.
 
-On the demo (eICU-CRD demo 2.0.1) every one of the 6,481 codes is described: 294 lab codes,
-34 literal codes, and 6,153 component-coded codes. Event data is untouched: per-code event
+On the demo (eICU-CRD demo 2.0.1) every one of the 6,671 codes is described: 294 lab codes,
+34 literal codes, and 6,343 component-coded codes. Event data is untouched: per-code event
 counts are identical to a build without this metadata.
 
-On the full release (eICU-CRD 2.0) every one of the 11,833 codes is described: 316 lab codes
+On the full release (eICU-CRD 2.0) every one of the 12,076 codes is described: 316 lab codes
 (a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names; 148 names are in the
-table and the other 10 get the generic description), 34 literal codes, and 11,483
+table and the other 10 get the generic description), 34 literal codes, and 11,726
 component-coded codes. Every code in the data is in `codes.parquet`, and the file validates
 against `meds.CodeMetadataSchema`.
 
@@ -212,14 +212,14 @@ never removes or rewrites the ETL's own parents or descriptions.
 
 ## Which eICU tables are extracted
 
-eICU-CRD v2.0 ships 31 tables. This pipeline reads 15 of them. The rest are excluded
+eICU-CRD v2.0 ships 31 tables. This pipeline reads 16 of them. The rest are excluded
 deliberately — the reasoning is recorded here rather than in a code comment, because
 "this table is missing" is otherwise indistinguishable from an oversight.
 
 **Extracted:** `patient`, `hospital` (joined for site attributes), `admissionDx`,
 `allergy`, `carePlanEOL`, `carePlanGeneral`, `carePlanGoal`,
 `carePlanInfectiousDisease`, `diagnosis`, `infusionDrug`, `lab`, `medication`,
-`treatment`, `vitalAperiodic`, `vitalPeriodic`.
+`pastHistory`, `treatment`, `vitalAperiodic`, `vitalPeriodic`.
 
 **Excluded — deliberate, on the merits:**
 
@@ -247,7 +247,6 @@ scheme of its own):
 | `nurseAssessment`     |  15,602,498 | Structured nursing assessments.                                                                     |
 | `physicalExam`        |   9,212,316 | Physical examination findings.                                                                      |
 | `nurseCare`           |   8,311,132 | Nursing care entries.                                                                               |
-| `pastHistory`         |   1,149,180 | Comorbidity / prior history, as a `/`-separated hierarchy.                                          |
 | `respiratoryCare`     |     865,381 | Ventilator settings and airway management.                                                          |
 
 ## MEDS-transforms settings
