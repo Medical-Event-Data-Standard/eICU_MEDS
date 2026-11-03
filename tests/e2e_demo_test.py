@@ -16,6 +16,9 @@ def test_e2e():
             "do_download=True",
             "do_overwrite=True",
             "do_demo=True",
+            # The opt-in suMEDS step runs here so that the packaged rules are checked against
+            # suMEDS's real ontology data (fetched from GitHub), which the unit tests stub out.
+            "do_enrich=True",
         ]
 
         # Point the download at a persistent directory (e.g. one restored by CI's
@@ -167,3 +170,12 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     codes = pl.read_parquet(metadata_path / "codes.parquet")
     n_with_parents = codes.filter(pl.col("parent_codes").list.len() > 0).height
     assert n_with_parents > 0, "No code in codes.parquet carries parent_codes; the dx -> ICD link is gone."
+
+    # `do_enrich=True`: suMEDS adds parents among eICU's own path codes and LOINC parents for labs.
+    parents = codes.select("code", "parent_codes").explode("parent_codes").drop_nulls()
+    in_dataset = parents.filter(pl.col("parent_codes").is_in(codes["code"].implode()))
+    for family in ("DIAGNOSIS//", "TREATMENT//ENTERED//"):
+        n = in_dataset.filter(pl.col("code").str.starts_with(family)).height
+        assert n > 0, f"No {family} code got an in-dataset parent from the suMEDS hierarchy rules."
+    n_loinc = parents.filter(pl.col("parent_codes").str.starts_with("LOINC")).height
+    assert n_loinc > 0, "No lab code got a LOINC parent from the suMEDS crosswalk."

@@ -38,7 +38,7 @@ def _n_parent_links(codes: pl.DataFrame) -> int:
     return int(codes["parent_codes"].list.len().fill_null(0).sum())
 
 
-def enrich_code_metadata(codes_fp: Path, config: "EnrichmentConfig | None" = None) -> tuple[int, int]:
+def enrich_code_metadata(codes_fp: Path, config: "EnrichmentConfig") -> tuple[int, int]:
     """Enrich ``codes_fp`` in place with suMEDS.
 
     suMEDS only adds parents and columns; it never removes or rewrites the ETL's own parents or
@@ -47,15 +47,13 @@ def enrich_code_metadata(codes_fp: Path, config: "EnrichmentConfig | None" = Non
 
     Args:
         codes_fp: The ``metadata/codes.parquet`` of a finished extraction.
-        config: Override of :func:`sumeds_config`, for tests.
+        config: The enrichment config, normally :func:`sumeds_config`.
 
     Returns:
         The number of parent links before and after enrichment.
     """
     from sumeds import enrich_metadata
 
-    if config is None:
-        config = sumeds_config()
     codes = pl.read_parquet(codes_fp)
     enriched = enrich_metadata(codes.lazy(), config).collect()
     write_code_metadata(enriched, codes_fp)
