@@ -248,16 +248,35 @@ non-null for datasets built with older releases.
 ICD parent codes for diagnoses are the other piece of code metadata: each `DIAGNOSIS//...`
 code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code` column of
 `diagnosis` (via the `dx_icd_map` table built in pre-MEDS). In the demo, 860 of the 1,091
-diagnosis codes have one; in the full release, 3,129 of the 3,933.
+diagnosis codes have one; in the full release, 3,129 of the 3,933. `parent_codes` is written
+sorted, so that two runs over the same data write the same file.
 
 ## Enriching code metadata with suMEDS
 
 The ETL writes what eICU itself records. Links to external vocabularies that eICU does not
-record, and parents among eICU's own codes, are added afterwards by
+record, and parents among eICU's own codes, are added by
 [suMEDS](https://github.com/rvandewater/SumMEDS) with the rules file shipped in this package,
 `src/eICU_MEDS/sumeds_rules.yaml`. The crosswalk tables and ontology packs come from suMEDS's
 versioned ontology data (sumeds-ontologies, pinned release), so this repository does not ship
-them, and no Athena download or LOINC account is needed:
+them, and no Athena download or LOINC account is needed.
+
+To enrich as part of the ETL, install the `sumeds` extra and turn on `do_enrich`:
+
+```bash
+pip install "eICU-MEDS[sumeds]"
+MEDS_extract-eICU root_output_dir=data/eicu_meds do_enrich=True
+```
+
+The last step then rewrites `MEDS_output/metadata/codes.parquet` in place. The run checks that
+suMEDS is installed before it starts. If the enrichment itself fails, for example without network
+access, the ETL's `codes.parquet` is left as it was. Enrichment is off by default because suMEDS
+is an extra dependency, because it downloads its ontology data from GitHub on first use (cached
+under `~/.cache/sumeds`; on a machine without internet access, point `SUMEDS_ONTOLOGY_SOURCE` at a
+local copy of the pinned sumeds-ontologies release), and because the default output then holds
+only what eICU records.
+
+To enrich an existing output instead, run suMEDS on its own. Given the same `codes.parquet`, it
+writes the same table as `do_enrich=True`:
 
 ```bash
 pip install "sumeds>=0.4"

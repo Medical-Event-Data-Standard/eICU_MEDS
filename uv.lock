@@ -170,6 +170,9 @@ dependencies = [
 slurm-parallelism = [
     { name = "hydra-submitit-launcher" },
 ]
+sumeds = [
+    { name = "sumeds" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -186,8 +189,9 @@ requires-dist = [
     { name = "hydra-joblib-launcher", specifier = "~=1.2" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'", specifier = "~=1.2" },
     { name = "meds-extract", extras = ["download"], specifier = ">=0.7.0,<0.8" },
+    { name = "sumeds", marker = "extra == 'sumeds'", specifier = ">=0.4,<0.5" },
 ]
-provides-extras = ["slurm-parallelism"]
+provides-extras = ["slurm-parallelism", "sumeds"]
 
 [package.metadata.requires-dev]
 dev = [

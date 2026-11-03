@@ -63,6 +63,9 @@ eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
+# For `do_enrich=True`. 0.4 is the first release with rules; the cap keeps the ontology data
+# release suMEDS pins (and so the enriched output) fixed for a given eICU-MEDS version.
+sumeds = ["sumeds>=0.4,<0.5"]
 
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"
