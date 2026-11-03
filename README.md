@@ -2,11 +2,11 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/eICU-MEDS)](https://pypi.org/project/eICU-MEDS/)
 [![Documentation Status](https://readthedocs.org/projects/etl-meds/badge/?version=latest)](https://etl-meds.readthedocs.io/en/stable/?badge=stable)
-![Static Badge](https://img.shields.io/badge/MEDS-0.3.3-blue)
+![Static Badge](https://img.shields.io/badge/MEDS-0.4.1-blue)
 [![codecov](https://codecov.io/gh/Medical-Event-Data-Standard/eICU_MEDS/graph/badge.svg?token=RW6JXHNT0W)](https://codecov.io/gh/Medical-Event-Data-Standard/eICU_MEDS)
 [![tests](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/tests.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/tests.yml)
 [![code-quality](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/code-quality-main.yaml/badge.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/actions/workflows/code-quality-main.yaml)
-![python](https://img.shields.io/badge/-Python_3.11-blue?logo=python&logoColor=white)
+![python](https://img.shields.io/badge/python-%3E%3D3.11.4%2C%20%3C3.14-blue?logo=python&logoColor=white)
 [![license](https://img.shields.io/badge/License-MIT-green.svg?labelColor=gray)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS#license)
 [![PRs](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pulls)
 [![contributors](https://img.shields.io/github/contributors/Medical-Event-Data-Standard/eICU_MEDS.svg)](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/graphs/contributors)
@@ -359,4 +359,44 @@ uv run pytest src/ tests/ --doctest-modules
 ```
 
 The end-to-end test (`tests/e2e_demo_test.py`) downloads the public eICU demo from PhysioNet, so it is
-slow on a first run.
+slow on a first run. [DEVELOPMENT.md](DEVELOPMENT.md) covers testing, running the ETL on the full release,
+and cutting a release with `uv version --bump`.
+
+## Citation
+
+If you use this code in your research, please cite the following:
+
+```bibtex
+@article{PhysioNet-eicu-crd-2.0,
+  author = {Pollard, Tom and Johnson, Alistair and Raffa, Jesse and Celi, Leo Anthony and Badawi, Omar and Mark, Roger},
+  title = {{eICU Collaborative Research Database}},
+  journal = {{PhysioNet}},
+  year = {2019},
+  month = apr,
+  note = {Version 2.0},
+  doi = {10.13026/C2WM1R},
+  url = {https://doi.org/10.13026/C2WM1R}
+}
+@article{Pollard2018-ln,
+  title     = "The {eICU} Collaborative Research Database, a freely available
+               multi-center database for critical care research",
+  author    = "Pollard, Tom J and Johnson, Alistair E W and Raffa, Jesse D and
+               Celi, Leo A and Mark, Roger G and Badawi, Omar",
+  journal   = "Sci. Data",
+  publisher = "Springer Science and Business Media LLC",
+  volume    =  5,
+  number    =  1,
+  pages     = "180178",
+  month     =  sep,
+  year      =  2018,
+  copyright = "https://creativecommons.org/licenses/by/4.0",
+  language  = "en"
+}
+
+@software{McDermott_eICU_MEDS_eICU_MEDS,
+author = {McDermott, Matthew and Zhu, Mingcheng and van de Water, Robin Philippus},
+license = {MIT},
+title = {{eICU\_MEDS: eICU MEDS Extraction ETL}},
+url = {https://github.com/Medical-Event-Data-Standard/eICU_MEDS/}
+}
+```

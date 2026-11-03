@@ -1,10 +1,12 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "eICU-MEDS"
-dynamic = ["version"]
+# Static so that `uv version --bump <part>` can manage it (uv cannot bump a dynamic version).
+# Between releases it holds the last released version; see DEVELOPMENT.md for cutting a release.
+version = "0.1.0"
 authors = [
   { name="Matthew McDermott", email="mattmcdermott8@gmail.com" }, { name="Robin P. van de Water", email="robin.vandewater@hpi.de" }, { name="Jason Zuu" }
 ]
@@ -54,7 +56,10 @@ dev = [
     "sumeds>=0.4",
 ]
 
-[tool.setuptools_scm]
+# setuptools-scm used to ship these implicitly (its git file finder), so without this list the
+# wheel would build and install fine but have no ETL configs, lab descriptions or suMEDS rules.
+[tool.setuptools.package-data]
+eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
