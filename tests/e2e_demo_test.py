@@ -4,6 +4,8 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import polars as pl
+import pyarrow.parquet as pq
+from meds import CodeMetadataSchema
 
 
 def test_e2e():
@@ -179,3 +181,5 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
         assert n > 0, f"No {family} code got an in-dataset parent from the suMEDS hierarchy rules."
     n_loinc = parents.filter(pl.col("parent_codes").str.starts_with("LOINC")).height
     assert n_loinc > 0, "No lab code got a LOINC parent from the suMEDS crosswalk."
+    # suMEDS rewrote the file in place; it must still be valid MEDS code metadata as read from disk.
+    CodeMetadataSchema.validate(pq.read_table(metadata_path / "codes.parquet"))

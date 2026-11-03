@@ -276,15 +276,18 @@ local copy of the pinned sumeds-ontologies release), and because the default out
 only what eICU records.
 
 To enrich an existing output instead, run suMEDS on its own. Given the same `codes.parquet`, it
-writes the same table as `do_enrich=True`:
+writes the same table as `do_enrich=True`, which runs exactly this with the input as its own output:
 
 ```bash
-pip install "sumeds>=0.4"
+pip install "sumeds>=0.5,<0.6"
 suMEDS-enrich $MEDS_DIR/metadata/codes.parquet -o codes_enriched.parquet \
   --rules "$(python -c 'from importlib.resources import files; print(files("eICU_MEDS") / "sumeds_rules.yaml")')"
 ```
 
-This needs suMEDS 0.4 or later, the first release with ontology rules.
+Pass the input itself as `-o` to enrich it in place (suMEDS 0.5 or later); the file is replaced only
+once the enriched table is complete. suMEDS 0.4 already applies the rules, but only to a separate
+output, and its match for a code with several ICD parents follows the parent order, which is not
+fixed between runs.
 The rules add:
 
 - **LOINC for lab results** (`eicu-lab-loinc`, a crosswalk): `LAB//RESULT//{labname}//{unit}`

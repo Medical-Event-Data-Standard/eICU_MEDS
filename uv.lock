@@ -189,7 +189,7 @@ requires-dist = [
     { name = "hydra-joblib-launcher", specifier = "~=1.2" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'", specifier = "~=1.2" },
     { name = "meds-extract", extras = ["download"], specifier = ">=0.7.0,<0.8" },
-    { name = "sumeds", marker = "extra == 'sumeds'", specifier = ">=0.4,<0.5" },
+    { name = "sumeds", marker = "extra == 'sumeds'", git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references" },
 ]
 provides-extras = ["slurm-parallelism", "sumeds"]
 
@@ -200,7 +200,7 @@ dev = [
     { name = "pytest-cov", specifier = "~=7.1" },
     { name = "pytest-rerunfailures", specifier = "==16.1" },
     { name = "ruff", specifier = ">=0.11,<1.0" },
-    { name = "sumeds", specifier = ">=0.4" },
+    { name = "sumeds", git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references" },
 ]
 
 [[package]]
@@ -957,18 +957,14 @@ wheels = [
 
 [[package]]
 name = "sumeds"
-version = "0.4.0"
-source = { registry = "https://pypi.org/simple" }
+version = "0.5.0"
+source = { git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references#c7beaf70283e83dd9a9b934ea24347d22adb6db4" }
 dependencies = [
     { name = "meds" },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pyyaml" },
     { name = "tqdm" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/75/19/19910cadc5b6e6b2ea281d887a5ed00ec2bfd9119a20dbfbeb75849392d1/sumeds-0.4.0.tar.gz", hash = "sha256:697e476d1c5bdc432a2f6cf9090de41082f3aff0a35c4210cd7c0f5a829dbc78", size = 43188, upload-time = "2026-11-02T22:09:06.99Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/4f/c55cf7b3a074cd39df391eaec314de51b2432f3c9584e682ce8fdc60bf71/sumeds-0.4.0-py3-none-any.whl", hash = "sha256:8b18652754a3dfb637052c30500bcf740be97bd7b4dc4d618a26212c56605f22", size = 47748, upload-time = "2026-11-02T22:09:05.465Z" },
 ]
 
 [[package]]

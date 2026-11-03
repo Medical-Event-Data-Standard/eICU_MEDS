@@ -184,10 +184,11 @@ def write_code_metadata(codes: pl.DataFrame, codes_fp: Path) -> None:
     Other columns keep their types.
 
     ``parent_codes`` is sorted. MEDS-Extract collects it with a union whose order changes from run
-    to run, and suMEDS takes ``vocabulary_id`` and ``concept_code`` from the first parent, so
-    without sorting, two runs over the same data would not write the same file.
+    to run, so without sorting, two runs over the same data would not write the same file. A file
+    suMEDS already enriched is left in its order: its ``parent_names`` is aligned entry by entry with
+    ``parent_codes``, and was built from the sorted list anyway.
     """
-    if isinstance(codes.schema.get("parent_codes"), pl.List):
+    if isinstance(codes.schema.get("parent_codes"), pl.List) and "parent_names" not in codes.columns:
         codes = codes.with_columns(pl.col("parent_codes").list.sort())
     out = codes.to_arrow()
     meds_types = {"code": pa.string(), "description": pa.string(), "parent_codes": pa.list_(pa.string())}
