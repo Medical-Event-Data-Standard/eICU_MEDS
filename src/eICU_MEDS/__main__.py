@@ -11,6 +11,7 @@ from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, dataset_info
 from . import __version__ as PKG_VERSION
 from .code_descriptions import apply_static_descriptions
 from .commands import coerce_download_workers, resolve_console_script, run_command
+from .sumeds_enrichment import enrich_code_metadata, sumeds_config
 
 if HAS_PRE_MEDS:  # pragma: no cover
     from .pre_MEDS import main as pre_MEDS_transform
@@ -26,6 +27,8 @@ def main(cfg: DictConfig):
     pre_MEDS_dir = Path(cfg.pre_MEDS_dir)
     MEDS_output_dir = Path(cfg.MEDS_output_dir)
     stage_runner_fp = cfg.get("stage_runner_fp", None)
+    # Built up front so that a missing suMEDS fails now, not after the extraction.
+    enrich_config = sumeds_config() if cfg.get("do_enrich", False) else None
 
     # Step 0: Data downloading, via MEDS-Extract's download layer. The `sources:` block
     # in the event config declares the buckets; `key=` selects `demo` or `dataset`.
@@ -123,6 +126,11 @@ def main(cfg: DictConfig):
         )
     else:  # pragma: no cover
         logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
+
+    # Step 4 (opt-in, `do_enrich=True`): suMEDS enrichment with the packaged rules.
+    if enrich_config is not None:
+        n_before, n_after = enrich_code_metadata(codes_fp, enrich_config)
+        logger.info(f"suMEDS raised the parent links in {codes_fp.resolve()!s} from {n_before} to {n_after}.")
 
 
 if __name__ == "__main__":

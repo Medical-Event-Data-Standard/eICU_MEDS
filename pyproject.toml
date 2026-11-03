@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "eICU-MEDS"
 # Static so that `uv version --bump <part>` can manage it (uv cannot bump a dynamic version).
 # Between releases it holds the last released version; see DEVELOPMENT.md for cutting a release.
-version = "0.1.0"
+version = "0.2.0"
 authors = [
   { name="Matthew McDermott", email="mattmcdermott8@gmail.com" }, { name="Robin P. van de Water", email="robin.vandewater@hpi.de" }, { name="Jason Zuu" }
 ]
@@ -63,6 +63,9 @@ eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
+# For `do_enrich=True`. 0.4 is the first release with rules; the cap keeps the ontology data
+# release suMEDS pins (and so the enriched output) fixed for a given eICU-MEDS version.
+sumeds = ["sumeds>=0.4,<0.5"]
 
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"

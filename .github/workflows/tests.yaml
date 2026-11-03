@@ -99,13 +99,14 @@ jobs:
         # These are upstream failures, not real regressions, and blocking CI on
         # them means no PR can land during a bad PhysioNet minute. The pattern is
         # intentionally scoped to network-shaped failures: anything else fails
-        # hard on first occurrence.
+        # hard on first occurrence. `could not download` is suMEDS failing to fetch its
+        # ontology data from GitHub for the `do_enrich=True` step.
         run: |
           uv run pytest src/ tests/ -v --doctest-modules \
             --cov=src --cov-report=xml --cov-report=term \
             --junitxml=junit.xml -s \
             --reruns 3 --reruns-delay 20 \
-            --only-rerun "RemoteProtocolError|ConnectError|ConnectTimeout|ReadTimeout|ReadError|HTTPStatusError|IncompleteRead|[Cc]onnection broken"
+            --only-rerun "RemoteProtocolError|ConnectError|ConnectTimeout|ReadTimeout|ReadError|HTTPStatusError|IncompleteRead|[Cc]onnection broken|could not download"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5.5.4

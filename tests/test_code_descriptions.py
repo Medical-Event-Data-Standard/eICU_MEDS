@@ -116,6 +116,17 @@ def test_apply_static_descriptions_fills_only_nulls(tmp_path):
     CodeMetadataSchema.validate(pq.read_table(fp))
 
 
+def test_parent_codes_are_written_sorted(tmp_path):
+    """MEDS-Extract's union leaves the parent order to chance; the written file must not depend on it."""
+    fp = tmp_path / "codes.parquet"
+    for parents in (["ICD9CM/486", "ICD10CM/J18.9"], ["ICD10CM/J18.9", "ICD9CM/486"]):
+        pl.DataFrame(
+            {"code": ["DIAGNOSIS//x"], "description": ["x"], "parent_codes": [parents]}
+        ).write_parquet(fp)
+        apply_static_descriptions(fp)
+        assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM/J18.9", "ICD9CM/486"]]
+
+
 def test_lab_fallback_description_parses_units_and_skips_other_codes():
     codes = pl.Series(
         [

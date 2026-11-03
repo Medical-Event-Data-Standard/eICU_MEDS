@@ -172,13 +172,29 @@ def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None
         .select(codes.columns)
     )
     n_filled = int(filled["description"].is_not_null().sum() - codes["description"].is_not_null().sum())
+    write_code_metadata(filled, codes_fp)
+    return n_filled
 
-    out = filled.to_arrow()
+
+def write_code_metadata(codes: pl.DataFrame, codes_fp: Path) -> None:
+    """Atomically replace ``codes_fp`` with ``codes``, validated against the MEDS code-metadata schema.
+
+    polars materializes strings as Arrow ``large_string``, which that schema rejects, so the MEDS
+    columns are cast back to the types the pipeline itself writes (``string``, ``list<string>``).
+    Other columns keep their types.
+
+    ``parent_codes`` is sorted. MEDS-Extract collects it with a union whose order changes from run
+    to run, and suMEDS takes ``vocabulary_id`` and ``concept_code`` from the first parent, so
+    without sorting, two runs over the same data would not write the same file.
+    """
+    if isinstance(codes.schema.get("parent_codes"), pl.List):
+        codes = codes.with_columns(pl.col("parent_codes").list.sort())
+    out = codes.to_arrow()
     meds_types = {"code": pa.string(), "description": pa.string(), "parent_codes": pa.list_(pa.string())}
     out = out.cast(pa.schema([pa.field(f.name, meds_types.get(f.name, f.type)) for f in out.schema]))
     CodeMetadataSchema.validate(out)
 
+    codes_fp = Path(codes_fp)
     tmp_fp = codes_fp.with_suffix(".parquet.tmp")
     pq.write_table(out, tmp_fp)
     os.replace(tmp_fp, codes_fp)
-    return n_filled
