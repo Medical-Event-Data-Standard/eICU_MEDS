@@ -11,7 +11,7 @@ from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, dataset_info
 from . import __version__ as PKG_VERSION
 from .code_descriptions import apply_static_descriptions
 from .commands import coerce_download_workers, resolve_console_script, run_command
-from .sumeds_enrichment import enrich_code_metadata, sumeds_config
+from .sumeds_enrichment import sumeds_config
 
 if HAS_PRE_MEDS:  # pragma: no cover
     from .pre_MEDS import main as pre_MEDS_transform
@@ -127,10 +127,14 @@ def main(cfg: DictConfig):
     else:  # pragma: no cover
         logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
 
-    # Step 4 (opt-in, `do_enrich=True`): suMEDS enrichment with the packaged rules.
+    # Step 4 (opt-in, `do_enrich=True`): suMEDS enrichment with the packaged rules, in place. suMEDS
+    # stages the enriched table and replaces codes.parquet only once it is complete, so a failed
+    # enrichment (e.g. no network for its ontology data) leaves the file above as it was.
     if enrich_config is not None:
-        n_before, n_after = enrich_code_metadata(codes_fp, enrich_config)
-        logger.info(f"suMEDS raised the parent links in {codes_fp.resolve()!s} from {n_before} to {n_after}.")
+        from sumeds import enrich_file
+
+        enrich_file(codes_fp, codes_fp, enrich_config, verbose=True)
+        logger.info(f"Enriched {codes_fp.resolve()!s} in place with suMEDS.")
 
 
 if __name__ == "__main__":

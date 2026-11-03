@@ -45,15 +45,15 @@ dependencies = [
 [dependency-groups]
 # `pytest-rerunfailures` lets CI auto-retry the e2e demo download test on the narrow set
 # of network exceptions seen coming out of PhysioNet (connection reset / IncompleteRead
-# mid-stream) instead of turning a bad upstream minute into a failed CI build. `sumeds` (0.4
-# is the first release with rules) loads the packaged suMEDS rules in tests/test_sumeds_rules.py.
+# mid-stream) instead of turning a bad upstream minute into a failed CI build. `sumeds` loads the
+# packaged suMEDS rules in tests/test_sumeds_rules.py and runs `do_enrich=True` in the e2e test.
 dev = [
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
     "pytest-cov~=7.1",
     "pytest-rerunfailures==16.1",
-    "sumeds>=0.4",
+    "sumeds>=0.5,<0.6",
 ]
 
 # setuptools-scm used to ship these implicitly (its git file finder), so without this list the
@@ -63,9 +63,15 @@ eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
-# For `do_enrich=True`. 0.4 is the first release with rules; the cap keeps the ontology data
-# release suMEDS pins (and so the enriched output) fixed for a given eICU-MEDS version.
-sumeds = ["sumeds>=0.4,<0.5"]
+# For `do_enrich=True`. 0.5 is the first release that enriches a file in place and matches parent
+# references whatever their order; the cap keeps the ontology data release suMEDS pins (and so the
+# enriched output) fixed for a given eICU-MEDS version.
+sumeds = ["sumeds>=0.5,<0.6"]
+
+# TEMPORARY, until suMEDS 0.5.0 is on PyPI (rvandewater/suMEDS#12): lets CI run this branch against
+# the suMEDS change it needs. Remove this block and run `uv lock` before merging.
+[tool.uv.sources]
+sumeds = { git = "https://github.com/rvandewater/suMEDS.git", branch = "order-independent-parent-references" }
 
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"

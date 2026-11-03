@@ -127,6 +127,22 @@ def test_parent_codes_are_written_sorted(tmp_path):
         assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM/J18.9", "ICD9CM/486"]]
 
 
+def test_enriched_parent_order_is_kept_with_its_names(tmp_path):
+    """Rerunning the ETL over a suMEDS-enriched file must not separate parents from their names."""
+    fp = tmp_path / "codes.parquet"
+    enriched = pl.DataFrame(
+        {
+            "code": ["DIAGNOSIS//x|y"],
+            "description": ["x|y"],
+            "parent_codes": [["ICD9CM/486", "DIAGNOSIS//x"]],
+            "parent_names": [["Pneumonia, organism unspecified", None]],
+        }
+    )
+    enriched.write_parquet(fp)
+    apply_static_descriptions(fp)
+    assert pl.read_parquet(fp).equals(enriched)
+
+
 def test_lab_fallback_description_parses_units_and_skips_other_codes():
     codes = pl.Series(
         [
