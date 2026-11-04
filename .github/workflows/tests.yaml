@@ -99,15 +99,15 @@ jobs:
 
       - name: Summary-stats regression check
         # The action, package-spec and committed baseline are pinned together on meds_summary_stats
-        # 0.0.2 (stats_schema_version 1), as in scripts/summary_stats.sh: comparison refuses to diff
+        # 0.0.3 (stats_schema_version 1), as in scripts/summary_stats.sh: comparison refuses to diff
         # across schema versions. `fail-on` must match `fail_on:` in the policy, because the action
         # always passes it and the flag overrides the file.
-        uses: Medical-Event-Data-Standard/meds_summary_stats@0.0.2
+        uses: Medical-Event-Data-Standard/meds_summary_stats@0.0.3
         with:
           meds-dir: ${{ runner.temp }}/eicu_demo/MEDS_output
           baseline: tests/regression/demo_summary_stats.json
           policy: tests/regression/policy.yaml
-          package-spec: meds_summary_stats==0.0.2
+          package-spec: meds_summary_stats==0.0.3
           fail-on: error
           upload-artifacts: "true"
           artifact-name: eicu-demo-summary-stats
