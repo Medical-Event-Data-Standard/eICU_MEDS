@@ -12,15 +12,15 @@ def test_e2e():
     with TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
 
+        # The run ends with the suMEDS enrichment (on by default), which checks the packaged rules
+        # against suMEDS's real ontology data (fetched from GitHub); test_run_with_enrichment.py
+        # stubs that data out.
         command_parts = [
             "MEDS_extract-eICU",
             f"root_output_dir={root.resolve()!s}",
             "do_download=True",
             "do_overwrite=True",
             "do_demo=True",
-            # The opt-in suMEDS step runs here so that the packaged rules are checked against
-            # suMEDS's real ontology data (fetched from GitHub), which the unit tests stub out.
-            "do_enrich=True",
         ]
 
         # Point the download at a persistent directory (e.g. one restored by CI's
@@ -173,7 +173,7 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     n_with_parents = codes.filter(pl.col("parent_codes").list.len() > 0).height
     assert n_with_parents > 0, "No code in codes.parquet carries parent_codes; the dx -> ICD link is gone."
 
-    # `do_enrich=True`: suMEDS adds parents among eICU's own path codes and LOINC parents for labs.
+    # The suMEDS enrichment adds parents among eICU's own path codes and LOINC parents for labs.
     parents = codes.select("code", "parent_codes").explode("parent_codes").drop_nulls()
     in_dataset = parents.filter(pl.col("parent_codes").is_in(codes["code"].implode()))
     for family in ("DIAGNOSIS//", "TREATMENT//ENTERED//"):

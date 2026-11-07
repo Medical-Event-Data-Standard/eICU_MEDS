@@ -38,23 +38,27 @@ classifiers = [
 #
 # `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
 # it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
+#
+# suMEDS enriches `metadata/codes.parquet` as the runner's last step (`do_enrich=false` skips it),
+# with the rules registered below. 0.6 is the first release that writes `parent_names` as a map from
+# code to name. It is capped below the next minor because its rules format and CLI are still 0.x,
+# and because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
     "meds-extract[download]>=0.8.0,<0.9",
+    "sumeds>=0.6,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 
 [dependency-groups]
 # `pytest-rerunfailures` lets CI auto-retry the e2e demo download test on the narrow set
 # of network exceptions seen coming out of PhysioNet (connection reset / IncompleteRead
-# mid-stream) instead of turning a bad upstream minute into a failed CI build. `sumeds` loads the
-# packaged suMEDS rules in tests/test_sumeds_rules.py and runs `do_enrich=True` in the e2e test.
+# mid-stream) instead of turning a bad upstream minute into a failed CI build.
 dev = [
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
     "pytest-cov~=7.1",
     "pytest-rerunfailures==16.1",
-    "sumeds>=0.5,<0.6",
 ]
 
 # setuptools-scm used to ship these implicitly (its git file finder), so without this list the
@@ -64,18 +68,16 @@ eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
-# For `do_enrich=True`. 0.5 is the first release that enriches a file in place and matches parent
-# references whatever their order; the cap keeps the ontology data release suMEDS pins (and so the
-# enriched output) fixed for a given eICU-MEDS version.
-sumeds = ["sumeds>=0.5,<0.6"]
-
-# TEMPORARY, until suMEDS 0.5.0 is on PyPI (rvandewater/suMEDS#12): lets CI run this branch against
-# the suMEDS change it needs. Remove this block and run `uv lock` before merging.
-[tool.uv.sources]
-sumeds = { git = "https://github.com/rvandewater/suMEDS.git", branch = "order-independent-parent-references" }
 
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"
+
+# Registers the suMEDS rules under the dataset's name, so the runner's last step and
+# `suMEDS-enrich --rules eICU` find them. There is no `MEDS_extract.pipelines` entry for
+# `meds-extract-run` (and so `suMEDS-extract`) yet: the runner's pre-MEDS step builds input tables
+# the MESSY config cannot (see `pre_MEDS.py`).
+[project.entry-points."sumeds.rules"]
+"eICU" = "eICU_MEDS:sumeds_rules.yaml"
 
 [project.urls]
 Homepage = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS"

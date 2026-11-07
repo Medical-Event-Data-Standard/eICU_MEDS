@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 
 import polars as pl
+import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
 from meds import CodeMetadataSchema
@@ -127,20 +128,29 @@ def test_parent_codes_are_written_sorted(tmp_path):
         assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM/J18.9", "ICD9CM/486"]]
 
 
-def test_enriched_parent_order_is_kept_with_its_names(tmp_path):
-    """Rerunning the ETL over a suMEDS-enriched file must not separate parents from their names."""
+def test_enriched_parent_order_is_kept(tmp_path):
+    """Rerunning the ETL over a suMEDS-enriched file keeps the ETL's parents ahead of the appended ones.
+
+    suMEDS 0.6 writes ``parent_names`` as a ``map<string, string>`` from parent to name (a same-table
+    parent has no name).
+    """
     fp = tmp_path / "codes.parquet"
-    enriched = pl.DataFrame(
-        {
-            "code": ["DIAGNOSIS//x|y"],
-            "description": ["x|y"],
-            "parent_codes": [["ICD9CM/486", "DIAGNOSIS//x"]],
-            "parent_names": [["Pneumonia, organism unspecified", None]],
-        }
+    names = pa.array([[("ICD9CM/486", "Pneumonia, organism unspecified")]], pa.map_(pa.string(), pa.string()))
+    pq.write_table(
+        pa.table(
+            {
+                "code": ["DIAGNOSIS//x|y"],
+                "description": ["x|y"],
+                "parent_codes": [["ICD9CM/486", "DIAGNOSIS//x"]],
+                "parent_names": names,
+            }
+        ),
+        fp,
     )
-    enriched.write_parquet(fp)
+    enriched = pl.read_parquet(fp)
     apply_static_descriptions(fp)
     assert pl.read_parquet(fp).equals(enriched)
+    assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD9CM/486", "DIAGNOSIS//x"]]
 
 
 def test_lab_fallback_description_parses_units_and_skips_other_codes():

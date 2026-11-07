@@ -164,14 +164,12 @@ source = { editable = "." }
 dependencies = [
     { name = "hydra-joblib-launcher" },
     { name = "meds-extract", extra = ["download"] },
+    { name = "sumeds" },
 ]
 
 [package.optional-dependencies]
 slurm-parallelism = [
     { name = "hydra-submitit-launcher" },
-]
-sumeds = [
-    { name = "sumeds" },
 ]
 
 [package.dev-dependencies]
@@ -181,7 +179,6 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
     { name = "ruff" },
-    { name = "sumeds" },
 ]
 
 [package.metadata]
@@ -189,9 +186,9 @@ requires-dist = [
     { name = "hydra-joblib-launcher", specifier = "~=1.2" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'", specifier = "~=1.2" },
     { name = "meds-extract", extras = ["download"], specifier = ">=0.8.0,<0.9" },
-    { name = "sumeds", marker = "extra == 'sumeds'", git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references" },
+    { name = "sumeds", specifier = ">=0.6,<0.7" },
 ]
-provides-extras = ["slurm-parallelism", "sumeds"]
+provides-extras = ["slurm-parallelism"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -200,7 +197,6 @@ dev = [
     { name = "pytest-cov", specifier = "~=7.1" },
     { name = "pytest-rerunfailures", specifier = "==16.1" },
     { name = "ruff", specifier = ">=0.11,<1.0" },
-    { name = "sumeds", git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references" },
 ]
 
 [[package]]
@@ -957,14 +953,18 @@ wheels = [
 
 [[package]]
 name = "sumeds"
-version = "0.5.0"
-source = { git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references#c7beaf70283e83dd9a9b934ea24347d22adb6db4" }
+version = "0.6.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "meds" },
     { name = "polars" },
     { name = "pyarrow" },
     { name = "pyyaml" },
     { name = "tqdm" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/cf/1a/9c00dda2fb5ba5fdc8ba1ccf7d2d2474c120380b803b0bdf3f38f97869d2/sumeds-0.6.0.tar.gz", hash = "sha256:3f3aaa244b509ee78a0d6993a44d918ad27abe5b3cb16bbceb9a5641811e3ad2", size = 48326, upload-time = "2026-11-07T17:54:18.608Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/58/5a/0d9ea34b131eb068b47eddca9f261312ccaf85c995fd8ffdd2716a57cc73/sumeds-0.6.0-py3-none-any.whl", hash = "sha256:4a0badfbfdfa66d7dbf8cfffc1d134ea4318a04aac998a9db69220d0d6a7d5c9", size = 53432, upload-time = "2026-11-07T17:54:17.415Z" },
 ]
 
 [[package]]

@@ -5,18 +5,22 @@ import os
 from pathlib import Path
 
 import hydra
+import sumeds
 from omegaconf import DictConfig
+from sumeds.cli import build_enrich_parser, enrich_main
 
 from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, dataset_info
 from . import __version__ as PKG_VERSION
 from .code_descriptions import apply_static_descriptions
 from .commands import coerce_download_workers, resolve_console_script, run_command
-from .sumeds_enrichment import sumeds_config
 
 if HAS_PRE_MEDS:  # pragma: no cover
     from .pre_MEDS import main as pre_MEDS_transform
 
 logger = logging.getLogger(__name__)
+
+# The name this package registers its suMEDS rules under (`sumeds.rules` in pyproject.toml).
+SUMEDS_RULES = "eICU"
 
 
 @hydra.main(version_base=None, config_path=str(MAIN_CFG.parent), config_name=MAIN_CFG.stem)
@@ -27,8 +31,11 @@ def main(cfg: DictConfig):
     pre_MEDS_dir = Path(cfg.pre_MEDS_dir)
     MEDS_output_dir = Path(cfg.MEDS_output_dir)
     stage_runner_fp = cfg.get("stage_runner_fp", None)
-    # Built up front so that a missing suMEDS fails now, not after the extraction.
-    enrich_config = sumeds_config() if cfg.get("do_enrich", False) else None
+    codes_fp = MEDS_output_dir / "metadata" / "codes.parquet"
+    enrich_argv = [str(codes_fp), "-o", str(codes_fp), "--rules", SUMEDS_RULES, *map(str, cfg.enrich_args)]
+    if cfg.do_enrich:  # check the suMEDS rules and options now, not after the extraction
+        sumeds.load_rules(SUMEDS_RULES)
+        build_enrich_parser().parse_args(enrich_argv)
 
     # Step 0: Data downloading, via MEDS-Extract's download layer. The `sources:` block
     # in the event config declares the buckets; `key=` selects `demo` or `dataset`.
@@ -118,7 +125,6 @@ def main(cfg: DictConfig):
     # pre-existing codes.parquet route does not reach them either). Fill them in from the packaged
     # table once the pipeline has written the final vocabulary; extracted descriptions win. Lab
     # codes whose name the packaged lab table does not list get a generic description here too.
-    codes_fp = MEDS_output_dir / "metadata" / "codes.parquet"
     if codes_fp.is_file():
         n_filled = apply_static_descriptions(codes_fp)
         logger.info(
@@ -127,14 +133,10 @@ def main(cfg: DictConfig):
     else:  # pragma: no cover
         logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
 
-    # Step 4 (opt-in, `do_enrich=True`): suMEDS enrichment with the packaged rules, in place. suMEDS
-    # stages the enriched table and replaces codes.parquet only once it is complete, so a failed
-    # enrichment (e.g. no network for its ontology data) leaves the file above as it was.
-    if enrich_config is not None:
-        from sumeds import enrich_file
-
-        enrich_file(codes_fp, codes_fp, enrich_config, verbose=True)
-        logger.info(f"Enriched {codes_fp.resolve()!s} in place with suMEDS.")
+    # Step 4: suMEDS enriches codes.parquet in place with the registered rules (`do_enrich=false` skips
+    # it), as `suMEDS-extract` does after `meds-extract-run`.
+    if cfg.do_enrich:
+        enrich_main(enrich_argv)
 
 
 if __name__ == "__main__":

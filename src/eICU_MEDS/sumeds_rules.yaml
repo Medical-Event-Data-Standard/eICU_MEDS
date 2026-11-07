@@ -13,8 +13,10 @@
 # - hierarchy rules: parents that are codes of this dataset, from the `|`-separated paths of
 #   `DIAGNOSIS`, `ADMISSION_DIAGNOSIS` and `TREATMENT` codes (the nearest existing ancestor).
 #
-#   suMEDS-enrich MEDS_output/metadata/codes.parquet -o codes_enriched.parquet \
-#     --rules "$(python -c 'from importlib.resources import files; print(files("eICU_MEDS") / "sumeds_rules.yaml")')"
+# pyproject.toml registers this file with suMEDS as `eICU`. `MEDS_extract-eICU` applies it as its
+# last step; for an existing build:
+#
+#   suMEDS-enrich MEDS_output/metadata/codes.parquet -o MEDS_output/metadata/codes.parquet --rules eICU
 schema: sumeds-rules/0.1
 
 crosswalk:

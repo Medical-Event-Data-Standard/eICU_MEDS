@@ -63,8 +63,8 @@ jobs:
           path: ~/.cache/eICU_MEDS/demo_raw
           key: eicu-demo-raw-partial-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Builds the demo the way a user does (no suMEDS enrichment, unlike the e2e test) and compares it
-  # with tests/regression/demo_summary_stats.json. The demo release is pinned, so any change in the
+  # Builds the demo the way a user does (including the suMEDS enrichment) and compares it with
+  # tests/regression/demo_summary_stats.json. The demo release is pinned, so any change in the
   # fingerprint is a change this repo made; tests/regression/policy.yaml decides which changes fail.
   # When a PR changes the output on purpose, commit the new statistics in the same PR: run
   # `scripts/summary_stats.sh demo`, or download the `eicu-demo-summary-stats` artifact of this job
@@ -149,7 +149,7 @@ jobs:
         # them means no PR can land during a bad PhysioNet minute. The pattern is
         # intentionally scoped to network-shaped failures: anything else fails
         # hard on first occurrence. `could not download` is suMEDS failing to fetch its
-        # ontology data from GitHub for the `do_enrich=True` step.
+        # ontology data from GitHub for the enrichment step.
         run: |
           uv run pytest src/ tests/ -v --doctest-modules \
             --cov=src --cov-report=xml --cov-report=term \

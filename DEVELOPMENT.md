@@ -9,7 +9,7 @@ uv sync
 uv run pre-commit install
 ```
 
-`uv sync` installs the `dev` dependency group (pre-commit, ruff, pytest, suMEDS) by default.
+`uv sync` installs the `dev` dependency group (pre-commit, ruff, pytest) by default.
 
 ## Tests
 
@@ -17,9 +17,10 @@ uv run pre-commit install
 uv run pytest src/ tests/ --doctest-modules
 ```
 
-`tests/e2e_demo_test.py` downloads the public eICU demo from PhysioNet, so a first run is slow. To
-reuse a download, point `EICU_MEDS_DEMO_RAW_DIR` at its directory. The other tests need no data and
-run in seconds:
+`tests/e2e_demo_test.py` downloads the public eICU demo from PhysioNet, and its suMEDS enrichment
+fetches ontology data from GitHub, so a first run is slow. To reuse a download, point
+`EICU_MEDS_DEMO_RAW_DIR` at its directory. The other tests need no network and run in under a minute
+(`tests/test_run_with_enrichment.py` runs the whole ETL and the enrichment on a few synthetic rows):
 
 ```bash
 uv run pytest src/ tests/ --doctest-modules --ignore=tests/e2e_demo_test.py
@@ -31,7 +32,7 @@ eICU-CRD is credentialed PhysioNet data. Never commit raw files or MEDS outputs,
 PRs report aggregate numbers only.
 
 ```bash
-uv run MEDS_extract-eICU root_output_dir=$OUT raw_input_dir=/path/to/eicu-crd/2.0
+uv run MEDS_extract-eICU root_output_dir=$OUT raw_input_dir=/path/to/eicu-crd/2.0 do_download=False
 ```
 
 ## Versioning and releases

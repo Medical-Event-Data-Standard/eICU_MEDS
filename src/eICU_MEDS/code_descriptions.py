@@ -185,8 +185,9 @@ def write_code_metadata(codes: pl.DataFrame, codes_fp: Path) -> None:
 
     ``parent_codes`` is sorted. MEDS-Extract collects it with a union whose order changes from run
     to run, so without sorting, two runs over the same data would not write the same file. A file
-    suMEDS already enriched is left in its order: its ``parent_names`` is aligned entry by entry with
-    ``parent_codes``, and was built from the sorted list anyway.
+    suMEDS already enriched (it has ``parent_names``, a map from parent to name) keeps its order:
+    suMEDS lists the ETL's own parents first, sorted here before it ran, and appends its own after
+    them, so sorting again would only mix the two.
     """
     if isinstance(codes.schema.get("parent_codes"), pl.List) and "parent_names" not in codes.columns:
         codes = codes.with_columns(pl.col("parent_codes").list.sort())

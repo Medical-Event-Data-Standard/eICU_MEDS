@@ -33,6 +33,13 @@ When you run this, the program will:
 2. Construct the MEDS cohort directly from those raw files — every transformation, join,
     and pseudotime derivation is declared in `src/eICU_MEDS/configs/event_configs.yaml` —
     and write it to `$ROOT_OUTPUT_DIR/MEDS_output`.
+3. Fill in the descriptions of the codes the pipeline cannot describe (see
+    [Code metadata: descriptions](#code-metadata-descriptions)).
+4. Enrich `MEDS_output/metadata/codes.parquet` in place with
+    [suMEDS](https://github.com/rvandewater/SumMEDS) (installed with this package): LOINC parents for
+    lab codes and parents among eICU's own codes (see
+    [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)). Pass
+    `do_enrich=false` for the ETL output alone.
 
 The public [demo](https://physionet.org/content/eicu-crd-demo/2.0.1/) needs no
 credentials:
@@ -211,7 +218,7 @@ encodes, through three routes, with the source of each description recorded:
 | Code family                                                                                                                                                                                                                                  | Route                                                                                                                                                                                               | Source of the text                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `LAB//RESULT//…`, `LAB//SPECIMEN_DRAWN//…`                                                                                                                                                                                                   | `src/eICU_MEDS/metadata/lab_descriptions.csv`, joined by `_metadata` on the raw `labname` (a partial match, so one row covers every unit variant); pre-MEDS writes it as `lab_descriptions.parquet` | per row, in the table's `source` column: the WeavEHR concept the lab name maps to ([aidh-ms/WeavEHR](https://github.com/aidh-ms/WeavEHR) `configs/datasets/eicu-crd/2.0/mappings`, MIT, commit 210a539), the label of the MIMIC-IV lab item mapped to the same concept ([mimic-code](https://github.com/MIT-LCP/mimic-code) `d_labitems_to_loinc.csv`, MIT), the canonical column in [eicu-code](https://github.com/MIT-LCP/eicu-code) `pivoted-lab.sql` / `pivoted-bg.sql` (MIT), or, for the long tail, a plain expansion of the picklist name marked `expansion` |
-| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH`                                                       | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` by the ETL's last step (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                   |
+| literal codes: the 26 `VITALS//…`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION`, `INFUSION_DRUG`, `CAREPLAN_EOL`, `MEDS_BIRTH`, `MEDS_DEATH`                                                       | `src/eICU_MEDS/metadata/static_code_descriptions.csv`, filled into the finished `codes.parquet` after the pipeline run (`code_descriptions.apply_static_descriptions`)                              | per row: the column description in the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/), the WeavEHR concept and unit, and the MIMIC-IV `d_items` label of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion` where only the abbreviation is documented (ST1–3, SVR/SVRI, PVR/PVRI, cardiac input)                                                                                                                                                                                                                   |
 | every other family (patient events, diagnoses, admission diagnoses, allergies, care plan items, intake/output, medications, nursing assessment, nursing care, nurse charting, past history, physical exam, respiratory charting, treatments) | `_metadata: _self: description:` templates in `configs/event_configs.yaml`, evaluated per event                                                                                                     | the code's own components, named after the eICU-CRD column they come from (`patient.unitAdmitSource`, `diagnosis.diagnosisString`, …)                                                                                                                                                                                                                                                                                                                                                                                                                               |
 
 The lab table carries descriptions only. eICU records no LOINC code for its lab names, so the
@@ -222,7 +229,7 @@ Diagnoses keep their ICD parents (below), which come from eICU's own `icd9code` 
 The lab table lists only lab names that are already public: the 147 in the open eICU-CRD demo
 (ODbL) and one more in [eicu-code](https://github.com/MIT-LCP/eicu-code) (MIT). It ships nothing
 that exists only in the credentialed release. A lab name outside the table gets a generic
-description from the ETL's last step, built from the code itself, for example
+description after the pipeline run, built from the code itself, for example
 `Lab result (eICU lab.labName '<labname>')`.
 
 Why three routes: MEDS-Extract attaches `_metadata` by joining on the code's *components*, so
@@ -248,46 +255,43 @@ non-null for datasets built with older releases.
 ICD parent codes for diagnoses are the other piece of code metadata: each `DIAGNOSIS//...`
 code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code` column of
 `diagnosis` (via the `dx_icd_map` table built in pre-MEDS). In the demo, 860 of the 1,091
-diagnosis codes have one; in the full release, 3,129 of the 3,933. `parent_codes` is written
-sorted, so that two runs over the same data write the same file.
+diagnosis codes have one; in the full release, 3,129 of the 3,933. The ETL writes them sorted, so
+that two runs over the same data write the same file; the suMEDS enrichment appends its parents
+after them.
 
 ## Enriching code metadata with suMEDS
 
 The ETL writes what eICU itself records. Links to external vocabularies that eICU does not
 record, and parents among eICU's own codes, are added by
-[suMEDS](https://github.com/rvandewater/SumMEDS) with the rules file shipped in this package,
-`src/eICU_MEDS/sumeds_rules.yaml`. The crosswalk tables and ontology packs come from suMEDS's
-versioned ontology data (sumeds-ontologies, pinned release), so this repository does not ship
-them, and no Athena download or LOINC account is needed.
-
-To enrich as part of the ETL, install the `sumeds` extra and turn on `do_enrich`:
+[suMEDS](https://github.com/rvandewater/SumMEDS). The package ships the rules for it,
+[`src/eICU_MEDS/sumeds_rules.yaml`](src/eICU_MEDS/sumeds_rules.yaml), registered in suMEDS's
+`sumeds.rules` entry-point group under the dataset's name, `eICU`, so `--rules eICU` works for any
+suMEDS command. The last step of `MEDS_extract-eICU` runs exactly that on its own output:
 
 ```bash
-pip install "eICU-MEDS[sumeds]"
-MEDS_extract-eICU root_output_dir=data/eicu_meds do_enrich=True
+suMEDS-enrich "$OUT/metadata/codes.parquet" -o "$OUT/metadata/codes.parquet" --rules eICU
 ```
 
-The last step then rewrites `MEDS_output/metadata/codes.parquet` in place. The run checks that
-suMEDS is installed before it starts. If the enrichment itself fails, for example without network
-access, the ETL's `codes.parquet` is left as it was. Enrichment is off by default because suMEDS
-is an extra dependency, because it downloads its ontology data from GitHub on first use (cached
-under `~/.cache/sumeds`; on a machine without internet access, point `SUMEDS_ONTOLOGY_SOURCE` at a
-local copy of the pinned sumeds-ontologies release), and because the default output then holds
-only what eICU records.
-
-To enrich an existing output instead, run suMEDS on its own. Given the same `codes.parquet`, it
-writes the same table as `do_enrich=True`, which runs exactly this with the input as its own output:
+It replaces `metadata/codes.parquet` only once the enriched table is complete, and the file stays
+valid MEDS code metadata. The run loads the rules before the extraction starts, so a broken install
+fails at once. The crosswalk tables and ontology packs come from suMEDS's versioned ontology data
+(sumeds-ontologies, pinned release), fetched from GitHub on first use and cached under
+`~/.cache/sumeds`, so this repository does not ship them, and no Athena download or LOINC account is
+needed. Further `suMEDS-enrich` options go in `enrich_args`:
 
 ```bash
-pip install "sumeds>=0.5,<0.6"
-suMEDS-enrich $MEDS_DIR/metadata/codes.parquet -o codes_enriched.parquet \
-  --rules "$(python -c 'from importlib.resources import files; print(files("eICU_MEDS") / "sumeds_rules.yaml")')"
+# Also look codes up in your own OHDSI Athena download:
+MEDS_extract-eICU root_output_dir=data/eicu_meds 'enrich_args=[--athena-csv,/path/to/athena]'
+# Use only already cached packs (no network):
+MEDS_extract-eICU root_output_dir=data/eicu_meds 'enrich_args=[--offline]'
+# The ETL output alone:
+MEDS_extract-eICU root_output_dir=data/eicu_meds do_enrich=false
 ```
 
-Pass the input itself as `-o` to enrich it in place (suMEDS 0.5 or later); the file is replaced only
-once the enriched table is complete. suMEDS 0.4 already applies the rules, but only to a separate
-output, and its match for a code with several ICD parents follows the parent order, which is not
-fixed between runs.
+Running it again on an existing output skips the pipeline stages that are already done and
+enriches again. To enrich the `codes.parquet` of an existing build instead, run the
+`suMEDS-enrich` command above with `OUT` set to its `MEDS_output` directory.
+
 The rules add:
 
 - **LOINC for lab results** (`eicu-lab-loinc`, a crosswalk): `LAB//RESULT//{labname}//{unit}`
@@ -302,11 +306,20 @@ The rules add:
     the full release that adds 2,929 diagnosis and 2,096 treatment parents; admission diagnosis
     paths are recorded only as leaves, so that rule adds none today.
 
-The ETL alone no longer emits LOINC parents for lab codes (builds of `main` after #27 wrote
+suMEDS also looks up every `ICD9CM/…` and `ICD10CM/…` parent the ETL writes for a diagnosis code
+in its ICD-9-CM and ICD-10-CM packs, and appends that code's ancestors.
+
+The ETL alone emits no LOINC parents for lab codes (builds of `main` after #27 wrote
 `LOINC/<code>` for the same 50 lab names), and it never emitted parents among eICU codes:
 `metadata/codes.parquet` from the ETL has ICD parents for diagnoses only, and suMEDS supplies
-the rest: it links the same 50 lab codes to the same LOINC codes the ETL used to write, and it
-never removes or rewrites the ETL's own parents or descriptions.
+the rest. It never removes or rewrites the ETL's own descriptions or parents: those stay first
+in `parent_codes`, and what suMEDS adds is appended after them. `parent_names` maps each parent
+code to its name (a `map<string, string>` column; same-table parents have no name, since their
+description is in their own row).
+
+`MEDS_extract-eICU` is eICU's own runner, not MEDS-Extract's `meds-extract-run spec=…` (and so
+not `suMEDS-extract spec=…`, as for other MEDS ETLs), because its pre-MEDS step builds the
+`dx_icd_map` table of diagnosis ICD codes, which the event config cannot express yet.
 
 ## Which eICU tables are extracted
 
@@ -371,7 +384,8 @@ file in a local checkout (see [Development](#development)).
 
 [`tests/regression/full_summary_stats.json`](tests/regression/full_summary_stats.json) is a
 [meds_summary_stats](https://github.com/Medical-Event-Data-Standard/meds_summary_stats) fingerprint of
-the MEDS dataset this ETL builds from the full eICU-CRD 2.0 release: subject, event and measurement
+the MEDS dataset this ETL builds from the full eICU-CRD 2.0 release with `MEDS_extract-eICU`, so its
+code-metadata coverage includes the suMEDS enrichment. It covers subject, event and measurement
 counts, digests of the code vocabulary, per-subject, value and time distributions, code-metadata
 coverage, the splits and the schema. It names no code and reports no cell of fewer than 20 subjects and
 no minimum or maximum, which is what makes it safe to publish. Because it is committed next to the ETL,
@@ -397,8 +411,8 @@ Both print how the statistics changed against the committed baseline before over
 [`tests/regression/policy.yaml`](tests/regression/policy.yaml) flags an error. Rebuilding the same
 commit reproduces the baseline exactly, so any finding is a change in the output. CI cannot rebuild the
 credentialed release, so the [Summary stats workflow](.github/workflows/summary-stats.yaml) only warns
-when a pull request changes `src/` without regenerating the baseline. A MEDS-Extract or polars upgrade
-can also move the output, so check it with `--compare`.
+when a pull request changes `src/` (the config or the suMEDS rules) without regenerating the baseline.
+A MEDS-Extract, suMEDS or polars upgrade can also move the output, so check it with `--compare`.
 
 ## Development
 
@@ -414,7 +428,8 @@ uv run pytest src/ tests/ --doctest-modules
 ```
 
 The end-to-end test (`tests/e2e_demo_test.py`) downloads the public eICU demo from PhysioNet, so it is
-slow on a first run. [DEVELOPMENT.md](DEVELOPMENT.md) covers testing, running the ETL on the full release,
+slow on a first run. `tests/test_run_with_enrichment.py` runs the ETL and the suMEDS enrichment
+offline, on a few synthetic rows and a tiny local ontology source. [DEVELOPMENT.md](DEVELOPMENT.md) covers testing, running the ETL on the full release,
 and cutting a release with `uv version --bump`.
 
 ## Citation

@@ -13,11 +13,12 @@ do_download: True
 do_overwrite: False
 do_demo: False
 
-# Enrich `metadata/codes.parquet` with suMEDS after the extraction: LOINC parents for lab codes and
-# parents among eICU's own path codes, from the packaged `sumeds_rules.yaml`. Needs the `sumeds`
-# extra (`pip install 'eICU-MEDS[sumeds]'`) and fetches suMEDS's pinned ontology data from GitHub on
-# first use, unless `SUMEDS_ONTOLOGY_SOURCE` points at a local copy.
-do_enrich: False
+# The last step enriches `metadata/codes.parquet` in place with suMEDS and the rules this package
+# registers as `eICU` (LOINC parents for lab codes, parents among eICU's own path codes; see the
+# README). Set False for the ETL output alone. `enrich_args` passes further `suMEDS-enrich` options,
+# e.g. `'enrich_args=[--offline]'` or `'enrich_args=[--athena-csv,/path/to/athena]'`.
+do_enrich: True
+enrich_args: []
 
 # Pre-MEDS passes the raw tables through untouched (it only adds the derived `dx_icd_map`
 # metadata table), so they are symlinked rather than duplicated. Set True to copy instead
