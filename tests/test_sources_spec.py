@@ -109,7 +109,7 @@ def test_demo_include_covers_every_table_the_config_reads():
     fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
     fetched |= {e.rel_path.removesuffix(".csv.gz") for e in override.urls}
     tables = {k for k in raw if not k.startswith("_") and k != "sources"}
-    joined = {j for k in tables for j in raw[k].get("_table", {}).get("join") or {}}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}}
 
     assert fetched == tables | joined
 
@@ -125,7 +125,7 @@ def test_dataset_include_covers_every_table_the_config_reads():
 
     fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
     tables = {k for k in raw if not k.startswith("_") and k != "sources"}
-    joined = {j for k in tables for j in raw[k].get("_table", {}).get("join") or {}}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}}
 
     assert fetched == tables | joined
 

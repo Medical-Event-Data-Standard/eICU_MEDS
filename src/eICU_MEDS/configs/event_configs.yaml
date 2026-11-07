@@ -3,7 +3,7 @@ _defaults:
 
 patient:
   _table:
-    join:
+    joins:
       hospital:
         key: hospitalid
         cols: [numbedscategory, teachingstatus, region]
@@ -104,7 +104,7 @@ patient:
 
 admissionDx:
   _table:
-    join: &anchor_join
+    joins: &anchor_join
       patient:
         key: patientunitstayid
         cols:
@@ -128,7 +128,7 @@ admissionDx:
 
 allergy:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   allergy:
     code: f"ALLERGY//{$allergytype ?? 'UNK'}"
@@ -141,7 +141,7 @@ allergy:
 
 carePlanGeneral:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplItem:
     code: f"CAREPLAN_GENERAL//{$cplgroup ?? 'UNK'}//{$cplitemvalue ?? 'UNK'}"
@@ -154,7 +154,7 @@ carePlanGeneral:
 
 carePlanEOL:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplEolDiscussion:
     code: CAREPLAN_EOL
@@ -162,7 +162,7 @@ carePlanEOL:
 
 carePlanGoal:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplGoal:
     code: f"CAREPLAN_GOAL//{$cplgoalcategory ?? 'UNK'}//{$cplgoalvalue ?? 'UNK'}//{$cplgoalstatus ?? 'UNK'}"
@@ -176,7 +176,7 @@ carePlanGoal:
 
 carePlanInfectiousDisease:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplInfectDisease:
     code: >-
@@ -193,7 +193,7 @@ carePlanInfectiousDisease:
 
 diagnosis:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   diagnosis:
     code: f"DIAGNOSIS//{$diagnosisstring}"
@@ -213,7 +213,7 @@ diagnosis:
 
 infusionDrug:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols:
       <<: *anchor_cols
       _patient_weight: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $patientweight)::float64'
@@ -234,7 +234,7 @@ infusionDrug:
 
 intakeOutput:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # One event per flowsheet row, valued by cellValueNumeric (cellValueText is the same number as
   # text). The intake/output/dialysis/net totals are not emitted: they are cumulative up to the
@@ -254,7 +254,7 @@ intakeOutput:
 
 lab:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   lab_specimen_drawn:
     code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
@@ -283,7 +283,7 @@ lab:
 
 medication:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   drug_started:
     code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
@@ -306,7 +306,7 @@ medication:
 
 nurseAssessment:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The path ends in the attribute and determines the label, so it alone is the code. The value
   # is split like the charted values, and a blank one emits nothing.
@@ -324,7 +324,7 @@ nurseAssessment:
 
 nurseCare:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # Laid out like nurseAssessment: the path is the code and the value is split the same way.
   nurse_care:
@@ -341,7 +341,7 @@ nurseCare:
 
 nurseCharting:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The value cell is varchar: numbers go to numeric_value through the shared guard, anything
   # else (GCS descriptors, "Oral", "WDL") to text_value. A blank cell is no observation. Timed
@@ -365,7 +365,7 @@ nurseCharting:
 
 pastHistory:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The value is always the leaf of the path, so the path alone is the code; the display text
   # rides along as text_value. Timed at entry, not at the note's offset, so the history is not
@@ -383,7 +383,7 @@ pastHistory:
 
 physicalExam:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The path ends in the picklist choice (physicalExamValue), so the path alone is the code. The
   # entered text is the measurement for vital-sign, weight and I&O items and repeats the choice
@@ -403,7 +403,7 @@ physicalExam:
 
 respiratoryCharting:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The same varchar value cell as nurseCharting, split the same way.
   respiratory_charting:
@@ -424,7 +424,7 @@ respiratoryCharting:
 
 treatment:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   treatment:
     code: f"TREATMENT//ENTERED//{$treatmentstring ?? 'UNK'}"
@@ -437,7 +437,7 @@ treatment:
 
 vitalAperiodic:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   non_invasive_systolic:
     code: '"VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC" if $noninvasivesystolic == $noninvasivesystolic'
@@ -492,7 +492,7 @@ vitalAperiodic:
 
 vitalPeriodic:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   temperature:
     code: '"VITALS//PERIODIC//TEMPERATURE" if $temperature == $temperature'

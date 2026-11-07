@@ -188,7 +188,7 @@ dev = [
 requires-dist = [
     { name = "hydra-joblib-launcher", specifier = "~=1.2" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'", specifier = "~=1.2" },
-    { name = "meds-extract", extras = ["download"], specifier = ">=0.7.0,<0.8" },
+    { name = "meds-extract", extras = ["download"], specifier = ">=0.8.0,<0.9" },
     { name = "sumeds", marker = "extra == 'sumeds'", git = "https://github.com/rvandewater/suMEDS.git?branch=order-independent-parent-references" },
 ]
 provides-extras = ["slurm-parallelism", "sumeds"]
@@ -401,7 +401,7 @@ wheels = [
 
 [[package]]
 name = "meds-extract"
-version = "0.7.1"
+version = "0.8.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dftly" },
@@ -416,9 +416,9 @@ dependencies = [
     { name = "universal-pathlib" },
     { name = "yaml-to-disk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/e6/40716e3068ae4a9f3648f8e673f4124817dea5094b5d70eb252b15cc3c52/meds_extract-0.7.1.tar.gz", hash = "sha256:088054fc23225403d85c7deea21604edc2d8be1a4aa4517765810f8bcfd4419b", size = 454767, upload-time = "2026-10-22T18:12:27.246Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/48/4c/e6711d90fdf7e598da495ff6c48880fea9a74d4811dbafaa3a130c9d49c6/meds_extract-0.8.0.tar.gz", hash = "sha256:aa945b4940e9e6e83e06a4c07d4bb7e07d7749125e1e950babbf50d9b3e2a072", size = 462542, upload-time = "2026-11-02T15:35:17.518Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/90/3d6105949b5cce6fa7177360a68a21cb5292e6a55b6b2f8a40ff1d59342f/meds_extract-0.7.1-py3-none-any.whl", hash = "sha256:1af65f8af9995d3f33c3d0ac2f0462ded9564e8c36f745e1f5a4698b5e86c81a", size = 223190, upload-time = "2026-10-22T18:12:25.665Z" },
+    { url = "https://files.pythonhosted.org/packages/20/90/0adc92dc00d6d1aa785fd7ddc9974bb20897fbfbab4a8fc5866d6bcb1ad0/meds_extract-0.8.0-py3-none-any.whl", hash = "sha256:c8dbc26fd4a7e11d56d7998f2658a369c5c7f19380afef912c4cead5f2af3b2d", size = 229365, upload-time = "2026-11-02T15:35:15.412Z" },
 ]
 
 [package.optional-dependencies]

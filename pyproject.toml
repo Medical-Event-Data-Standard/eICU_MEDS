@@ -22,8 +22,9 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 # Each dep is pinned with a lower bound at the version we actively test against, and an
-# upper bound at the next known-or-expected breaking major.
-# `meds-transforms>=0.6.7` is the floor MEDS-Extract 0.7 requires.
+# upper bound at the next known-or-expected breaking major. MEDS-Extract 0.x minors are breaking
+# (0.8 renamed the MESSY `_table.join` key to `_table.joins`), so raise its cap deliberately when
+# migrating.
 #
 # `requests`/`beautifulsoup4` are gone: the bespoke `download.py` scraper was replaced
 # by MEDS-Extract's download layer (the `[download]` extra, httpx + tenacity), driven
@@ -38,7 +39,7 @@ classifiers = [
 # `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
 # it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
 dependencies = [
-    "meds-extract[download]>=0.7.0,<0.8",
+    "meds-extract[download]>=0.8.0,<0.9",
     "hydra-joblib-launcher~=1.2",
 ]
 

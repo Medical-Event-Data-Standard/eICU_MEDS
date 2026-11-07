@@ -2,7 +2,7 @@
 
 The 0.7 migration removed eICU's original pre-MEDS step entirely — the offset-to-pseudotime
 derivation it existed for is now declared in ``configs/event_configs.yaml`` via
-``_table.join`` + ``_table.cols``. This module does **not** bring that back. It performs no
+``_table.joins`` + ``_table.cols``. This module does **not** bring that back. It performs no
 data wrangling on any event table; it exists solely to assemble one small *metadata* side
 table that the event config cannot build for itself.
 
