@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 from pathlib import Path
@@ -5,7 +6,7 @@ from tempfile import TemporaryDirectory
 
 import polars as pl
 import pyarrow.parquet as pq
-from meds import CodeMetadataSchema
+from meds import CodeMetadataSchema, DatasetMetadataSchema
 
 
 def test_e2e():
@@ -14,13 +15,15 @@ def test_e2e():
 
         # The run ends with the suMEDS enrichment (on by default), which checks the packaged rules
         # against suMEDS's real ontology data (fetched from GitHub); test_run_with_enrichment.py
-        # stubs that data out.
+        # stubs that data out. `--strict` fails the run if that fetch fails, which a user's run
+        # would only warn about, so that CI retries it rather than passing unenriched.
         command_parts = [
             "MEDS_extract-eICU",
             f"root_output_dir={root.resolve()!s}",
             "do_download=True",
             "do_overwrite=True",
             "do_demo=True",
+            "'enrich_args=[--strict]'",
         ]
 
         # Point the download at a persistent directory (e.g. one restored by CI's
@@ -65,6 +68,11 @@ def _validate_meds_dataset(dataset_path: Path):
     for fname in expected_files:
         fpath = metadata_path / fname
         assert fpath.exists(), f"{fname} not found in {metadata_path}; found {all_meta_files}"
+
+    dataset = json.loads((metadata_path / "dataset.json").read_text())
+    DatasetMetadataSchema.validate(dataset)
+    assert dataset["sumeds_enrichment"]["enriched"] is True
+    assert dataset["sumeds_enrichment"]["rules"] == "eICU"
 
     _validate_data_correctness(data_path, metadata_path)
 

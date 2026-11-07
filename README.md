@@ -39,7 +39,8 @@ When you run this, the program will:
     [suMEDS](https://github.com/rvandewater/SumMEDS) (installed with this package): LOINC parents for
     lab codes and parents among eICU's own codes (see
     [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)). Pass
-    `do_enrich=false` for the ETL output alone.
+    `do_enrich=false` for the ETL output alone. A failed enrichment (e.g. without internet) does
+    not fail the run.
 
 The public [demo](https://physionet.org/content/eicu-crd-demo/2.0.1/) needs no
 credentials:
@@ -269,7 +270,7 @@ record, and parents among eICU's own codes, are added by
 suMEDS command. The last step of `MEDS_extract-eICU` runs exactly that on its own output:
 
 ```bash
-suMEDS-enrich "$OUT/metadata/codes.parquet" -o "$OUT/metadata/codes.parquet" --rules eICU
+suMEDS-enrich "$OUT/metadata/codes.parquet" -o "$OUT/metadata/codes.parquet" --rules eICU --soft-fail
 ```
 
 It replaces `metadata/codes.parquet` only once the enriched table is complete, and the file stays
@@ -284,13 +285,26 @@ needed. Further `suMEDS-enrich` options go in `enrich_args`:
 MEDS_extract-eICU root_output_dir=data/eicu_meds 'enrich_args=[--athena-csv,/path/to/athena]'
 # Use only already cached packs (no network):
 MEDS_extract-eICU root_output_dir=data/eicu_meds 'enrich_args=[--offline]'
+# Fail the run if the enrichment fails:
+MEDS_extract-eICU root_output_dir=data/eicu_meds 'enrich_args=[--strict]'
 # The ETL output alone:
 MEDS_extract-eICU root_output_dir=data/eicu_meds do_enrich=false
 ```
 
-Running it again on an existing output skips the pipeline stages that are already done and
-enriches again. To enrich the `codes.parquet` of an existing build instead, run the
-`suMEDS-enrich` command above with `OUT` set to its `MEDS_output` directory.
+Enrichment is on by default and soft-fails: if it fails, for example on a server without
+internet access, `metadata/codes.parquet` stays as the ETL wrote it, a warning gives the command
+to enrich it later, and the run still succeeds. Whether a build was enriched is recorded in
+`metadata/dataset.json`, under `sumeds_enrichment.enriched` (`true`, or `false` with the `error`
+and the `retry` command). To enrich a build afterwards, with the rules and options of the run:
+
+```bash
+suMEDS-enrich "$OUT"   # OUT: the build's MEDS_output directory
+# Without internet, from a copy of the sumeds-ontologies packs directory:
+suMEDS-enrich "$OUT" --ontology-source /path/to/sumeds-ontologies/ontologies --offline
+```
+
+This updates `dataset.json` to match a successful run. Running the ETL again on an existing
+output also skips the pipeline stages that are already done and enriches again.
 
 The rules add:
 

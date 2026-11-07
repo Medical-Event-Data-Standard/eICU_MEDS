@@ -41,11 +41,13 @@ classifiers = [
 #
 # suMEDS enriches `metadata/codes.parquet` as the runner's last step (`do_enrich=false` skips it),
 # with the rules registered below. 0.6 is the first release that writes `parent_names` as a map from
-# code to name. It is capped below the next minor because its rules format and CLI are still 0.x,
-# and because each minor pins the ontology data release, and so the enriched output.
+# code to name; 0.6.1 adds the soft fail (`--soft-fail`: a failed enrichment, e.g. without internet,
+# leaves the ETL output as it was and exits 0) and the `sumeds_enrichment` record in
+# `metadata/dataset.json`. It is capped below the next minor because its rules format and CLI are
+# still 0.x, and because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
     "meds-extract[download]>=0.8.0,<0.9",
-    "sumeds>=0.6,<0.7",
+    "sumeds>=0.6.1,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 

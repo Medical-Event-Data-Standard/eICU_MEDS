@@ -15,8 +15,10 @@ do_demo: False
 
 # The last step enriches `metadata/codes.parquet` in place with suMEDS and the rules this package
 # registers as `eICU` (LOINC parents for lab codes, parents among eICU's own path codes; see the
-# README). Set False for the ETL output alone. `enrich_args` passes further `suMEDS-enrich` options,
-# e.g. `'enrich_args=[--offline]'` or `'enrich_args=[--athena-csv,/path/to/athena]'`.
+# README). A failed enrichment (e.g. no internet) leaves the ETL output as it was, records that in
+# `metadata/dataset.json` and does not fail the run; `suMEDS-enrich MEDS_OUTPUT_DIR` enriches it later.
+# Set False for the ETL output alone. `enrich_args` passes further `suMEDS-enrich` options, e.g.
+# `'enrich_args=[--strict]'` to fail the run instead, or `'enrich_args=[--athena-csv,/path/to/athena]'`.
 do_enrich: True
 enrich_args: []
 

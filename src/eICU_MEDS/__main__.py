@@ -32,7 +32,12 @@ def main(cfg: DictConfig):
     MEDS_output_dir = Path(cfg.MEDS_output_dir)
     stage_runner_fp = cfg.get("stage_runner_fp", None)
     codes_fp = MEDS_output_dir / "metadata" / "codes.parquet"
-    enrich_argv = [str(codes_fp), "-o", str(codes_fp), "--rules", SUMEDS_RULES, *map(str, cfg.enrich_args)]
+    enrich_args = [str(arg) for arg in cfg.enrich_args]
+    enrich_argv = [str(codes_fp), "-o", str(codes_fp), "--rules", SUMEDS_RULES, *enrich_args]
+    # A failed enrichment (e.g. no internet) leaves the ETL output as it was, records that in
+    # metadata/dataset.json and exits 0, as `suMEDS-extract` does; `enrich_args=[--strict]` fails instead.
+    if not {arg.split("=", 1)[0] for arg in enrich_args} & {"--soft-fail", "--strict"}:
+        enrich_argv.append("--soft-fail")
     if cfg.do_enrich:  # check the suMEDS rules and options now, not after the extraction
         sumeds.load_rules(SUMEDS_RULES)
         build_enrich_parser().parse_args(enrich_argv)
@@ -134,7 +139,7 @@ def main(cfg: DictConfig):
         logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
 
     # Step 4: suMEDS enriches codes.parquet in place with the registered rules (`do_enrich=false` skips
-    # it), as `suMEDS-extract` does after `meds-extract-run`.
+    # it), as `suMEDS-extract` does after `meds-extract-run`, and records it in metadata/dataset.json.
     if cfg.do_enrich:
         enrich_main(enrich_argv)
 

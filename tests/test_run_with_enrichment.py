@@ -1,5 +1,9 @@
 """``MEDS_extract-eICU`` runs the ETL and then suMEDS enrichment with the registered rules, offline.
 
+A failed enrichment leaves the ETL output as it was and does not fail the run, unless
+``enrich_args=[--strict]``; ``suMEDS-enrich MEDS_OUTPUT_DIR`` enriches it later. Both are recorded in
+``metadata/dataset.json``.
+
 The raw tables are a handful of made-up rows with every column ``configs/event_configs.yaml`` reads
 (nothing comes from eICU-CRD), so the run needs no download. The ontology source is a tiny pack
 repository in suMEDS's ``sumeds-ontologies/0.1`` layout, built here with made-up titles for the
@@ -19,7 +23,7 @@ import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-from meds import CodeMetadataSchema
+from meds import CodeMetadataSchema, DatasetMetadataSchema
 from MEDS_extract.config import MessyConfig
 
 from eICU_MEDS import EVENT_CFG
@@ -214,7 +218,7 @@ def ontology_source(tmp_path_factory) -> Path:
     return root
 
 
-def _run(root: Path, raw_dir: Path, *overrides: str) -> Path:
+def _etl(root: Path, raw_dir: Path, *overrides: str) -> subprocess.CompletedProcess:
     command = [
         "MEDS_extract-eICU",
         f"root_output_dir={root}",
@@ -222,8 +226,12 @@ def _run(root: Path, raw_dir: Path, *overrides: str) -> Path:
         "do_download=False",
         *overrides,
     ]
-    out = subprocess.run(command, capture_output=True, text=True)
-    assert out.returncode == 0, f"{command} failed:\n{out.stdout}\n{out.stderr}"
+    return subprocess.run(command, capture_output=True, text=True)
+
+
+def _run(root: Path, raw_dir: Path, *overrides: str) -> Path:
+    out = _etl(root, raw_dir, *overrides)
+    assert out.returncode == 0, f"{out.args} failed:\n{out.stdout}\n{out.stderr}"
     return root / "MEDS_output"
 
 
@@ -239,6 +247,17 @@ def enriched_output(tmp_path_factory, raw_dir: Path, ontology_source: Path) -> P
         raw_dir,
         f"enrich_args=[--ontology-source,'{ontology_source}']",
     )
+
+
+def _codes_bytes(output: Path) -> bytes:
+    return (output / "metadata" / "codes.parquet").read_bytes()
+
+
+def _dataset(output: Path) -> dict:
+    """``metadata/dataset.json``, which must stay valid MEDS dataset metadata."""
+    dataset = json.loads((output / "metadata" / "dataset.json").read_text())
+    DatasetMetadataSchema.validate(dataset)
+    return dataset
 
 
 def _codes(output: Path) -> dict[str, dict]:
@@ -308,3 +327,53 @@ def test_enrichment_adds_vocabulary_and_same_table_parents(enriched_output: Path
     assert _names(hgb) == {"LOINC//718-7": title("LOINC", "718-7")}
     assert (hgb["vocabulary_id"], hgb["concept_code"]) == ("LOINC", "718-7")
     assert not enriched["LAB//RESULT//synthetic lab//g/dL"]["parent_codes"]
+
+
+def test_dataset_json_records_the_enrichment(enriched_output: Path, plain_output: Path):
+    assert "sumeds_enrichment" not in _dataset(plain_output)
+    record = _dataset(enriched_output)["sumeds_enrichment"]
+    assert record["enriched"] is True
+    assert record["rules"] == "eICU"
+    assert record["ontology_source"] == "local"
+    coverage = record["coverage"]
+    assert coverage["codes"] == len(_codes(enriched_output))
+    assert coverage["described"][0] <= coverage["described"][1]
+    assert coverage["with_parent_codes"][0] < coverage["with_parent_codes"][1]
+
+
+def test_failed_enrichment_keeps_the_etl_output_and_is_enriched_later(
+    tmp_path: Path, raw_dir: Path, ontology_source: Path, plain_output: Path, enriched_output: Path
+):
+    """No ontology data (as without internet): the run succeeds, unenriched, and says so."""
+    missing = tmp_path / "no_ontologies"
+    out = _etl(tmp_path / "eicu", raw_dir, f"enrich_args=[--ontology-source,'{missing}']")
+    assert out.returncode == 0, f"{out.args} failed:\n{out.stdout}\n{out.stderr}"
+    assert "suMEDS-enrich: warning: enrichment failed" in out.stderr
+    output = tmp_path / "eicu" / "MEDS_output"
+    assert _codes_bytes(output) == _codes_bytes(plain_output)
+    record = _dataset(output)["sumeds_enrichment"]
+    assert record["enriched"] is False
+    assert record["rules"] == "eICU"
+    assert record["retry"] == "suMEDS-enrich <MEDS_ROOT> --ontology-source <PACKS_DIR>"
+    assert str(missing) not in json.dumps(record)
+
+    # The retry reuses the recorded rules and options; the local pack source is a path, so it is given again.
+    retry = ["suMEDS-enrich", str(output), "--ontology-source", str(ontology_source)]
+    out = subprocess.run(retry, capture_output=True, text=True)
+    assert out.returncode == 0, f"{retry} failed:\n{out.stdout}\n{out.stderr}"
+    assert pl.read_parquet(output / "metadata" / "codes.parquet").equals(
+        pl.read_parquet(enriched_output / "metadata" / "codes.parquet")
+    )
+    record = _dataset(output)["sumeds_enrichment"]
+    assert record["enriched"] is True
+    assert record["rules"] == "eICU"
+
+
+def test_strict_enrichment_fails_the_run(tmp_path: Path, raw_dir: Path, plain_output: Path):
+    missing = tmp_path / "no_ontologies"
+    out = _etl(tmp_path / "eicu", raw_dir, f"enrich_args=[--strict,--ontology-source,'{missing}']")
+    assert out.returncode != 0
+    assert "suMEDS-enrich: error:" in out.stderr
+    output = tmp_path / "eicu" / "MEDS_output"
+    assert _codes_bytes(output) == _codes_bytes(plain_output)
+    assert "sumeds_enrichment" not in _dataset(output)
