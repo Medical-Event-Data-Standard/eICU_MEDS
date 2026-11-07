@@ -367,6 +367,39 @@ do the same (MIMIC-IV fixes it in its spec's `etl:` block): MEDS-Extract treats 
 the dataset, while worker counts belong to the machine running it. To use a different shard size, edit that
 file in a local checkout (see [Development](#development)).
 
+## Summary statistics
+
+[`tests/regression/full_summary_stats.json`](tests/regression/full_summary_stats.json) is a
+[meds_summary_stats](https://github.com/Medical-Event-Data-Standard/meds_summary_stats) fingerprint of
+the MEDS dataset this ETL builds from the full eICU-CRD 2.0 release: subject, event and measurement
+counts, digests of the code vocabulary, per-subject, value and time distributions, code-metadata
+coverage, the splits and the schema. It names no code and reports no cell of fewer than 20 subjects and
+no minimum or maximum, which is what makes it safe to publish. Because it is committed next to the ETL,
+its diff shows what an ETL change did to the output, and two ETL versions can be compared without
+access to the data.
+
+[`tests/regression/demo_summary_stats.json`](tests/regression/demo_summary_stats.json) is the same
+fingerprint of the open eICU-CRD demo. The Tests workflow builds the demo on every pull request and
+fails when the result no longer matches it (`scripts/summary_stats.sh demo` regenerates it; the job
+also uploads the new statistics as the `eicu-demo-summary-stats` artifact).
+
+Regenerate it in every pull request that changes the output, from a build of that branch:
+
+```bash
+# Build the release with this checkout, then summarize it
+scripts/summary_stats.sh full --input-dir $RAW_INPUT_DIR
+# Or summarize a build of this checkout you already have
+scripts/summary_stats.sh full --meds-dir $MEDS_OUTPUT_DIR
+```
+
+Both print how the statistics changed against the committed baseline before overwriting it. Add
+`--compare` to check a build without writing anything; it exits 1 when
+[`tests/regression/policy.yaml`](tests/regression/policy.yaml) flags an error. Rebuilding the same
+commit reproduces the baseline exactly, so any finding is a change in the output. CI cannot rebuild the
+credentialed release, so the [Summary stats workflow](.github/workflows/summary-stats.yaml) only warns
+when a pull request changes `src/` without regenerating the baseline. A MEDS-Extract or polars upgrade
+can also move the output, so check it with `--compare`.
+
 ## Development
 
 Contributors should use [`uv`](https://docs.astral.sh/uv/) to set up a development environment from the
