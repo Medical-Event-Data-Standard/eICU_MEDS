@@ -1,10 +1,12 @@
-"""Pre-MEDS stage for eICU.
+"""Pre-MEDS for eICU: the ``eicu_pre_meds`` pre-stage of the ``eICU`` spec.
 
 The 0.7 migration removed eICU's original pre-MEDS step entirely — the offset-to-pseudotime
 derivation it existed for is now declared in ``configs/event_configs.yaml`` via
 ``_table.joins`` + ``_table.cols``. This module does **not** bring that back. It performs no
-data wrangling on any event table; it exists solely to assemble one small *metadata* side
-table that the event config cannot build for itself.
+data wrangling on any event table; it writes the few tables the event config reads that the raw
+release does not have (:func:`stage_tables`), as a MEDS-Extract pre-stage: ``meds-extract-run``
+runs it before ``convert_to_parquet`` and reads those tables from its directory instead of the raw
+one, which it never modifies.
 
 Why it is needed
 ----------------
@@ -27,20 +29,26 @@ So the split of responsibilities is deliberately minimal:
 
 No regex, no vocabulary knowledge, and no formatting decisions live in this file.
 
-Everything else is passed through untouched: every raw table is symlinked (or copied, with
-``do_copy``) into the output directory, because MEDS-Extract reads its input from a single
-directory and this stage adds one file to it.
+The stage also places the packaged lab-description table, and the demo's ``infusiondrug`` table
+under the release spelling when the raw directory has only the demo's.
 """
 
 import logging
 import os
+import shutil
 from pathlib import Path
 
 import polars as pl
+from MEDS_transforms.stages import Stage
+from omegaconf import DictConfig
 
 from .code_descriptions import LAB_DESCRIPTIONS_PREFIX, write_lab_descriptions
 
 logger = logging.getLogger(__name__)
+
+# The name `pyproject.toml` registers this module's pre-stage under (`MEDS_transforms.stages`), and
+# the spec lists in `etl.pre_stages`.
+STAGE_NAME = "eicu_pre_meds"
 
 # The table the mapping is derived from, and the name the derived table is written under.
 # `DX_MAP_PREFIX` must match the `_metadata` source prefix in `configs/event_configs.yaml`.
@@ -74,8 +82,9 @@ def build_dx_icd_map(diagnosis: pl.LazyFrame) -> pl.LazyFrame:
             ``icd9code``.
 
     Returns:
-        A frame of unique ``(diagnosisstring, icd_code)`` pairs. Rows with no code are
-        dropped — an uncoded problem simply has no parents.
+        A frame of unique ``(diagnosisstring, icd_code)`` pairs, sorted. Rows with no code are
+        dropped — an uncoded problem simply has no parents. MEDS-Extract keeps a metadata
+        table's row order in ``parent_codes``, and ``unique`` alone leaves that order to chance.
 
     Examples:
         >>> raw = pl.LazyFrame(
@@ -123,40 +132,113 @@ def build_dx_icd_map(diagnosis: pl.LazyFrame) -> pl.LazyFrame:
         .filter(pl.col("icd_code") != "")
         .select("diagnosisstring", "icd_code")
         .unique()
+        .sort("diagnosisstring", "icd_code")
     )
 
 
-def _link_or_copy(src: Path, dst: Path, do_copy: bool) -> None:
-    """Place ``src`` at ``dst``, by copy or symlink, replacing anything already there."""
-    if dst.is_symlink() or dst.exists():
-        dst.unlink()
-    if do_copy:
-        import shutil
-
-        shutil.copy2(src, dst)
-    else:
-        dst.symlink_to(os.path.relpath(src, dst.parent))
+def _replace_with_symlink(target: Path, link: Path) -> None:
+    """Point ``link`` at ``target`` (absolute), replacing anything already at ``link``."""
+    if link.is_symlink() or link.exists():
+        link.unlink()
+    link.symlink_to(target.resolve())
 
 
-def main(
-    input_dir: Path,
-    output_dir: Path,
-    do_overwrite: bool = False,
-    do_copy: bool = False,
-) -> None:
-    """Assemble the pre-MEDS input directory.
+def stage_tables(input_dir: Path, output_dir: Path) -> list[Path]:
+    """Write the tables the event config reads that the raw release does not have.
 
-    Passes every raw table through untouched and adds the derived ``dx_icd_map.parquet``
-    plus the packaged ``lab_descriptions.parquet``. Nothing here modifies event data.
+    These are the ``eicu_pre_meds`` pre-stage's overlay tables: MEDS-Extract looks a source prefix
+    up in this directory before the raw one, and the raw directory is never modified.
+
+    * ``dx_icd_map.parquet``, built from the raw ``diagnosis`` table (:func:`build_dx_icd_map`);
+    * ``lab_descriptions.parquet``, the packaged lab-description table;
+    * ``infusionDrug.csv.gz``, a link to the demo's ``infusiondrug.csv.gz``, only when the raw
+      directory has the demo spelling and not the release one (a demo fetched other than with
+      ``meds-extract-download``, which renames it).
+
+    Every table is rewritten on each run, so a re-run gives the same output.
 
     Args:
-        input_dir: Directory holding the raw eICU download.
-        output_dir: Directory the extraction pipeline will read from.
-        do_overwrite: Rebuild the derived table even if it already exists.
-        do_copy: Copy raw tables instead of symlinking them.
+        input_dir: Directory holding the raw eICU-CRD tables.
+        output_dir: The directory to write the tables into.
+
+    Returns:
+        The paths written.
 
     Raises:
         FileNotFoundError: If the raw ``diagnosis`` table is missing.
+
+    Examples:
+        >>> import gzip, tempfile
+        >>> with tempfile.TemporaryDirectory() as d:
+        ...     raw, out = Path(d) / "raw", Path(d) / "out"
+        ...     raw.mkdir()
+        ...     csv = 'diagnosisstring,icd9code\\np|q,"486, J18.9"\\n'.encode()
+        ...     _ = (raw / "diagnosis.csv.gz").write_bytes(gzip.compress(csv))
+        ...     _ = (raw / "infusiondrug.csv.gz").write_bytes(gzip.compress(b"a\\n1\\n"))
+        ...     sorted(fp.name for fp in stage_tables(raw, out))
+        ...     pl.read_parquet(out / "dx_icd_map.parquet").sort("icd_code")["icd_code"].to_list()
+        ['dx_icd_map.parquet', 'infusionDrug.csv.gz', 'lab_descriptions.parquet']
+        ['486', 'J18.9']
+    """
+    input_dir, output_dir = Path(input_dir), Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    written = []
+
+    # Exact names: on a case-insensitive filesystem `Path.exists()` would report the release
+    # spelling as present when only the demo's lowercase file is.
+    raw_names = {fp.name for fp in input_dir.iterdir()}
+    for raw_name, name in RAW_RENAMES.items():
+        if raw_name in raw_names and name not in raw_names:
+            _replace_with_symlink(input_dir / raw_name, output_dir / name)
+            written.append(output_dir / name)
+
+    # Always rewritten: the table ships with the package, so it must track the installed version.
+    lab_fp = write_lab_descriptions(output_dir)
+    logger.info(f"Wrote the packaged lab-description table to {lab_fp.resolve()!s}.")
+    written.append(lab_fp)
+
+    dx_fp = input_dir / f"{DIAGNOSIS_PREFIX}.csv.gz"
+    if not dx_fp.is_file():
+        raise FileNotFoundError(
+            f"{dx_fp.resolve()!s} not found; cannot build the {DX_MAP_PREFIX} metadata table."
+        )
+    logger.info(f"Building {DX_MAP_PREFIX} from {dx_fp.resolve()!s}.")
+    dx_map = build_dx_icd_map(pl.scan_csv(dx_fp, infer_schema_length=None)).collect()
+    out_fp = output_dir / f"{DX_MAP_PREFIX}.parquet"
+    tmp_fp = output_dir / f".{DX_MAP_PREFIX}.parquet.tmp"
+    dx_map.write_parquet(tmp_fp)
+    os.replace(tmp_fp, out_fp)
+    logger.info(
+        f"Wrote {len(dx_map):,} (diagnosisstring, icd_code) pairs covering "
+        f"{dx_map['diagnosisstring'].n_unique():,} problems to {out_fp.resolve()!s}."
+    )
+    written.append(out_fp)
+    return written
+
+
+@Stage.register(is_metadata=False, stage_name=STAGE_NAME, default_config={})
+def main(cfg: DictConfig) -> None:
+    """Stage the tables the eICU event config reads beyond the raw release.
+
+    The ``eicu_pre_meds`` pre-stage of the registered ``eICU`` spec (``etl.pre_stages``). It reads
+    the raw tables from ``cfg.input_dir`` and writes :func:`stage_tables` into its own directory,
+    ``cfg.stage_cfg.output_dir``, which ``convert_to_parquet`` and ``extract_code_metadata`` search
+    before ``input_dir``. It takes no options.
+    """
+    if cfg.worker != 0:
+        return
+    stage_tables(Path(cfg.input_dir), Path(cfg.stage_cfg.output_dir))
+
+
+def assemble_input_dir(input_dir: Path, output_dir: Path, do_copy: bool = False) -> None:
+    """Assemble the single input directory ``MEDS_extract-eICU`` runs its pipeline on.
+
+    Places every raw table in ``output_dir`` (by symlink, or copy with ``do_copy``), except the ones
+    :func:`stage_tables` writes there in their place.
+
+    Raises:
+        FileNotFoundError: If ``input_dir`` holds no ``*.csv.gz`` tables, or the raw ``diagnosis``
+            table is missing.
         FileExistsError: If ``output_dir`` holds parquet tables from the pre-0.7 extractor.
     """
     input_dir, output_dir = Path(input_dir), Path(output_dir)
@@ -177,37 +259,18 @@ def main(
             "Remove them or point pre_MEDS_dir at a fresh directory."
         )
 
-    # Match exact names: on a case-insensitive filesystem `Path.exists()` would report the
-    # release spelling as present when only the demo's lowercase file is.
-    raw_names = {fp.name for fp in raw_files}
-
+    staged = {fp.name for fp in stage_tables(input_dir, output_dir)}
     verb = "Copying" if do_copy else "Symlinking"
     logger.info(f"{verb} {len(raw_files)} raw tables into {output_dir.resolve()!s}.")
     for fp in raw_files:
-        name = RAW_RENAMES.get(fp.name, fp.name)
-        if name != fp.name and name in raw_names:
-            continue  # the release spelling is already present; prefer it
-        _link_or_copy(fp, output_dir / name, do_copy)
-
-    # Always rewritten: the table ships with the package, so it must track the installed version.
-    lab_fp = write_lab_descriptions(output_dir)
-    logger.info(f"Wrote the packaged lab-description table to {lab_fp.resolve()!s}.")
-
-    out_fp = output_dir / f"{DX_MAP_PREFIX}.parquet"
-    if out_fp.is_file() and not do_overwrite:
-        logger.info(f"{out_fp.resolve()!s} exists; skipping (pass do_overwrite=True to rebuild).")
-        return
-
-    dx_fp = input_dir / f"{DIAGNOSIS_PREFIX}.csv.gz"
-    if not dx_fp.is_file():
-        raise FileNotFoundError(
-            f"{dx_fp.resolve()!s} not found; cannot build the {DX_MAP_PREFIX} metadata table."
-        )
-
-    logger.info(f"Building {DX_MAP_PREFIX} from {dx_fp.resolve()!s}.")
-    dx_map = build_dx_icd_map(pl.scan_csv(dx_fp, infer_schema_length=None)).collect()
-    dx_map.write_parquet(out_fp)
-    logger.info(
-        f"Wrote {len(dx_map):,} (diagnosisstring, icd_code) pairs covering "
-        f"{dx_map['diagnosisstring'].n_unique():,} problems to {out_fp.resolve()!s}."
-    )
+        if fp.name in RAW_RENAMES:
+            continue  # staged under the release spelling, or the release file is present too
+        dst = output_dir / fp.name
+        if dst.name in staged:
+            continue
+        if do_copy:
+            if dst.is_symlink() or dst.exists():
+                dst.unlink()
+            shutil.copy2(fp, dst)
+        else:
+            _replace_with_symlink(fp, dst)

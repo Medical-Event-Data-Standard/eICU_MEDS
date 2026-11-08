@@ -15,7 +15,7 @@ from .code_descriptions import apply_static_descriptions
 from .commands import coerce_download_workers, resolve_console_script, run_command
 
 if HAS_PRE_MEDS:  # pragma: no cover
-    from .pre_MEDS import main as pre_MEDS_transform
+    from .pre_MEDS import assemble_input_dir
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +73,8 @@ def main(cfg: DictConfig):
     # the `dx_icd_map` side table, which needs an explode that MESSY/dftly cannot express
     # (mmcdermott/dftly#87). Raw tables are passed through untouched.
     if HAS_PRE_MEDS:
-        pre_MEDS_transform(
-            input_dir=raw_input_dir,
-            output_dir=pre_MEDS_dir,
-            do_overwrite=cfg.get("do_overwrite", False),
-            do_copy=cfg.get("do_copy", False),
+        assemble_input_dir(
+            input_dir=raw_input_dir, output_dir=pre_MEDS_dir, do_copy=cfg.get("do_copy", False)
         )
     else:  # pragma: no cover
         pre_MEDS_dir = raw_input_dir
