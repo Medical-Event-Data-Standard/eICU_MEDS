@@ -236,13 +236,71 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-07T18:09:45.136193+00:00",
+    "code_modifier_columns": [
+      "diagnosis_priority"
+    ],
+    "created_at": "2026-11-08T00:32:27.731607+00:00",
     "dataset_name": "eICU",
     "dataset_version": "2.0.1:0.2.0",
+    "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
+    "license": "PhysioNet Credentialed Health Data License 1.5.0",
     "meds_version": "0.4.1",
-    "present": true
+    "other_extension_columns": [
+      "source_block",
+      "drug_rate",
+      "infusion_rate",
+      "drug_amount",
+      "volume_of_fluid",
+      "lab_type_id",
+      "dosage"
+    ],
+    "present": true,
+    "raw_source_id_columns": [
+      "hadm_id",
+      "icustay_id",
+      "ward_id",
+      "admission_dx_id",
+      "medication_id",
+      "intake_output_id",
+      "nurse_assess_id",
+      "nurse_care_id",
+      "nurse_chart_id",
+      "past_history_id",
+      "physical_exam_id",
+      "resp_chart_id",
+      "vital_id"
+    ],
+    "sumeds_enrichment": {
+      "athena": false,
+      "coverage": {
+        "codes": 8122,
+        "described": [
+          8122,
+          8122
+        ],
+        "with_parent_codes": [
+          860,
+          1747
+        ]
+      },
+      "enriched": true,
+      "enriched_at": "2026-11-08T00:32:37Z",
+      "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
+      "options": {
+        "child_codes": false,
+        "child_depth": 3,
+        "exclude_self_parent_code": false,
+        "loinc_hierarchy": false,
+        "packs": true,
+        "parent_codes": true,
+        "sibling_codes": false
+      },
+      "rules": "eICU",
+      "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
+      "sumeds_version": "0.6.2"
+    }
   },
   "dataset_digest": {
     "by_file": {
@@ -250,22 +308,22 @@
       "data/train/0.parquet": "sha256:54cb9d82664ee52df4556591adb7a826ad228de4ea5b15d51dabc0de3ea7fbb4",
       "data/train/1.parquet": "sha256:ba677ab101fef428399e7c036fe48e592859f2b1129242a785998ebe922f696d",
       "data/tuning/0.parquet": "sha256:7ff26be88366e65ee001bd3e6ba378bf4d95b5db1a0bf791da8f93450d0b2e94",
-      "metadata/codes.parquet": "sha256:933bee59ff5016d0237f350778f6932dfba7da546884c13879d86fc6c1fc5db0",
-      "metadata/dataset.json": "sha256:b6c8a8c294dfaaa8dc0baaf2a046d95862cd2e806a724676ed1d6d8acfe9d7d9",
+      "metadata/codes.parquet": "sha256:bc9503593de6fbb2d3885804e9af4bc8a4440d8d1ab37a49a26112b0357937ca",
+      "metadata/dataset.json": "sha256:58040ffe0ece232c92a09ee76bc0986845a252757d18df834853fd36f8ebfb56",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
-    "code_metadata": "sha256:e22300a831ea34b1a310d479a589ae886faf3d6d9f25d55cb1d1c140c9705350",
-    "combined": "sha256:ec790aa92fbe9ae72865bfaf10d4911b8b2952ab15b37a5d08cfb21652be8969",
+    "code_metadata": "sha256:56d086b00a07880e1d6e926728691a2e2b86694f2f01ebc5bbf2a6c41d6b2a21",
+    "combined": "sha256:70e6d430073f8735687d616f6083b97f0628ef5d3a374b48a621fdf2b75d132c",
     "data": {
       "digest": "sha256:f185b2977c82fea679d69b5e69f94c2314196e7115929fd5422bd30d5dc3155b",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:f3fd0090c63be589f9c1935b3aed8d68f6e784be728b9265a6d6ad1290758bf9",
+    "dataset_metadata": "sha256:ae0d623579e19e3c6c2e913bdbbd16a5a65976f4c1f13cba0de1d2cf397ad9e8",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-07T18:18:45.889467",
+  "extracted_at": "2026-11-08T00:32:39.864510",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
