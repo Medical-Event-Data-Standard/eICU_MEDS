@@ -27,6 +27,7 @@ from meds import CodeMetadataSchema, DatasetMetadataSchema
 from MEDS_extract.config import MessyConfig
 
 from eICU_MEDS import EVENT_CFG
+from eICU_MEDS.pre_MEDS import DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX
 
 # Unit stays 1-4, one per health-system stay (the subject); MEDS-Extract needs a subject per split.
 STAYS = [1, 2, 3, 4]
@@ -149,9 +150,11 @@ def _generic_value(table: str, column: str) -> int | str:
 
 @pytest.fixture(scope="session")
 def raw_dir(tmp_path_factory) -> Path:
-    """Every table the config reads, with every column it reads."""
+    """Every raw table the config reads, with every column it reads (the pre-stage writes the rest)."""
     raw = tmp_path_factory.mktemp("eicu_raw")
     for table, columns in MessyConfig.load(EVENT_CFG).needed_source_columns().items():
+        if table in (DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX):
+            continue
         rows = TABLES.get(table) or [{c: _generic_value(table, c) for c in columns}]
         header = sorted(set(columns) | set(rows[0]))
         (raw / f"{table}.csv.gz").write_bytes(gzip.compress(_csv(rows, header)))
@@ -288,6 +291,23 @@ def test_data_matches_the_plain_etl(enriched_output: Path, plain_output: Path):
         )
 
     assert events(enriched_output).equals(events(plain_output))
+
+
+def test_the_etl_describes_every_code(plain_output: Path):
+    """Literal codes from their constant ``_self`` blocks; a lab name outside the lab table generically."""
+    codes = _codes(plain_output)
+    assert not [code for code, row in codes.items() if not row["description"]]
+    assert codes["MEDS_BIRTH"]["description"].startswith("Birth (MEDS standard code)")
+    assert codes["VITALS//PERIODIC//HEARTRATE"]["description"] == (
+        "Heart rate, beats per minute (vitalPeriodic.heartRate)"
+    )
+    assert codes["LAB//RESULT//Hgb//g/dL"]["description"] == "Hemoglobin (eICU lab.labName 'Hgb')"
+    assert codes["LAB//RESULT//synthetic lab//g/dL"]["description"] == (
+        "Lab result (eICU lab.labName 'synthetic lab')"
+    )
+    assert codes["LAB//SPECIMEN_DRAWN//synthetic lab//g/dL"]["description"] == (
+        "Lab specimen drawn (eICU lab.labName 'synthetic lab')"
+    )
 
 
 def test_enrichment_keeps_what_the_etl_wrote(enriched_output: Path, plain_output: Path):

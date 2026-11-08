@@ -15,10 +15,13 @@ from omegaconf import OmegaConf
 from omegaconf.errors import InterpolationResolutionError
 
 from eICU_MEDS import EVENT_CFG
+from eICU_MEDS.pre_MEDS import DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX
 
 BUCKETS = ("dataset", "demo")
 # Top-level keys of the config that are not tables.
 RESERVED_KEYS = {"etl", "sources"}
+# Tables the `eicu_pre_meds` pre-stage writes; they are not downloaded.
+STAGED = {DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX}
 
 
 def _bucket_spec(*keys: str) -> dict:
@@ -106,14 +109,17 @@ def test_dataset_requires_credentials(monkeypatch):
 
 
 def test_demo_include_covers_every_table_the_config_reads():
-    """The demo bucket fetches only the tables the config reads or joins; keep the two in sync."""
+    """The demo bucket fetches only the tables the config reads or joins; keep the two in sync.
+
+    The tables the pre-stage writes are not fetched.
+    """
     raw = OmegaConf.load(EVENT_CFG)
     physionet, override = raw.sources["demo"]
 
     fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
     fetched |= {e.rel_path.removesuffix(".csv.gz") for e in override.urls}
     tables = {k for k in raw if not k.startswith("_") and k not in RESERVED_KEYS}
-    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}} - STAGED
 
     assert fetched == tables | joined
 
@@ -129,7 +135,7 @@ def test_dataset_include_covers_every_table_the_config_reads():
 
     fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
     tables = {k for k in raw if not k.startswith("_") and k not in RESERVED_KEYS}
-    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}} - STAGED
 
     assert fetched == tables | joined
 

@@ -17,7 +17,7 @@ from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules,
 from sumeds.ontology import INDEX_SCHEMA
 
 from eICU_MEDS.__main__ import SUMEDS_RULES
-from eICU_MEDS.code_descriptions import read_lab_descriptions
+from eICU_MEDS.pre_MEDS import read_lab_descriptions
 
 CONFIG_FP = Path(__file__).parents[1] / "src" / "eICU_MEDS" / "configs" / "event_configs.yaml"
 RULES_FP = files("eICU_MEDS") / "sumeds_rules.yaml"

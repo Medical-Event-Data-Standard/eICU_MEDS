@@ -42,13 +42,16 @@ import polars as pl
 from MEDS_transforms.stages import Stage
 from omegaconf import DictConfig
 
-from .code_descriptions import LAB_DESCRIPTIONS_PREFIX, write_lab_descriptions
-
 logger = logging.getLogger(__name__)
 
 # The name `pyproject.toml` registers this module's pre-stage under (`MEDS_transforms.stages`), and
 # the spec lists in `etl.pre_stages`.
 STAGE_NAME = "eicu_pre_meds"
+
+# The packaged lab-description table, and the name it is staged under. `LAB_DESCRIPTIONS_PREFIX`
+# must match the `lab` table's join in `configs/event_configs.yaml`.
+LAB_DESCRIPTIONS_CSV = Path(__file__).parent / "metadata" / "lab_descriptions.csv"
+LAB_DESCRIPTIONS_PREFIX = "lab_descriptions"
 
 # The table the mapping is derived from, and the name the derived table is written under.
 # `DX_MAP_PREFIX` must match the `_metadata` source prefix in `configs/event_configs.yaml`.
@@ -134,6 +137,44 @@ def build_dx_icd_map(diagnosis: pl.LazyFrame) -> pl.LazyFrame:
         .unique()
         .sort("diagnosisstring", "icd_code")
     )
+
+
+def read_lab_descriptions(path: Path = LAB_DESCRIPTIONS_CSV) -> pl.DataFrame:
+    """Read the packaged lab-description table, as the ``lab`` table's join will see it.
+
+    eICU ships no code dictionary, so the table gives the documented meaning of each lab name. It
+    lists only lab names that are public (the open eICU demo, or MIT-LCP's ``eicu-code``), so it
+    ships nothing from the credentialed release; the config describes a lab name outside it with a
+    generic description. Every column stays a String (the join key is matched against the raw
+    ``labname`` text). The ``source`` and ``source_detail`` columns document each row and are not
+    joined. The table carries descriptions only: LOINC links for lab names are a suMEDS crosswalk
+    (``eicu/lab_loinc``, applied with ``sumeds_rules.yaml``), not part of the ETL output.
+
+    Examples:
+        >>> df = read_lab_descriptions()
+        >>> df.columns
+        ['labname', 'description', 'source', 'source_detail']
+        >>> df.filter(pl.col("labname") == "Hgb")["description"].item()
+        'Hemoglobin'
+        >>> df["labname"].is_duplicated().any()
+        False
+    """
+    return pl.read_csv(path, infer_schema=False)
+
+
+def write_lab_descriptions(output_dir: Path) -> Path:
+    """Write the lab table where the extraction reads the ``lab_descriptions`` prefix.
+
+    Examples:
+        >>> import tempfile
+        >>> with tempfile.TemporaryDirectory() as d:
+        ...     fp = write_lab_descriptions(Path(d))
+        ...     fp.name, pl.read_parquet(fp).schema["labname"]
+        ('lab_descriptions.parquet', String)
+    """
+    out_fp = Path(output_dir) / f"{LAB_DESCRIPTIONS_PREFIX}.parquet"
+    read_lab_descriptions().write_parquet(out_fp)
+    return out_fp
 
 
 def _replace_with_symlink(target: Path, link: Path) -> None:

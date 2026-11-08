@@ -11,8 +11,8 @@ from sumeds.cli import build_enrich_parser, enrich_main
 
 from . import ETL_CFG, EVENT_CFG, HAS_PRE_MEDS, MAIN_CFG, dataset_info
 from . import __version__ as PKG_VERSION
-from .code_descriptions import apply_static_descriptions
 from .commands import coerce_download_workers, resolve_console_script, run_command
+from .sort_parent_codes import sort_parent_codes
 
 if HAS_PRE_MEDS:  # pragma: no cover
     from .pre_MEDS import assemble_input_dir
@@ -120,20 +120,12 @@ def main(cfg: DictConfig):
         command_parts.extend(overrides)
     run_command(command_parts, env=env)
 
-    # Step 3: descriptions of literal codes
-    #
-    # Vitals, weights, MEDS_BIRTH/MEDS_DEATH and the other literal codes have no code components,
-    # so no `_metadata` block can describe them (see `code_descriptions.py` for why the
-    # pre-existing codes.parquet route does not reach them either). Fill them in from the packaged
-    # table once the pipeline has written the final vocabulary; extracted descriptions win. Lab
-    # codes whose name the packaged lab table does not list get a generic description here too.
+    # Step 3: sort each code's ICD parents, as the spec's `eicu_sort_parent_codes` post-stage does.
+    # Every description, literal codes included, is now in the event config (`_self` blocks).
     if codes_fp.is_file():
-        n_filled = apply_static_descriptions(codes_fp)
-        logger.info(
-            f"Filled descriptions of {n_filled} literal and unlisted lab codes in {codes_fp.resolve()!s}."
-        )
+        sort_parent_codes(codes_fp)
     else:  # pragma: no cover
-        logger.warning(f"{codes_fp.resolve()!s} not found; literal-code descriptions were not applied.")
+        logger.warning(f"{codes_fp.resolve()!s} not found; parent codes were not sorted.")
 
     # Step 4: suMEDS enriches codes.parquet in place with the registered rules (`do_enrich=false` skips
     # it), as `suMEDS-extract` does after `meds-extract-run`, and records it in metadata/dataset.json.
