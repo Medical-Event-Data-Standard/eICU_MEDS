@@ -75,10 +75,12 @@ slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"
 
-# Registers the suMEDS rules under the dataset's name, so the runner's last step and
-# `suMEDS-enrich --rules eICU` find them. There is no `MEDS_extract.pipelines` entry for
-# `meds-extract-run` (and so `suMEDS-extract`) yet: the runner's pre-MEDS step builds input tables
-# the MESSY config cannot (see `pre_MEDS.py`).
+# Registers the MESSY spec with MEDS-Extract, so `meds-extract-run spec=eICU` runs it.
+[project.entry-points."MEDS_extract.pipelines"]
+"eICU" = "eICU_MEDS.configs:event_configs.yaml"
+
+# Registers the suMEDS rules under the dataset's name, so the spec's `sumeds_enrich` post-stage
+# and `suMEDS-enrich --rules eICU` find them.
 [project.entry-points."sumeds.rules"]
 "eICU" = "eICU_MEDS:sumeds_rules.yaml"
 

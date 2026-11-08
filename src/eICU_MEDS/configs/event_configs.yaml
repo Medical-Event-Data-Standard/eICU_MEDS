@@ -1,3 +1,47 @@
+# How `meds-extract-run spec=eICU` runs this config (pyproject.toml registers it as `eICU`). The
+# canonical extraction stages always run, between the extension stages listed here.
+etl:
+  dataset_name: eICU
+  # MEDS-Extract treats shard size as a property of the dataset; worker counts belong to the
+  # machine (`stage_runner_fp=`, see the README).
+  n_subjects_per_shard: 1000
+  # Written into metadata/dataset.json. There is one `etl:` block per spec, so these describe the
+  # full release, also on a demo build (the demo, https://physionet.org/content/eicu-crd-demo/2.0.1/,
+  # is under the Open Data Commons Open Database License v1.0).
+  license: PhysioNet Credentialed Health Data License 1.5.0
+  description_uri: https://physionet.org/content/eicu-crd/2.0/
+  # Row ids of the raw tables the events come from. `hadm_id` holds `hospitalid` and `icustay_id`
+  # holds `patientunitstayid`; `medication_id` is `medicationid` or `infusiondrugid`.
+  raw_source_id_columns:
+    - hadm_id
+    - icustay_id
+    - ward_id
+    - admission_dx_id
+    - medication_id
+    - intake_output_id
+    - nurse_assess_id
+    - nurse_care_id
+    - nurse_chart_id
+    - past_history_id
+    - physical_exam_id
+    - resp_chart_id
+    - vital_id
+  # `diagnosis.diagnosisPriority` (Primary, Major, Other) qualifies the diagnosis code.
+  code_modifier_columns:
+    - diagnosis_priority
+  pre_stages:
+    # Writes the tables this config reads that the raw release lacks (`dx_icd_map`, the ICD codes
+    # of each diagnosis path, and the packaged `lab_descriptions`); see `pre_MEDS.py`.
+    - eicu_pre_meds
+  post_stages:
+    # Sorts each code's ICD parents by the parent code; see `sort_parent_codes.py`.
+    - eicu_sort_parent_codes
+    # suMEDS enriches metadata/codes.parquet in place with the rules this package registers as
+    # `eICU`, and records it in metadata/dataset.json. It soft-fails (e.g. without internet);
+    # `suMEDS-enrich OUTPUT_DIR` finishes it later, and `skip_stages=[sumeds_enrich]` leaves it out.
+    - sumeds_enrich:
+        rules: eICU
+
 _defaults:
   subject_id: $patienthealthsystemstayid
 
@@ -578,6 +622,11 @@ vitalPeriodic:
     numeric_value: $icp
 
 sources:
+  # The raw release of each bucket; `meds-extract-run` stamps the selected one, with this package's
+  # version, into metadata/dataset.json as `dataset_version` (e.g. `2.0.1:0.3.0` for the demo).
+  dataset_version:
+    dataset: "2.0"
+    demo: "2.0.1"
   dataset:
     - type: physionet
       base_url: https://physionet.org/files/eicu-crd/2.0

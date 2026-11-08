@@ -24,7 +24,7 @@ CONFIG_FP = Path(__file__).parents[1] / "src" / "eICU_MEDS" / "configs" / "event
 def _events():
     cfg = yaml.safe_load(CONFIG_FP.read_text())
     for table, body in cfg.items():
-        if table in ("_defaults", "sources"):
+        if table in ("_defaults", "etl", "sources"):
             continue
         for name, event in body.items():
             if name == "_table":
