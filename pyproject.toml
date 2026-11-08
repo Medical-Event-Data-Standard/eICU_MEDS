@@ -82,10 +82,12 @@ MEDS_extract-eICU = "eICU_MEDS.__main__:main"
 [project.entry-points."sumeds.rules"]
 "eICU" = "eICU_MEDS:sumeds_rules.yaml"
 
-# The pre-stage that writes the ICD map of the diagnosis codes and the packaged lab-description
-# table for MEDS-Extract (`etl.pre_stages`; see `pre_MEDS.py`).
+# This package's MEDS-Extract extension stages. The pre-stage writes the ICD map of the diagnosis
+# codes and the packaged lab-description table (`etl.pre_stages`; see `pre_MEDS.py`); the post-stage
+# sorts each code's ICD parents (`etl.post_stages`; see `sort_parent_codes.py`).
 [project.entry-points."MEDS_transforms.stages"]
 eicu_pre_meds = "eICU_MEDS.pre_MEDS:main"
+eicu_sort_parent_codes = "eICU_MEDS.sort_parent_codes:main"
 
 [project.urls]
 Homepage = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS"
