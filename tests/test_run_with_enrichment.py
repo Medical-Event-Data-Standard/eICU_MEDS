@@ -1,14 +1,16 @@
-"""``MEDS_extract-eICU`` runs the ETL and then suMEDS enrichment with the registered rules, offline.
+"""``meds-extract-run spec=eICU`` runs the ETL and then suMEDS enrichment with the registered rules, offline.
 
-A failed enrichment leaves the ETL output as it was and does not fail the run, unless
-``enrich_args=[--strict]``; ``suMEDS-enrich MEDS_OUTPUT_DIR`` enriches it later. Both are recorded in
-``metadata/dataset.json``.
+The spec's ``sumeds_enrich`` post-stage enriches ``metadata/codes.parquet`` and records it in
+``metadata/dataset.json``. A failed enrichment leaves the ETL output as it was and does not fail the
+run, unless the stage's ``strict`` option is set; ``suMEDS-enrich OUTPUT_DIR`` enriches it later.
+``skip_stages=[sumeds_enrich]`` leaves the stage out. Stage options are set at run time with
+``overrides=['++stage_cfg.<option>=<value>']``, which every stage receives and only this one reads.
 
 The raw tables are a handful of made-up rows with every column ``configs/event_configs.yaml`` reads
 (nothing comes from eICU-CRD), so the run needs no download. The ontology source is a tiny pack
 repository in suMEDS's ``sumeds-ontologies/0.1`` layout, built here with made-up titles for the
 synthetic ICD and LOINC codes and an ``eicu/lab_loinc`` crosswalk, so suMEDS reads nothing over the
-network. The e2e demo test runs the same step against suMEDS's published ontology data.
+network. The e2e demo test runs the same stage against suMEDS's published ontology data.
 """
 
 import csv
@@ -16,6 +18,7 @@ import gzip
 import hashlib
 import io
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -221,26 +224,32 @@ def ontology_source(tmp_path_factory) -> Path:
     return root
 
 
-def _etl(root: Path, raw_dir: Path, *overrides: str) -> subprocess.CompletedProcess:
+def _etl(output: Path, raw_dir: Path, *args: str, **env: str) -> subprocess.CompletedProcess:
     command = [
-        "MEDS_extract-eICU",
-        f"root_output_dir={root}",
-        f"raw_input_dir={raw_dir}",
-        "do_download=False",
-        *overrides,
+        "meds-extract-run",
+        "spec=eICU",
+        f"output_dir={output}",
+        "do_download=false",
+        f"input_dir={raw_dir}",
+        *args,
     ]
-    return subprocess.run(command, capture_output=True, text=True)
+    return subprocess.run(command, capture_output=True, text=True, env={**os.environ, **env})
 
 
-def _run(root: Path, raw_dir: Path, *overrides: str) -> Path:
-    out = _etl(root, raw_dir, *overrides)
+def _run(output: Path, raw_dir: Path, *args: str, **env: str) -> Path:
+    out = _etl(output, raw_dir, *args, **env)
     assert out.returncode == 0, f"{out.args} failed:\n{out.stdout}\n{out.stderr}"
-    return root / "MEDS_output"
+    return output
+
+
+def _pipeline_log(output: Path) -> str:
+    """Post-stages write their output only to the pipeline log, not to the console."""
+    return (output / ".logs" / "pipeline.log").read_text()
 
 
 @pytest.fixture(scope="session")
 def plain_output(tmp_path_factory, raw_dir: Path) -> Path:
-    return _run(tmp_path_factory.mktemp("eicu_plain"), raw_dir, "do_enrich=False")
+    return _run(tmp_path_factory.mktemp("eicu_plain"), raw_dir, "skip_stages=[sumeds_enrich]")
 
 
 @pytest.fixture(scope="session")
@@ -248,7 +257,7 @@ def enriched_output(tmp_path_factory, raw_dir: Path, ontology_source: Path) -> P
     return _run(
         tmp_path_factory.mktemp("eicu_enriched"),
         raw_dir,
-        f"enrich_args=[--ontology-source,'{ontology_source}']",
+        f"overrides=['++stage_cfg.ontology_source={ontology_source}']",
     )
 
 
@@ -271,6 +280,45 @@ def _names(row: dict) -> dict[str, str]:
     """``parent_names`` as a dict: Polars 2 reads the map as one, Polars 1 as key/value structs."""
     names = row.get("parent_names") or {}
     return names if isinstance(names, dict) else {entry["key"]: entry["value"] for entry in names}
+
+
+# What the `MEDS_extract-eICU` runner of 0.2.0 (at 0c0b55c, `do_enrich=False`) wrote for the
+# synthetic rows above. Regenerate it only for a deliberate change to the output, with
+# `EICU_MEDS_UPDATE_SNAPSHOT=1 pytest tests/test_run_with_enrichment.py`, and say why in the PR.
+SNAPSHOT_FP = Path(__file__).parent / "fixtures" / "synthetic_etl_snapshot.json"
+
+
+def _snapshot(output: Path) -> dict:
+    """Every event (non-null fields), the splits and each code's description and parent codes.
+
+    ``code_template`` is left out: the runner left it null on the literal codes and on lab names
+    outside the lab table, which now carry their code expression, as every other code does.
+    """
+    data = pl.concat([pl.read_parquet(fp) for fp in sorted((output / "data").rglob("*.parquet"))])
+    data = data.sort(data.columns, nulls_last=True)
+    events = [
+        {k: v.isoformat() if k == "time" and v is not None else v for k, v in row.items() if v is not None}
+        for row in data.iter_rows(named=True)
+    ]
+    splits = pl.read_parquet(output / "metadata" / "subject_splits.parquet").sort("subject_id")
+    codes = pl.read_parquet(output / "metadata" / "codes.parquet").sort("code")
+    return {
+        "events": events,
+        "subject_splits": splits.rows(),
+        "codes": codes.select("code", "description", "parent_codes").rows(),
+    }
+
+
+def test_output_matches_the_runner_it_replaces(plain_output: Path):
+    """``meds-extract-run spec=eICU`` writes what ``MEDS_extract-eICU`` wrote: events and code metadata."""
+    snapshot = json.loads(json.dumps(_snapshot(plain_output)))  # tuples to lists, as read back
+    if os.environ.get("EICU_MEDS_UPDATE_SNAPSHOT"):
+        SNAPSHOT_FP.parent.mkdir(exist_ok=True)
+        SNAPSHOT_FP.write_text(json.dumps(snapshot, indent=1) + "\n")
+    expected = json.loads(SNAPSHOT_FP.read_text())
+    assert snapshot["codes"] == expected["codes"]
+    assert snapshot["subject_splits"] == expected["subject_splits"]
+    assert snapshot["events"] == expected["events"]
 
 
 def test_codes_parquet_is_replaced_by_valid_meds_metadata(enriched_output: Path):
@@ -364,20 +412,29 @@ def test_dataset_json_records_the_enrichment(enriched_output: Path, plain_output
 def test_failed_enrichment_keeps_the_etl_output_and_is_enriched_later(
     tmp_path: Path, raw_dir: Path, ontology_source: Path, plain_output: Path, enriched_output: Path
 ):
-    """No ontology data (as without internet): the run succeeds, unenriched, and says so."""
+    """No ontology data (as without internet): the run succeeds, unenriched, and says so.
+
+    The pack source comes from ``SUMEDS_ONTOLOGY_SOURCE`` here, the environment variable suMEDS reads
+    when the stage sets no ``ontology_source``.
+    """
     missing = tmp_path / "no_ontologies"
-    out = _etl(tmp_path / "eicu", raw_dir, f"enrich_args=[--ontology-source,'{missing}']")
+    output = tmp_path / "eicu"
+    out = _etl(output, raw_dir, SUMEDS_ONTOLOGY_SOURCE=str(missing))
     assert out.returncode == 0, f"{out.args} failed:\n{out.stdout}\n{out.stderr}"
-    assert "suMEDS-enrich: warning: enrichment failed" in out.stderr
-    output = tmp_path / "eicu" / "MEDS_output"
+    assert "suMEDS-enrich: warning: enrichment failed" in _pipeline_log(output)
     assert _codes_bytes(output) == _codes_bytes(plain_output)
     record = _dataset(output)["sumeds_enrichment"]
     assert record["enriched"] is False
     assert record["rules"] == "eICU"
-    assert record["retry"] == "suMEDS-enrich <MEDS_ROOT> --ontology-source <PACKS_DIR>"
+    assert record["retry"] == "suMEDS-enrich <MEDS_ROOT>"
     assert str(missing) not in json.dumps(record)
 
-    # The retry reuses the recorded rules and options; the local pack source is a path, so it is given again.
+    # The stage counts as done, so running the same command again, now with the data, does not retry.
+    out = _etl(output, raw_dir, SUMEDS_ONTOLOGY_SOURCE=str(ontology_source))
+    assert out.returncode == 0, f"{out.args} failed:\n{out.stdout}\n{out.stderr}"
+    assert _dataset(output)["sumeds_enrichment"]["enriched"] is False
+
+    # suMEDS-enrich does, with the recorded rules and options; a local pack source is given again.
     retry = ["suMEDS-enrich", str(output), "--ontology-source", str(ontology_source)]
     out = subprocess.run(retry, capture_output=True, text=True)
     assert out.returncode == 0, f"{retry} failed:\n{out.stdout}\n{out.stderr}"
@@ -391,9 +448,26 @@ def test_failed_enrichment_keeps_the_etl_output_and_is_enriched_later(
 
 def test_strict_enrichment_fails_the_run(tmp_path: Path, raw_dir: Path, plain_output: Path):
     missing = tmp_path / "no_ontologies"
-    out = _etl(tmp_path / "eicu", raw_dir, f"enrich_args=[--strict,--ontology-source,'{missing}']")
+    output = tmp_path / "eicu"
+    out = _etl(
+        output,
+        raw_dir,
+        f"overrides=['++stage_cfg.strict=true','++stage_cfg.ontology_source={missing}']",
+    )
     assert out.returncode != 0
-    assert "suMEDS-enrich: error:" in out.stderr
-    output = tmp_path / "eicu" / "MEDS_output"
+    assert "suMEDS-enrich: error:" in out.stdout + out.stderr
     assert _codes_bytes(output) == _codes_bytes(plain_output)
     assert "sumeds_enrichment" not in _dataset(output)
+    assert not (output / ".logs" / "sumeds_enrich.done").exists()
+
+
+def test_a_skipped_enrichment_runs_when_the_skip_is_dropped(
+    tmp_path: Path, raw_dir: Path, ontology_source: Path
+):
+    """The same command without ``skip_stages`` runs only the missing stage on a finished build."""
+    output = _run(tmp_path / "eicu", raw_dir, "skip_stages=[sumeds_enrich]")
+    assert "sumeds_enrichment" not in _dataset(output)
+    events = {fp: fp.read_bytes() for fp in (output / "data").rglob("*.parquet")}
+    _run(output, raw_dir, f"overrides=['++stage_cfg.ontology_source={ontology_source}']")
+    assert _dataset(output)["sumeds_enrichment"]["enriched"] is True
+    assert {fp: fp.read_bytes() for fp in (output / "data").rglob("*.parquet")} == events

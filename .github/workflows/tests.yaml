@@ -92,10 +92,13 @@ jobs:
           key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
           fail-on-cache-miss: true
 
+      # `strict` fails the build if the suMEDS enrichment fails (e.g. fetching its ontology data),
+      # rather than comparing an unenriched build with the enriched baseline.
       - name: Build the demo
         run: |
-          uv run MEDS_extract-eICU root_output_dir="$RUNNER_TEMP/eicu_demo" \
-            raw_input_dir="$HOME/.cache/eICU_MEDS/demo_raw" do_download=False do_demo=True
+          uv run meds-extract-run spec=eICU output_dir="$RUNNER_TEMP/eicu_demo" dataset_key=demo \
+            do_download=false input_dir="$HOME/.cache/eICU_MEDS/demo_raw" \
+            "overrides=['++stage_cfg.strict=true']"
 
       - name: Summary-stats regression check
         # The action, package-spec and committed baseline are pinned together on meds_summary_stats
@@ -104,7 +107,7 @@ jobs:
         # always passes it and the flag overrides the file.
         uses: Medical-Event-Data-Standard/meds_summary_stats@0.0.3
         with:
-          meds-dir: ${{ runner.temp }}/eicu_demo/MEDS_output
+          meds-dir: ${{ runner.temp }}/eicu_demo
           baseline: tests/regression/demo_summary_stats.json
           policy: tests/regression/policy.yaml
           package-spec: meds_summary_stats==0.0.3

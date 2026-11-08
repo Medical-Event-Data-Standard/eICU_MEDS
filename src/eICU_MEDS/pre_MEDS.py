@@ -35,7 +35,6 @@ under the release spelling when the raw directory has only the demo's.
 
 import logging
 import os
-import shutil
 from pathlib import Path
 
 import polars as pl
@@ -269,49 +268,3 @@ def main(cfg: DictConfig) -> None:
     if cfg.worker != 0:
         return
     stage_tables(Path(cfg.input_dir), Path(cfg.stage_cfg.output_dir))
-
-
-def assemble_input_dir(input_dir: Path, output_dir: Path, do_copy: bool = False) -> None:
-    """Assemble the single input directory ``MEDS_extract-eICU`` runs its pipeline on.
-
-    Places every raw table in ``output_dir`` (by symlink, or copy with ``do_copy``), except the ones
-    :func:`stage_tables` writes there in their place.
-
-    Raises:
-        FileNotFoundError: If ``input_dir`` holds no ``*.csv.gz`` tables, or the raw ``diagnosis``
-            table is missing.
-        FileExistsError: If ``output_dir`` holds parquet tables from the pre-0.7 extractor.
-    """
-    input_dir, output_dir = Path(input_dir), Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-
-    raw_files = sorted(input_dir.glob("*.csv.gz"))
-    if not raw_files:
-        raise FileNotFoundError(f"No *.csv.gz files found under {input_dir.resolve()!s}.")
-
-    # The pre-0.7 extractor wrote processed `<table>.parquet` files here. Left in place they
-    # compete with the raw `<table>.csv.gz` for the same prefix and extraction fails, so stop
-    # early rather than deleting files we did not write.
-    ours = {f"{DX_MAP_PREFIX}.parquet", f"{LAB_DESCRIPTIONS_PREFIX}.parquet"}
-    stale = sorted(fp.name for fp in output_dir.glob("*.parquet") if fp.name not in ours)
-    if stale:
-        raise FileExistsError(
-            f"{output_dir.resolve()!s} holds tables from a previous extractor version ({', '.join(stale)}). "
-            "Remove them or point pre_MEDS_dir at a fresh directory."
-        )
-
-    staged = {fp.name for fp in stage_tables(input_dir, output_dir)}
-    verb = "Copying" if do_copy else "Symlinking"
-    logger.info(f"{verb} {len(raw_files)} raw tables into {output_dir.resolve()!s}.")
-    for fp in raw_files:
-        if fp.name in RAW_RENAMES:
-            continue  # staged under the release spelling, or the release file is present too
-        dst = output_dir / fp.name
-        if dst.name in staged:
-            continue
-        if do_copy:
-            if dst.is_symlink() or dst.exists():
-                dst.unlink()
-            shutil.copy2(fp, dst)
-        else:
-            _replace_with_symlink(fp, dst)

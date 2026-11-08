@@ -1,5 +1,0 @@
-dataset_name: eICU
-raw_dataset_version: "2.0"
-demo_dataset_version: "2.0.1"
-# The download URLs (and their credential interpolations) now live in the `sources:`
-# block of `configs/event_configs.yaml`, consumed by `meds-extract-download`.

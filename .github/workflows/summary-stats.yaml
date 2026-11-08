@@ -31,8 +31,8 @@ jobs:
           persist-credentials: false
 
       - name: Check that ETL changes regenerated the baseline
-        # Documentation does not affect what the ETL writes. The suMEDS rules do: MEDS_extract-eICU
-        # enriches metadata/codes.parquet with them as its last step.
+        # Documentation does not affect what the ETL writes. The suMEDS rules do: the spec's
+        # sumeds_enrich stage enriches metadata/codes.parquet with them as its last step.
         run: |
           changed=$(git diff --name-only HEAD^1 HEAD)
           etl=$(grep -E '^src/' <<<"$changed" | grep -vE '\.md$' || true)

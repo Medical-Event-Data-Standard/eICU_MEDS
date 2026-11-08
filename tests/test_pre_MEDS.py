@@ -1,8 +1,8 @@
-"""Tests for the tables the ``eicu_pre_meds`` pre-stage writes, and for ``MEDS_extract-eICU``'s input dir.
+"""Tests for the tables the ``eicu_pre_meds`` pre-stage writes.
 
 The ``dx_icd_map`` build itself is covered in ``test_dx_parent_codes.py``; these tests pin what
-surrounds it: the stage writes only its own tables and never touches the raw directory, the demo's
-lowercase ``infusiondrug`` spelling, and stale outputs from the pre-0.7 extractor.
+surrounds it: the stage writes only its own tables and never touches the raw directory, and the
+demo's lowercase ``infusiondrug`` spelling.
 """
 
 import gzip
@@ -10,7 +10,7 @@ import gzip
 import polars as pl
 import pytest
 
-from eICU_MEDS.pre_MEDS import assemble_input_dir, stage_tables
+from eICU_MEDS.pre_MEDS import stage_tables
 
 DIAGNOSIS_CSV = 'diagnosisstring,icd9code\np|q,"486, J18.9"\n'
 
@@ -64,28 +64,3 @@ def test_missing_diagnosis_table_fails(tmp_path):
     (tmp_path / "raw").mkdir()
     with pytest.raises(FileNotFoundError, match="diagnosis"):
         stage_tables(tmp_path / "raw", tmp_path / "out")
-
-
-def test_assembled_input_dir_links_the_demo_infusiondrug_under_the_release_spelling(tmp_path):
-    _write_raw(tmp_path / "raw", "infusiondrug.csv.gz")
-    assemble_input_dir(tmp_path / "raw", tmp_path / "out")
-
-    names = {fp.name for fp in (tmp_path / "out").iterdir()}
-    assert "infusionDrug.csv.gz" in names
-    assert "infusiondrug.csv.gz" not in names
-    assert "diagnosis.csv.gz" in names
-
-
-def test_stale_pre_07_tables_stop_the_run(tmp_path):
-    _write_raw(tmp_path / "raw")
-    (tmp_path / "out").mkdir()
-    (tmp_path / "out" / "lab.parquet").touch()
-
-    with pytest.raises(FileExistsError, match=r"lab\.parquet"):
-        assemble_input_dir(tmp_path / "raw", tmp_path / "out")
-
-
-def test_rerun_over_own_output_is_allowed(tmp_path):
-    _write_raw(tmp_path / "raw")
-    assemble_input_dir(tmp_path / "raw", tmp_path / "out")
-    assemble_input_dir(tmp_path / "raw", tmp_path / "out")

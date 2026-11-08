@@ -17,10 +17,12 @@ uv run pre-commit install
 uv run pytest src/ tests/ --doctest-modules
 ```
 
-`tests/e2e_demo_test.py` downloads the public eICU demo from PhysioNet, and its suMEDS enrichment
-fetches ontology data from GitHub, so a first run is slow. To reuse a download, point
-`EICU_MEDS_DEMO_RAW_DIR` at its directory. The other tests need no network and run in under a minute
-(`tests/test_run_with_enrichment.py` runs the whole ETL and the enrichment on a few synthetic rows):
+`tests/e2e_demo_test.py` runs `meds-extract-run spec=eICU dataset_key=demo`, which downloads the
+public eICU demo from PhysioNet, and its suMEDS enrichment fetches ontology data from GitHub, so a
+first run is slow. To reuse a download, point `EICU_MEDS_DEMO_RAW_DIR` at its directory. The other
+tests need no network and run in under a minute (`tests/test_run_with_enrichment.py` runs
+`meds-extract-run spec=eICU` and the enrichment on a few synthetic rows, and checks the result against
+a snapshot of what the 0.2.0 runner wrote for them):
 
 ```bash
 uv run pytest src/ tests/ --doctest-modules --ignore=tests/e2e_demo_test.py
@@ -32,8 +34,12 @@ eICU-CRD is credentialed PhysioNet data. Never commit raw files or MEDS outputs,
 PRs report aggregate numbers only.
 
 ```bash
-uv run MEDS_extract-eICU root_output_dir=$OUT raw_input_dir=/path/to/eicu-crd/2.0 do_download=False
+uv run meds-extract-run spec=eICU output_dir=$OUT do_download=false input_dir=/path/to/eicu-crd/2.0
 ```
+
+The spec is `src/eICU_MEDS/configs/event_configs.yaml`; the editable install registers it as `eICU`,
+so edits to it take effect on the next run. After adding or renaming an entry point in
+`pyproject.toml` (the spec, the rules or the extension stages), run `uv sync` again.
 
 ## Versioning and releases
 

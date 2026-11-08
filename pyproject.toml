@@ -37,8 +37,9 @@ classifiers = [
 # MEDS-Extract's own `>=0.7.0,<0.8` made the project unresolvable outright. They arrive
 # transitively at whatever versions MEDS-Extract fences.
 #
-# `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
-# it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
+# `hydra-joblib-launcher` stays: it is the launcher the README's parallel runs select
+# (`stage_runner_fp=` with `launcher: joblib`), so it is a runtime requirement of this ETL rather
+# than an upstream re-declaration.
 #
 # suMEDS enriches `metadata/codes.parquet` with the rules registered below. 0.6 is the first release
 # that writes `parent_names` as a map from code to name; 0.6.1 adds the soft fail (a failed
@@ -72,9 +73,6 @@ eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
 
-[project.scripts]
-MEDS_extract-eICU = "eICU_MEDS.__main__:main"
-
 # Registers the MESSY spec with MEDS-Extract, so `meds-extract-run spec=eICU` runs it.
 [project.entry-points."MEDS_extract.pipelines"]
 "eICU" = "eICU_MEDS.configs:event_configs.yaml"
@@ -96,9 +94,9 @@ Homepage = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS"
 Issues = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues"
 
 [tool.coverage.run]
-# The e2e tests exercise the runner, download, and pipeline through subprocesses (the
-# `MEDS_extract-eICU` console script, which in turn spawns `meds-extract-download` and
-# `MEDS_transform-pipeline`). `patch = ["subprocess"]` (coverage.py >= 7.10) propagates
+# The e2e tests exercise the download, the pipeline and this package's stages through subprocesses
+# (`meds-extract-run`, which in turn spawns `meds-extract-download`, the MEDS-Transforms runner and
+# one process per stage). `patch = ["subprocess"]` (coverage.py >= 7.10) propagates
 # measurement into those children — transitively, since each patched process patches its
 # own children — so the code they execute counts toward coverage instead of appearing
 # untested.

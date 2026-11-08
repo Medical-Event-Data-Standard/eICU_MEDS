@@ -145,10 +145,7 @@ def test_buckets_point_at_the_declared_dataset_versions():
 
     ``meds-extract-run`` stamps the selected bucket's version into ``dataset.json``, so a bumped URL
     that forgets ``dataset_version`` (or vice versa) would silently mislabel the output.
-    ``dataset.yaml`` holds the same numbers for ``MEDS_extract-eICU``.
     """
-    from eICU_MEDS import dataset_info
-
     raw = OmegaConf.load(EVENT_CFG)
     versions = raw.sources.dataset_version
     (dataset_entry,) = raw.sources["dataset"]
@@ -158,10 +155,6 @@ def test_buckets_point_at_the_declared_dataset_versions():
     assert demo_entry.type == "physionet"
     assert dataset_entry.base_url.endswith(f"/eicu-crd/{versions.dataset}")
     assert demo_entry.base_url.endswith(f"/eicu-crd-demo/{versions.demo}")
-    assert (versions.dataset, versions.demo) == (
-        dataset_info.raw_dataset_version,
-        dataset_info.demo_dataset_version,
-    )
 
 
 def test_no_common_bucket():
