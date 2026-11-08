@@ -64,8 +64,9 @@ starts each stage as the `MEDS_transform-stage` command found on `PATH`, so call
 `/path/to/venv/bin/meds-extract-run` without activating that environment fails at the first stage
 (exit code 127). `MEDS_extract-eICU` added its own environment to `PATH`; `meds-extract-run` does not.
 
-PhysioNet throttles each connection to about 50 KB/s but not the total, so `download_concurrency=8`
-(default 4) makes the download of the full release about twice as fast.
+PhysioNet throttles each connection to about 50 KB/s but not the total, so more parallel
+connections download faster: `download_concurrency=8` (the default is 4) matches what
+`MEDS_extract-eICU` used.
 
 Each stage keeps its intermediate output under `output_dir`, so a failed run resumes where it stopped;
 `do_cleanup_intermediates=true` deletes them once the run has succeeded. See the
