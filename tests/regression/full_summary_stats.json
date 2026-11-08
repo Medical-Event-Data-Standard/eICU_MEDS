@@ -236,13 +236,42 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-07T20:05:33.022269+00:00",
+    "code_modifier_columns": [
+      "diagnosis_priority"
+    ],
+    "created_at": "2026-11-08T01:38:59.331134+00:00",
     "dataset_name": "eICU",
     "dataset_version": "2.0:0.2.0",
+    "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
+    "license": "PhysioNet Credentialed Health Data License 1.5.0",
     "meds_version": "0.4.1",
+    "other_extension_columns": [
+      "source_block",
+      "drug_rate",
+      "infusion_rate",
+      "drug_amount",
+      "volume_of_fluid",
+      "lab_type_id",
+      "dosage"
+    ],
     "present": true,
+    "raw_source_id_columns": [
+      "hadm_id",
+      "icustay_id",
+      "ward_id",
+      "admission_dx_id",
+      "medication_id",
+      "intake_output_id",
+      "nurse_assess_id",
+      "nurse_care_id",
+      "nurse_chart_id",
+      "past_history_id",
+      "physical_exam_id",
+      "resp_chart_id",
+      "vital_id"
+    ],
     "sumeds_enrichment": {
       "athena": false,
       "coverage": {
@@ -257,7 +286,7 @@
         ]
       },
       "enriched": true,
-      "enriched_at": "2026-11-07T20:08:56Z",
+      "enriched_at": "2026-11-08T01:43:56Z",
       "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
       "options": {
         "child_codes": false,
@@ -269,24 +298,24 @@
         "sibling_codes": false
       },
       "rules": "eICU",
-      "rules_sha256": "57b398b65f0bce0191daf2286dd52f0d1f30a89b58f7f36d2862218d81d3ac54",
-      "sumeds_version": "0.6.1"
+      "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
+      "sumeds_version": "0.6.2"
     }
   },
   "dataset_digest": {
     "by_file": null,
-    "code_metadata": "sha256:e3be7712bee9448cb0ca2cdc5428590d9ad1da901e48e266dff5425fb6c52144",
-    "combined": "sha256:4aa9614b6ab0b698f831f6c558b680eaf471eef73bd9c5b19efd9285bac2e7c0",
+    "code_metadata": "sha256:2876ed662a3930c8c0c62ae59c0208488a072bff19a83a07adc13f6203f7ff9b",
+    "combined": "sha256:fe8d4c1ad1179d04db5829eb8001bc88ea787caad6461193fed817b6966740ad",
     "data": {
       "digest": "sha256:4d32831fce09b6e769bf55f6961bb52931dadd63cfe9a3d52cc62af6a4460cb8",
       "n_files": 168
     },
-    "dataset_metadata": "sha256:fb09dd7005995ca71208b91dd4fde75fa288dc651f660483cdae41a103da3749",
+    "dataset_metadata": "sha256:ed8facedba8a0257d916ad47c27e6491f84b1ba1b5d6b1bb3076459d84b6bc44",
     "method": "files",
     "n_files": 171,
     "subject_splits": "sha256:d17cf2b33533a10621cd508fd0eb27f068a01a56ab8dd04d5ed8957b35e3a931"
   },
-  "extracted_at": "2026-11-07T20:10:12.966683",
+  "extracted_at": "2026-11-08T01:45:48.916583",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
