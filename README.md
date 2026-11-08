@@ -59,6 +59,11 @@ the demo, so that `metadata/dataset.json` records the demo's version):
 meds-extract-run spec=eICU output_dir=$MEDS_OUTPUT_DIR do_download=false input_dir=$RAW_INPUT_DIR
 ```
 
+Run it with the environment it is installed in activated (or through `uv run`): MEDS-Transforms
+starts each stage as the `MEDS_transform-stage` command found on `PATH`, so calling
+`/path/to/venv/bin/meds-extract-run` without activating that environment fails at the first stage
+(exit code 127). `MEDS_extract-eICU` added its own environment to `PATH`; `meds-extract-run` does not.
+
 PhysioNet throttles each connection to about 50 KB/s but not the total, so `download_concurrency=8`
 (default 4) makes the download of the full release about twice as fast.
 
