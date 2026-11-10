@@ -207,7 +207,7 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-04T15:26:00.541641+00:00",
+    "created_at": "2026-11-10T22:23:08.090068+00:00",
     "dataset_name": "eICU",
     "dataset_version": "2.0.1:0.2.0",
     "etl_name": "MEDS_transforms",
@@ -222,7 +222,7 @@
       "data/train/1.parquet": "sha256:ba677ab101fef428399e7c036fe48e592859f2b1129242a785998ebe922f696d",
       "data/tuning/0.parquet": "sha256:7ff26be88366e65ee001bd3e6ba378bf4d95b5db1a0bf791da8f93450d0b2e94",
       "metadata/codes.parquet": "sha256:cd29372b5d2fd99b965b1571ab686377e98e1861e6fc57ecaaaf89855f63ae38",
-      "metadata/dataset.json": "sha256:e02a2e965509c5e634fb6c1ad796943c4a582188575fef11d3b3689251fce0c6",
+      "metadata/dataset.json": "sha256:1f2a8e824e55660e45c3f5ec53a41fef0fb7c7647cc3aa10c658f1ed5be8a515",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
     "code_metadata": "sha256:426eb2002689868cec7ba3c5a4681bd0ad8aee00a697e021e270ba2a6e741193",
@@ -231,12 +231,12 @@
       "digest": "sha256:f185b2977c82fea679d69b5e69f94c2314196e7115929fd5422bd30d5dc3155b",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:b6546bdf83215295d3953882aa36989ffb45c270f6e1c453869e2de7c020b89e",
+    "dataset_metadata": "sha256:966a02a69586109b86c72a3410fb6ad664d62579664ff44663ed840bc0ee5f77",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-04T22:17:48.712066",
+  "extracted_at": "2026-11-10T22:23:37.584921",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
@@ -338,8 +338,22 @@
     ],
     "shard_names_digest": "sha256:032cdb12ea0539c29b7226dd2e844417b2085e1019a358f09b0b10d44daa09be"
   },
-  "meds_summary_stats_version": "0.0.3",
+  "meds_summary_stats_version": "0.0.4",
   "per_subject": {
+    "measurements_per_day": {
+      "mean": 801.406,
+      "n": 2174,
+      "quantiles": {
+        "p1": 20.3643,
+        "p25": 390.386,
+        "p5": 102.31,
+        "p50": 679.894,
+        "p75": 1077.82,
+        "p95": 1889.37,
+        "p99": 2676.99
+      },
+      "std": 576.547
+    },
     "n_events": {
       "mean": 1025.95,
       "n": 2174,
@@ -417,7 +431,7 @@
     "n_subjects_in_splits_without_data": 0,
     "present": true
   },
-  "stats_schema_version": 1,
+  "stats_schema_version": 2,
   "time": {
     "by_year": {
       "1924": {
