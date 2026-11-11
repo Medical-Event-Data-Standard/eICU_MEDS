@@ -45,11 +45,13 @@ classifiers = [
 # that writes `parent_names` as a map from code to name; 0.6.1 adds the soft fail (a failed
 # enrichment, e.g. without internet, leaves the ETL output as it was) and the `sumeds_enrichment`
 # record in `metadata/dataset.json`; 0.6.2 registers the `sumeds_enrich` stage, which the spec runs
-# after extraction. It is capped below the next minor because its rules format and CLI are still
-# 0.x, and because each minor pins the ontology data release, and so the enriched output.
+# after extraction; 0.6.3 summarizes code metadata keyed by `code` alone, as MEDS-Extract writes
+# it, although the spec declares `diagnosis_priority` as a code modifier (0.6.2 fails on the missing
+# column). It is capped below the next minor because its rules format and CLI are still 0.x, and
+# because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
     "meds-extract[download]>=0.8.1,<0.9",
-    "sumeds>=0.6.2,<0.7",
+    "sumeds>=0.6.3,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 

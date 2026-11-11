@@ -186,7 +186,7 @@ requires-dist = [
     { name = "hydra-joblib-launcher", specifier = "~=1.2" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'", specifier = "~=1.2" },
     { name = "meds-extract", extras = ["download"], specifier = ">=0.8.1,<0.9" },
-    { name = "sumeds", specifier = ">=0.6.2,<0.7" },
+    { name = "sumeds", specifier = ">=0.6.3,<0.7" },
 ]
 provides-extras = ["slurm-parallelism"]
 
