@@ -18,99 +18,70 @@
     "n_data_codes_missing_from_metadata": 0,
     "n_metadata_codes_absent_from_data": 0,
     "n_with_description": 15528,
-    "n_with_parent_codes": 5696,
+    "n_with_parent_codes": 3129,
     "ontology": {
       "by_vocabulary": {
-        "DIAGNOSIS": {
-          "keys_digest": "sha256:68709e1a0b95f8882f93a6c49b6df259f6361a492dffef1cdc1a0f897e1e0f41",
-          "n_child_codes": 2929,
-          "n_distinct_keys": 770,
-          "n_measurements": 963728,
-          "n_subjects": 95438,
-          "recognized": false
-        },
         "ICD10CM": {
-          "keys_digest": "sha256:590fb4b2cf0e42903dbd62a61d0e3012b6f19ca6cdc16402e461d0e1a029199b",
+          "keys_digest": "sha256:e2414bd93722e6022db9910ec376e746c7cb0116533c90e98697ad091393662d",
           "n_child_codes": 2841,
-          "n_distinct_keys": 1384,
+          "n_distinct_keys": 807,
           "n_measurements": 2169993,
           "n_subjects": 139613,
           "recognized": true
         },
         "ICD9CM": {
-          "keys_digest": "sha256:374a4d856e9debc011ec1daf3207bc206803823847883fbe54c5d463386e9f98",
+          "keys_digest": "sha256:356b4cd313ce0896bd1443004770e81b667ba104ca83fac9906e426c2ac65701",
           "n_child_codes": 3033,
-          "n_distinct_keys": 1474,
+          "n_distinct_keys": 878,
           "n_measurements": 2220344,
           "n_subjects": 140825,
           "recognized": true
-        },
-        "LOINC": {
-          "keys_digest": "sha256:0cd8343ecac6184970f4d51a8ef153347d215f30cca2f13d65ec5b4e21aee09d",
-          "n_child_codes": 50,
-          "n_distinct_keys": 50,
-          "n_measurements": 34140783,
-          "n_subjects": 164827,
-          "numeric": {
-            "mean": 62.0457,
-            "n_finite": 33987036,
-            "std": 600.581
-          },
-          "recognized": true
-        },
-        "TREATMENT": {
-          "keys_digest": "sha256:e1c73a67a71badc4b49cabf387397def1dbf70d223d22c9d27d93f4b605bec1b",
-          "n_child_codes": 2096,
-          "n_distinct_keys": 512,
-          "n_measurements": 2067428,
-          "n_subjects": 108330,
-          "recognized": false
         }
       },
       "coverage": {
-        "frac_measurements_mapped": 0.0346651,
-        "frac_observed_codes_with_parents": 0.366821,
-        "n_measurements_mapped": 38573848,
-        "n_measurements_unmapped": 1074182445,
+        "frac_measurements_mapped": 0.00202451,
+        "frac_observed_codes_with_parents": 0.201507,
+        "n_measurements_mapped": 2252781,
+        "n_measurements_unmapped": 1110503512,
         "n_observed_codes": 15528,
-        "n_observed_codes_with_parents": 5696,
-        "n_observed_codes_without_parents": 9832
+        "n_observed_codes_with_parents": 3129,
+        "n_observed_codes_without_parents": 12399
       },
-      "n_codes_in_multiple_vocabularies": 3070,
-      "n_codes_with_parents": 5696,
-      "n_distinct_parents": 4208,
-      "n_parent_links": 19506,
+      "n_codes_in_multiple_vocabularies": 2745,
+      "n_codes_with_parents": 3129,
+      "n_distinct_parents": 1685,
+      "n_parent_links": 6243,
       "n_parents_without_vocabulary": 0,
-      "n_vocabularies": 5,
-      "n_vocabularies_recognized": 3,
+      "n_vocabularies": 2,
+      "n_vocabularies_recognized": 2,
       "parents_per_code": {
-        "mean": 1.25618,
+        "mean": 0.402048,
         "n": 15528,
         "quantiles": {
           "p1": 0.0,
           "p25": 0.0,
           "p5": 0.0,
           "p50": 0.0,
-          "p75": 1.0,
-          "p95": 6.0,
-          "p99": 8.0
+          "p75": 0.0,
+          "p95": 2.0,
+          "p99": 3.0
         },
-        "std": 2.23647
+        "std": 0.838894
       },
       "present": true,
       "vocabularies_per_code": {
-        "mean": 0.705113,
+        "mean": 0.378284,
         "n": 15528,
         "quantiles": {
           "p1": 0.0,
           "p25": 0.0,
           "p5": 0.0,
           "p50": 0.0,
-          "p75": 1.0,
-          "p95": 3.0,
-          "p99": 3.0
+          "p75": 0.0,
+          "p95": 2.0,
+          "p99": 2.0
         },
-        "std": 1.0797
+        "std": 0.767319
       }
     },
     "present": true,
@@ -236,98 +207,34 @@
     }
   },
   "dataset": {
-    "code_modifier_columns": [
-      "diagnosis_priority"
-    ],
-    "created_at": "2026-11-08T01:38:59.331134+00:00",
+    "created_at": "2026-11-11T01:13:51.085618+00:00",
     "dataset_name": "eICU",
-    "dataset_version": "2.0:0.2.0",
-    "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
+    "dataset_version": "2.0:0.2.1",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
-    "license": "PhysioNet Credentialed Health Data License 1.5.0",
     "meds_version": "0.4.1",
-    "other_extension_columns": [
-      "source_block",
-      "drug_rate",
-      "infusion_rate",
-      "drug_amount",
-      "volume_of_fluid",
-      "lab_type_id",
-      "dosage"
-    ],
-    "present": true,
-    "raw_source_id_columns": [
-      "hadm_id",
-      "icustay_id",
-      "ward_id",
-      "admission_dx_id",
-      "medication_id",
-      "intake_output_id",
-      "nurse_assess_id",
-      "nurse_care_id",
-      "nurse_chart_id",
-      "past_history_id",
-      "physical_exam_id",
-      "resp_chart_id",
-      "vital_id"
-    ],
-    "sumeds_enrichment": {
-      "athena": false,
-      "coverage": {
-        "codes": 15528,
-        "described": [
-          15528,
-          15528
-        ],
-        "with_parent_codes": [
-          3129,
-          5696
-        ]
-      },
-      "enriched": true,
-      "enriched_at": "2026-11-08T01:43:56Z",
-      "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
-      "options": {
-        "child_codes": false,
-        "child_depth": 3,
-        "exclude_self_parent_code": false,
-        "loinc_hierarchy": false,
-        "packs": true,
-        "parent_codes": true,
-        "sibling_codes": false
-      },
-      "rules": "eICU",
-      "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
-      "sumeds_version": "0.6.2"
-    }
+    "present": true
   },
   "dataset_digest": {
     "by_file": null,
-    "code_metadata": "sha256:2876ed662a3930c8c0c62ae59c0208488a072bff19a83a07adc13f6203f7ff9b",
-    "combined": "sha256:fe8d4c1ad1179d04db5829eb8001bc88ea787caad6461193fed817b6966740ad",
+    "code_metadata": "sha256:095fdc72f2f7d6c46cf11fe2fac61f238d89c4f4f9e3e44e2c67daa286b6211b",
+    "combined": "sha256:451886c51340fb362dcabbf7ea6ffe3b509d3704c7f127abfc812de128f4972f",
     "data": {
       "digest": "sha256:4d32831fce09b6e769bf55f6961bb52931dadd63cfe9a3d52cc62af6a4460cb8",
       "n_files": 168
     },
-    "dataset_metadata": "sha256:ed8facedba8a0257d916ad47c27e6491f84b1ba1b5d6b1bb3076459d84b6bc44",
+    "dataset_metadata": "sha256:e7805f50b0c7436f0257f005fdcc4104f5fca239a797e87a0cc289b89323164c",
     "method": "files",
     "n_files": 171,
     "subject_splits": "sha256:d17cf2b33533a10621cd508fd0eb27f068a01a56ab8dd04d5ed8957b35e3a931"
   },
-  "extracted_at": "2026-11-08T01:45:48.916583",
+  "extracted_at": "2026-11-11T01:19:17.314183",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
       "code_template": "String",
-      "concept_code": "String",
-      "concept_id": "Int64",
       "description": "String",
-      "domain_id": "String",
-      "parent_codes": "List(String)",
-      "parent_names": "Map(String, String)",
-      "standard_concept": "String",
-      "vocabulary_id": "String"
+      "parent_codes": "List(String)"
     },
     "column_dtype_conflicts": {},
     "column_presence": {
@@ -418,8 +325,22 @@
     "shard_names": null,
     "shard_names_digest": "sha256:d15f1bda89475effa0f29abbeee77bca90895fec32b964093bab7c048b74d953"
   },
-  "meds_summary_stats_version": "0.0.3",
+  "meds_summary_stats_version": "0.0.4",
   "per_subject": {
+    "measurements_per_day": {
+      "mean": 852.957,
+      "n": 166354,
+      "quantiles": {
+        "p1": 44.5255,
+        "p25": 414.62,
+        "p5": 153.417,
+        "p50": 717.985,
+        "p75": 1144.94,
+        "p95": 1999.72,
+        "p99": 2836.03
+      },
+      "std": 598.299
+    },
     "n_events": {
       "mean": 1222.9,
       "n": 166355,
@@ -497,7 +418,7 @@
     "n_subjects_in_splits_without_data": 0,
     "present": true
   },
-  "stats_schema_version": 1,
+  "stats_schema_version": 2,
   "time": {
     "by_year": {
       "1924": {

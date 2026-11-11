@@ -239,9 +239,9 @@
     "code_modifier_columns": [
       "diagnosis_priority"
     ],
-    "created_at": "2026-11-08T00:32:27.731607+00:00",
+    "created_at": "2026-11-11T17:13:40.594008+00:00",
     "dataset_name": "eICU",
-    "dataset_version": "2.0.1:0.2.0",
+    "dataset_version": "2.0.1:0.2.1",
     "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
@@ -286,7 +286,7 @@
         ]
       },
       "enriched": true,
-      "enriched_at": "2026-11-08T00:32:37Z",
+      "enriched_at": "2026-11-11T17:13:44Z",
       "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
       "options": {
         "child_codes": false,
@@ -299,7 +299,7 @@
       },
       "rules": "eICU",
       "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
-      "sumeds_version": "0.6.2"
+      "sumeds_version": "0.6.3"
     }
   },
   "dataset_digest": {
@@ -309,7 +309,7 @@
       "data/train/1.parquet": "sha256:ba677ab101fef428399e7c036fe48e592859f2b1129242a785998ebe922f696d",
       "data/tuning/0.parquet": "sha256:7ff26be88366e65ee001bd3e6ba378bf4d95b5db1a0bf791da8f93450d0b2e94",
       "metadata/codes.parquet": "sha256:bc9503593de6fbb2d3885804e9af4bc8a4440d8d1ab37a49a26112b0357937ca",
-      "metadata/dataset.json": "sha256:58040ffe0ece232c92a09ee76bc0986845a252757d18df834853fd36f8ebfb56",
+      "metadata/dataset.json": "sha256:59a5dba3b111e52274da07594d89dc34af4d9ff2798341590d9c250bad54f92b",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
     "code_metadata": "sha256:56d086b00a07880e1d6e926728691a2e2b86694f2f01ebc5bbf2a6c41d6b2a21",
@@ -318,12 +318,12 @@
       "digest": "sha256:f185b2977c82fea679d69b5e69f94c2314196e7115929fd5422bd30d5dc3155b",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:ae0d623579e19e3c6c2e913bdbbd16a5a65976f4c1f13cba0de1d2cf397ad9e8",
+    "dataset_metadata": "sha256:e4e5f4fb98036a340850e6e204557c1a8fada1ab5f525b8c77275b110c23ea53",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-08T00:32:39.864510",
+  "extracted_at": "2026-11-11T17:13:45.032382",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
@@ -431,8 +431,22 @@
     ],
     "shard_names_digest": "sha256:032cdb12ea0539c29b7226dd2e844417b2085e1019a358f09b0b10d44daa09be"
   },
-  "meds_summary_stats_version": "0.0.3",
+  "meds_summary_stats_version": "0.0.4",
   "per_subject": {
+    "measurements_per_day": {
+      "mean": 801.406,
+      "n": 2174,
+      "quantiles": {
+        "p1": 20.3643,
+        "p25": 390.386,
+        "p5": 102.31,
+        "p50": 679.894,
+        "p75": 1077.82,
+        "p95": 1889.37,
+        "p99": 2676.99
+      },
+      "std": 576.547
+    },
     "n_events": {
       "mean": 1025.95,
       "n": 2174,
@@ -510,7 +524,7 @@
     "n_subjects_in_splits_without_data": 0,
     "present": true
   },
-  "stats_schema_version": 1,
+  "stats_schema_version": 2,
   "time": {
     "by_year": {
       "1924": {
