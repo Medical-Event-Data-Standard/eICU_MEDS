@@ -1,0 +1,68 @@
+name: Synthetic ETL for MESSY files using MESSY_synth
+
+# Generates raw files straight from the shipped MESSY config with MESSY-synth and runs the ETL over
+# them. MESSY-synth validates that every event block yields events and fails the job otherwise, so
+# this catches expressions that only work on the dtypes of one particular release. It complements
+# tests/test_run_with_enrichment.py, which runs the ETL on a few hand-written rows and checks
+# specific values, and the demo build in tests.yaml, which needs the PhysioNet download.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main, "release/*", "dev"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  synthetic-etl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      matrix:
+        # MESSY-synth requires Python >= 3.12; this package supports up to 3.13.
+        python-version: ["3.12", "3.13"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          uv sync --locked
+          uv pip install "MESSY_synth==0.1.0"
+
+      # The `--column-format` registrations: every table builds its anchor time as
+      # f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}" parsed as "%Y-%m-%d %H:%M:%S".
+      # The two columns are only used inside that f-string, so MESSY-synth cannot infer their
+      # formats and would generate values the cast rejects (every table would yield no events).
+      #
+      # `skip_stages=[eicu_pre_meds]`: the pre-stage builds `dx_icd_map` from the raw
+      # `diagnosis.icd9code` column and stages the packaged `lab_descriptions`. The config never
+      # reads `icd9code`, so the synthetic `diagnosis` table does not have it and the pre-stage
+      # cannot run; MESSY-synth writes `dx_icd_map` and `lab_descriptions` itself instead.
+      # pre_MEDS.py is covered by its doctests and tests/test_pre_MEDS.py.
+      - name: Generate and extract synthetic data
+        run: |
+          uv run --no-sync MESSY-synth ./src/eICU_MEDS/configs/event_configs.yaml -o raw_synthetic/ --explain \
+            --column-format "patient/hospitaldischargeyear=%Y" \
+            --column-format "patient/hospitaldischargetime24=%H:%M:%S"
+          uv run --no-sync meds-extract-run spec=eICU output_dir=./eICU_meds_synth \
+            input_dir=raw_synthetic do_download=false 'skip_stages=[eicu_pre_meds]'
+          for f in dataset.json codes.parquet subject_splits.parquet; do
+            test -f "eICU_meds_synth/metadata/$f"
+          done
