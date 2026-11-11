@@ -18,44 +18,73 @@
     "n_data_codes_missing_from_metadata": 0,
     "n_metadata_codes_absent_from_data": 0,
     "n_with_description": 8122,
-    "n_with_parent_codes": 860,
+    "n_with_parent_codes": 1747,
     "ontology": {
       "by_vocabulary": {
+        "DIAGNOSIS": {
+          "keys_digest": "sha256:e41d2d694a6c770f25f86cd0a1ad9f945d7f9456434a2ab45e0b6a11492e76d3",
+          "n_child_codes": 611,
+          "n_distinct_keys": 235,
+          "n_measurements": 7392,
+          "n_subjects": 1148,
+          "recognized": false
+        },
         "ICD10CM": {
-          "keys_digest": "sha256:a575dfc8f91509c91c2831192b25b855b18d4724c198f9619c01e9225b416c12",
+          "keys_digest": "sha256:09bbd1ae3893ad028ea50df5e30c35419a35a9989e5eb7954fb9eb6c79c64f21",
           "n_child_codes": 813,
-          "n_distinct_keys": 409,
+          "n_distinct_keys": 744,
           "n_measurements": 20089,
           "n_subjects": 1820,
           "recognized": true
         },
         "ICD9CM": {
-          "keys_digest": "sha256:73b6f489a577a224c33772f82cc136bd711290723176d2e1c20136cc481432c2",
+          "keys_digest": "sha256:0d7d42b07ab31ecb3369cf7b6b4a39293c0df1871605b0c8f0d8ca48b484c4e7",
           "n_child_codes": 834,
-          "n_distinct_keys": 423,
+          "n_distinct_keys": 750,
           "n_measurements": 20651,
           "n_subjects": 1835,
           "recognized": true
+        },
+        "LOINC": {
+          "keys_digest": "sha256:0cd8343ecac6184970f4d51a8ef153347d215f30cca2f13d65ec5b4e21aee09d",
+          "n_child_codes": 50,
+          "n_distinct_keys": 50,
+          "n_measurements": 378238,
+          "n_subjects": 2153,
+          "numeric": {
+            "mean": 59.1377,
+            "n_finite": 376392,
+            "std": 262.275
+          },
+          "recognized": true
+        },
+        "TREATMENT": {
+          "keys_digest": "sha256:ebb021dba937e221c76babe24adca499f5d3ace96b3fb44c032c46b491ced1d3",
+          "n_child_codes": 754,
+          "n_distinct_keys": 252,
+          "n_measurements": 21425,
+          "n_subjects": 1403,
+          "recognized": false
         }
       },
       "coverage": {
-        "frac_measurements_mapped": 0.00182817,
-        "frac_observed_codes_with_parents": 0.105885,
-        "n_measurements_mapped": 20921,
-        "n_measurements_unmapped": 11422753,
+        "frac_measurements_mapped": 0.0368225,
+        "frac_observed_codes_with_parents": 0.215095,
+        "n_measurements_mapped": 421385,
+        "n_measurements_unmapped": 11022289,
         "n_observed_codes": 8122,
-        "n_observed_codes_with_parents": 860,
-        "n_observed_codes_without_parents": 7262
+        "n_observed_codes_with_parents": 1747,
+        "n_observed_codes_without_parents": 6375
       },
-      "n_codes_in_multiple_vocabularies": 787,
-      "n_codes_with_parents": 860,
-      "n_distinct_parents": 832,
-      "n_parent_links": 1712,
+      "n_codes_in_multiple_vocabularies": 829,
+      "n_codes_with_parents": 1747,
+      "n_distinct_parents": 2040,
+      "n_parent_links": 5369,
       "n_parents_without_vocabulary": 0,
-      "n_vocabularies": 2,
-      "n_vocabularies_recognized": 2,
+      "n_vocabularies": 5,
+      "n_vocabularies_recognized": 3,
       "parents_per_code": {
-        "mean": 0.210786,
+        "mean": 0.661044,
         "n": 8122,
         "quantiles": {
           "p1": 0.0,
@@ -63,14 +92,14 @@
           "p5": 0.0,
           "p50": 0.0,
           "p75": 0.0,
-          "p95": 2.0,
-          "p99": 2.0
+          "p95": 5.0,
+          "p99": 7.0
         },
-        "std": 0.629796
+        "std": 1.66665
       },
       "present": true,
       "vocabularies_per_code": {
-        "mean": 0.202783,
+        "mean": 0.377001,
         "n": 8122,
         "quantiles": {
           "p1": 0.0,
@@ -78,10 +107,10 @@
           "p5": 0.0,
           "p50": 0.0,
           "p75": 0.0,
-          "p95": 2.0,
-          "p99": 2.0
+          "p95": 3.0,
+          "p99": 3.0
         },
-        "std": 0.596238
+        "std": 0.823676
       }
     },
     "present": true,
@@ -207,13 +236,71 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-11T00:47:53.366780+00:00",
+    "code_modifier_columns": [
+      "diagnosis_priority"
+    ],
+    "created_at": "2026-11-11T17:13:40.594008+00:00",
     "dataset_name": "eICU",
     "dataset_version": "2.0.1:0.2.1",
+    "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
+    "license": "PhysioNet Credentialed Health Data License 1.5.0",
     "meds_version": "0.4.1",
-    "present": true
+    "other_extension_columns": [
+      "source_block",
+      "drug_rate",
+      "infusion_rate",
+      "drug_amount",
+      "volume_of_fluid",
+      "lab_type_id",
+      "dosage"
+    ],
+    "present": true,
+    "raw_source_id_columns": [
+      "hadm_id",
+      "icustay_id",
+      "ward_id",
+      "admission_dx_id",
+      "medication_id",
+      "intake_output_id",
+      "nurse_assess_id",
+      "nurse_care_id",
+      "nurse_chart_id",
+      "past_history_id",
+      "physical_exam_id",
+      "resp_chart_id",
+      "vital_id"
+    ],
+    "sumeds_enrichment": {
+      "athena": false,
+      "coverage": {
+        "codes": 8122,
+        "described": [
+          8122,
+          8122
+        ],
+        "with_parent_codes": [
+          860,
+          1747
+        ]
+      },
+      "enriched": true,
+      "enriched_at": "2026-11-11T17:13:44Z",
+      "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
+      "options": {
+        "child_codes": false,
+        "child_depth": 3,
+        "exclude_self_parent_code": false,
+        "loinc_hierarchy": false,
+        "packs": true,
+        "parent_codes": true,
+        "sibling_codes": false
+      },
+      "rules": "eICU",
+      "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
+      "sumeds_version": "0.6.3"
+    }
   },
   "dataset_digest": {
     "by_file": {
@@ -221,28 +308,34 @@
       "data/train/0.parquet": "sha256:54cb9d82664ee52df4556591adb7a826ad228de4ea5b15d51dabc0de3ea7fbb4",
       "data/train/1.parquet": "sha256:ba677ab101fef428399e7c036fe48e592859f2b1129242a785998ebe922f696d",
       "data/tuning/0.parquet": "sha256:7ff26be88366e65ee001bd3e6ba378bf4d95b5db1a0bf791da8f93450d0b2e94",
-      "metadata/codes.parquet": "sha256:cd29372b5d2fd99b965b1571ab686377e98e1861e6fc57ecaaaf89855f63ae38",
-      "metadata/dataset.json": "sha256:5f56165dd524b11c99855210c5262d514ed209595b4c932678e4794c4223790f",
+      "metadata/codes.parquet": "sha256:bc9503593de6fbb2d3885804e9af4bc8a4440d8d1ab37a49a26112b0357937ca",
+      "metadata/dataset.json": "sha256:59a5dba3b111e52274da07594d89dc34af4d9ff2798341590d9c250bad54f92b",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
-    "code_metadata": "sha256:426eb2002689868cec7ba3c5a4681bd0ad8aee00a697e021e270ba2a6e741193",
-    "combined": "sha256:ca29864624ca2f6e362fd93202719d3991c002cbd90a9045d7672be431b2e8c1",
+    "code_metadata": "sha256:56d086b00a07880e1d6e926728691a2e2b86694f2f01ebc5bbf2a6c41d6b2a21",
+    "combined": "sha256:70e6d430073f8735687d616f6083b97f0628ef5d3a374b48a621fdf2b75d132c",
     "data": {
       "digest": "sha256:f185b2977c82fea679d69b5e69f94c2314196e7115929fd5422bd30d5dc3155b",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:ba7ae0621e7679eff587621d6656bf293a97025439d690dea2669ff1c311c083",
+    "dataset_metadata": "sha256:e4e5f4fb98036a340850e6e204557c1a8fada1ab5f525b8c77275b110c23ea53",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-11T00:48:04.485081",
+  "extracted_at": "2026-11-11T17:13:45.032382",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
       "code_template": "String",
+      "concept_code": "String",
+      "concept_id": "Int64",
       "description": "String",
-      "parent_codes": "List(String)"
+      "domain_id": "String",
+      "parent_codes": "List(String)",
+      "parent_names": "Map(String, String)",
+      "standard_concept": "String",
+      "vocabulary_id": "String"
     },
     "column_dtype_conflicts": {},
     "column_presence": {

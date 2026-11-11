@@ -15,6 +15,13 @@ from omegaconf import OmegaConf
 from omegaconf.errors import InterpolationResolutionError
 
 from eICU_MEDS import EVENT_CFG
+from eICU_MEDS.pre_MEDS import DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX
+
+BUCKETS = ("dataset", "demo")
+# Top-level keys of the config that are not tables.
+RESERVED_KEYS = {"etl", "sources"}
+# Tables the `eicu_pre_meds` pre-stage writes; they are not downloaded.
+STAGED = {DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX}
 
 
 def _bucket_spec(*keys: str) -> dict:
@@ -49,7 +56,7 @@ def test_every_physionet_source_sets_a_wget_user_agent():
     time. Pin it on every entry.
     """
     raw = OmegaConf.load(EVENT_CFG)
-    entries = [e for bucket in raw.sources.values() for e in bucket]
+    entries = [e for key in BUCKETS for e in raw.sources[key]]
     assert entries, "no sources declared"
     for entry in entries:
         ua = entry.get("headers", {}).get("User-Agent")
@@ -102,14 +109,17 @@ def test_dataset_requires_credentials(monkeypatch):
 
 
 def test_demo_include_covers_every_table_the_config_reads():
-    """The demo bucket fetches only the tables the config reads or joins; keep the two in sync."""
+    """The demo bucket fetches only the tables the config reads or joins; keep the two in sync.
+
+    The tables the pre-stage writes are not fetched.
+    """
     raw = OmegaConf.load(EVENT_CFG)
     physionet, override = raw.sources["demo"]
 
     fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
     fetched |= {e.rel_path.removesuffix(".csv.gz") for e in override.urls}
-    tables = {k for k in raw if not k.startswith("_") and k != "sources"}
-    joined = {j for k in tables for j in raw[k].get("_table", {}).get("join") or {}}
+    tables = {k for k in raw if not k.startswith("_") and k not in RESERVED_KEYS}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}} - STAGED
 
     assert fetched == tables | joined
 
@@ -124,29 +134,27 @@ def test_dataset_include_covers_every_table_the_config_reads():
     (physionet,) = raw.sources["dataset"]
 
     fetched = {p.removesuffix(".csv.gz") for p in physionet.include}
-    tables = {k for k in raw if not k.startswith("_") and k != "sources"}
-    joined = {j for k in tables for j in raw[k].get("_table", {}).get("join") or {}}
+    tables = {k for k in raw if not k.startswith("_") and k not in RESERVED_KEYS}
+    joined = {j for k in tables for j in raw[k].get("_table", {}).get("joins") or {}} - STAGED
 
     assert fetched == tables | joined
 
 
 def test_buckets_point_at_the_declared_dataset_versions():
-    """The bucket URLs must track the versions recorded in ``dataset.yaml``.
+    """The bucket URLs must track the versions in ``sources.dataset_version``.
 
-    These are the same two numbers that go into ``DATASET_VERSION`` on the extracted
-    cohort, so a bumped URL that forgets ``dataset.yaml`` (or vice versa) would silently
-    mislabel the output.
+    ``meds-extract-run`` stamps the selected bucket's version into ``dataset.json``, so a bumped URL
+    that forgets ``dataset_version`` (or vice versa) would silently mislabel the output.
     """
-    from eICU_MEDS import dataset_info
-
     raw = OmegaConf.load(EVENT_CFG)
+    versions = raw.sources.dataset_version
     (dataset_entry,) = raw.sources["dataset"]
     demo_entry = raw.sources["demo"][0]
 
     assert dataset_entry.type == "physionet"
     assert demo_entry.type == "physionet"
-    assert dataset_entry.base_url.endswith(f"/eicu-crd/{dataset_info.raw_dataset_version}")
-    assert demo_entry.base_url.endswith(f"/eicu-crd-demo/{dataset_info.demo_dataset_version}")
+    assert dataset_entry.base_url.endswith(f"/eicu-crd/{versions.dataset}")
+    assert demo_entry.base_url.endswith(f"/eicu-crd-demo/{versions.demo}")
 
 
 def test_no_common_bucket():
@@ -156,4 +164,4 @@ def test_no_common_bucket():
     keeps a stray entry from silently joining every download.
     """
     raw = OmegaConf.load(EVENT_CFG)
-    assert set(raw.sources.keys()) == {"dataset", "demo"}
+    assert set(raw.sources.keys()) == {"dataset_version", *BUCKETS}

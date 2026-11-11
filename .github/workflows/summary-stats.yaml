@@ -31,10 +31,11 @@ jobs:
           persist-credentials: false
 
       - name: Check that ETL changes regenerated the baseline
-        # The suMEDS rules and documentation do not affect what the ETL writes.
+        # Documentation does not affect what the ETL writes. The suMEDS rules do: the spec's
+        # sumeds_enrich stage enriches metadata/codes.parquet with them as its last step.
         run: |
           changed=$(git diff --name-only HEAD^1 HEAD)
-          etl=$(grep -E '^src/' <<<"$changed" | grep -vE '(^|/)sumeds_rules\.yaml$|\.md$' || true)
+          etl=$(grep -E '^src/' <<<"$changed" | grep -vE '\.md$' || true)
           if [[ -z $etl ]]; then
             echo "No ETL changes."
           elif grep -qx 'tests/regression/full_summary_stats.json' <<<"$changed"; then

@@ -13,10 +13,12 @@ from pathlib import Path
 import polars as pl
 import pytest
 import yaml
-from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules
+from MEDS_extract.config import MessyConfig
+from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules, registered_rules
 from sumeds.ontology import INDEX_SCHEMA
 
-from eICU_MEDS.code_descriptions import read_lab_descriptions
+from eICU_MEDS import EVENT_CFG
+from eICU_MEDS.pre_MEDS import read_lab_descriptions
 
 CONFIG_FP = Path(__file__).parents[1] / "src" / "eICU_MEDS" / "configs" / "event_configs.yaml"
 RULES_FP = files("eICU_MEDS") / "sumeds_rules.yaml"
@@ -65,6 +67,14 @@ def _enriched_parents(rule, codes: list[str], ontology_source: str) -> dict[str,
         for row in enriched.select("code", "parent_codes").to_dicts()
         if row["parent_codes"]
     }
+
+
+def test_rules_are_registered_under_the_dataset_name():
+    """The spec's ``sumeds_enrich`` stage and ``suMEDS-enrich --rules eICU`` find the rules by this name."""
+    (enrich,) = [s for s in MessyConfig.load(EVENT_CFG).etl.post_stages if s.name == "sumeds_enrich"]
+    assert enrich.options == {"rules": "eICU"}
+    assert registered_rules()["eICU"] == "eICU_MEDS:sumeds_rules.yaml"
+    assert load_rules("eICU") == load_rules(RULES_FP)
 
 
 def test_rules_load_in_sumeds():

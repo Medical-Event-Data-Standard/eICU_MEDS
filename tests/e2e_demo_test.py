@@ -1,24 +1,29 @@
+import json
 import os
 import subprocess
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
 import polars as pl
+import pyarrow.parquet as pq
+from meds import CodeMetadataSchema, DatasetMetadataSchema
 
 
 def test_e2e():
     with TemporaryDirectory() as temp_dir:
         root = Path(temp_dir)
 
-        command_parts = [
-            "MEDS_extract-eICU",
-            f"root_output_dir={root.resolve()!s}",
-            "do_download=True",
-            "do_overwrite=True",
-            "do_demo=True",
-            # The opt-in suMEDS step runs here so that the packaged rules are checked against
-            # suMEDS's real ontology data (fetched from GitHub), which the unit tests stub out.
-            "do_enrich=True",
+        # The run ends with the spec's `sumeds_enrich` stage, which checks the packaged rules against
+        # suMEDS's real ontology data (fetched from GitHub); test_run_with_enrichment.py stubs that
+        # data out. `strict` fails the run if that fetch fails, which a user's run would only record,
+        # so that CI retries it rather than passing unenriched.
+        command = [
+            "meds-extract-run",
+            "spec=eICU",
+            f"output_dir={root.resolve()!s}",
+            "dataset_key=demo",
+            "download_concurrency=8",
+            "overrides=['++stage_cfg.strict=true']",
         ]
 
         # Point the download at a persistent directory (e.g. one restored by CI's
@@ -26,10 +31,9 @@ def test_e2e():
         # there are verified against PhysioNet's SHA256SUMS and skipped.
         cached_raw_dir = os.environ.get("EICU_MEDS_DEMO_RAW_DIR")
         if cached_raw_dir:
-            command_parts.append(f"raw_input_dir={Path(cached_raw_dir).expanduser().resolve()!s}")
+            command.append(f"download_dest_dir={Path(cached_raw_dir).expanduser().resolve()!s}")
 
-        full_cmd = " ".join(command_parts)
-        command_out = subprocess.run(full_cmd, shell=True, capture_output=True)
+        command_out = subprocess.run(command, capture_output=True)
 
         stderr = command_out.stderr.decode()
         stdout = command_out.stdout.decode()
@@ -41,7 +45,7 @@ def test_e2e():
         )
         assert command_out.returncode == 0, err_message
 
-        _validate_meds_dataset(root / "MEDS_output")
+        _validate_meds_dataset(root)
 
 
 def _validate_meds_dataset(dataset_path: Path):
@@ -63,6 +67,13 @@ def _validate_meds_dataset(dataset_path: Path):
     for fname in expected_files:
         fpath = metadata_path / fname
         assert fpath.exists(), f"{fname} not found in {metadata_path}; found {all_meta_files}"
+
+    dataset = json.loads((metadata_path / "dataset.json").read_text())
+    DatasetMetadataSchema.validate(dataset)
+    assert dataset["dataset_name"] == "eICU"
+    assert dataset["dataset_version"].startswith("2.0.1:")
+    assert dataset["sumeds_enrichment"]["enriched"] is True
+    assert dataset["sumeds_enrichment"]["rules"] == "eICU"
 
     _validate_data_correctness(data_path, metadata_path)
 
@@ -168,10 +179,12 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     assert n_born_after_admit == 0, f"{n_born_after_admit} subjects are born after their own admission."
 
     codes = pl.read_parquet(metadata_path / "codes.parquet")
+    undescribed = codes.filter(pl.col("description").is_null())["code"].to_list()
+    assert not undescribed, f"{len(undescribed)} codes have no description, e.g. {undescribed[:5]}"
     n_with_parents = codes.filter(pl.col("parent_codes").list.len() > 0).height
     assert n_with_parents > 0, "No code in codes.parquet carries parent_codes; the dx -> ICD link is gone."
 
-    # `do_enrich=True`: suMEDS adds parents among eICU's own path codes and LOINC parents for labs.
+    # The suMEDS enrichment adds parents among eICU's own path codes and LOINC parents for labs.
     parents = codes.select("code", "parent_codes").explode("parent_codes").drop_nulls()
     in_dataset = parents.filter(pl.col("parent_codes").is_in(codes["code"].implode()))
     for family in ("DIAGNOSIS//", "TREATMENT//ENTERED//"):
@@ -179,3 +192,5 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
         assert n > 0, f"No {family} code got an in-dataset parent from the suMEDS hierarchy rules."
     n_loinc = parents.filter(pl.col("parent_codes").str.starts_with("LOINC")).height
     assert n_loinc > 0, "No lab code got a LOINC parent from the suMEDS crosswalk."
+    # suMEDS rewrote the file in place; it must still be valid MEDS code metadata as read from disk.
+    CodeMetadataSchema.validate(pq.read_table(metadata_path / "codes.parquet"))

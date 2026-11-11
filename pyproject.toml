@@ -22,8 +22,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 # Each dep is pinned with a lower bound at the version we actively test against, and an
-# upper bound at the next known-or-expected breaking major.
-# `meds-transforms>=0.6.7` is the floor MEDS-Extract 0.7 requires.
+# upper bound at the next known-or-expected breaking major. MEDS-Extract 0.x minors are breaking
+# (0.8 renamed the MESSY `_table.join` key to `_table.joins`), so raise its cap deliberately when
+# migrating. 0.8.1 is the first release with extension stages (`etl.pre_stages`/`post_stages`, which
+# run this package's pre-MEDS stage) and `_self` metadata on literal codes.
 #
 # `requests`/`beautifulsoup4` are gone: the bespoke `download.py` scraper was replaced
 # by MEDS-Extract's download layer (the `[download]` extra, httpx + tenacity), driven
@@ -35,25 +37,34 @@ classifiers = [
 # MEDS-Extract's own `>=0.7.0,<0.8` made the project unresolvable outright. They arrive
 # transitively at whatever versions MEDS-Extract fences.
 #
-# `hydra-joblib-launcher` stays: `configs/ETL.yaml` selects `launcher: joblib` by default, so
-# it is a genuine runtime requirement of this ETL rather than an upstream re-declaration.
+# `hydra-joblib-launcher` stays: it is the launcher the README's parallel runs select
+# (`stage_runner_fp=` with `launcher: joblib`), so it is a runtime requirement of this ETL rather
+# than an upstream re-declaration.
+#
+# suMEDS enriches `metadata/codes.parquet` with the rules registered below. 0.6 is the first release
+# that writes `parent_names` as a map from code to name; 0.6.1 adds the soft fail (a failed
+# enrichment, e.g. without internet, leaves the ETL output as it was) and the `sumeds_enrichment`
+# record in `metadata/dataset.json`; 0.6.2 registers the `sumeds_enrich` stage, which the spec runs
+# after extraction; 0.6.3 summarizes code metadata keyed by `code` alone, as MEDS-Extract writes
+# it, although the spec declares `diagnosis_priority` as a code modifier (0.6.2 fails on the missing
+# column). It is capped below the next minor because its rules format and CLI are still 0.x, and
+# because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
-    "meds-extract[download]>=0.7.0,<0.8",
+    "meds-extract[download]>=0.8.1,<0.9",
+    "sumeds>=0.6.3,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 
 [dependency-groups]
 # `pytest-rerunfailures` lets CI auto-retry the e2e demo download test on the narrow set
 # of network exceptions seen coming out of PhysioNet (connection reset / IncompleteRead
-# mid-stream) instead of turning a bad upstream minute into a failed CI build. `sumeds` (0.4
-# is the first release with rules) loads the packaged suMEDS rules in tests/test_sumeds_rules.py.
+# mid-stream) instead of turning a bad upstream minute into a failed CI build.
 dev = [
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
     "pytest-cov~=7.1",
     "pytest-rerunfailures==16.1",
-    "sumeds>=0.4",
 ]
 
 # setuptools-scm used to ship these implicitly (its git file finder), so without this list the
@@ -63,21 +74,31 @@ eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
-# For `do_enrich=True`. 0.4 is the first release with rules; the cap keeps the ontology data
-# release suMEDS pins (and so the enriched output) fixed for a given eICU-MEDS version.
-sumeds = ["sumeds>=0.4,<0.5"]
 
-[project.scripts]
-MEDS_extract-eICU = "eICU_MEDS.__main__:main"
+# Registers the MESSY spec with MEDS-Extract, so `meds-extract-run spec=eICU` runs it.
+[project.entry-points."MEDS_extract.pipelines"]
+"eICU" = "eICU_MEDS.configs:event_configs.yaml"
+
+# Registers the suMEDS rules under the dataset's name, so the spec's `sumeds_enrich` post-stage
+# and `suMEDS-enrich --rules eICU` find them.
+[project.entry-points."sumeds.rules"]
+"eICU" = "eICU_MEDS:sumeds_rules.yaml"
+
+# This package's MEDS-Extract extension stages. The pre-stage writes the ICD map of the diagnosis
+# codes and the packaged lab-description table (`etl.pre_stages`; see `pre_MEDS.py`); the post-stage
+# sorts each code's ICD parents (`etl.post_stages`; see `sort_parent_codes.py`).
+[project.entry-points."MEDS_transforms.stages"]
+eicu_pre_meds = "eICU_MEDS.pre_MEDS:main"
+eicu_sort_parent_codes = "eICU_MEDS.sort_parent_codes:main"
 
 [project.urls]
 Homepage = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS"
 Issues = "https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues"
 
 [tool.coverage.run]
-# The e2e tests exercise the runner, download, and pipeline through subprocesses (the
-# `MEDS_extract-eICU` console script, which in turn spawns `meds-extract-download` and
-# `MEDS_transform-pipeline`). `patch = ["subprocess"]` (coverage.py >= 7.10) propagates
+# The e2e tests exercise the download, the pipeline and this package's stages through subprocesses
+# (`meds-extract-run`, which in turn spawns `meds-extract-download`, the MEDS-Transforms runner and
+# one process per stage). `patch = ["subprocess"]` (coverage.py >= 7.10) propagates
 # measurement into those children — transitively, since each patched process patches its
 # own children — so the code they execute counts toward coverage instead of appearing
 # untested.

@@ -1,39 +1,95 @@
-"""The packaged code-description tables and the config blocks that consume them stay in step."""
+"""Every code the config emits is described in the config, and the lab table feeds the lab events.
+
+The expressions are read from the shipped ``configs/event_configs.yaml`` and evaluated with dftly, so
+the pinned text cannot drift from what ships.
+"""
 
 import re
-from pathlib import Path
 
 import polars as pl
-import pyarrow.parquet as pq
-import yaml
-from meds import CodeMetadataSchema
+import pytest
+from dftly import Parser
+from MEDS_extract.config import MessyConfig
 
-from eICU_MEDS.code_descriptions import (
-    LAB_DESCRIPTIONS_PREFIX,
-    apply_static_descriptions,
-    lab_fallback_description,
-    read_lab_descriptions,
-    read_static_code_descriptions,
-    write_lab_descriptions,
+from eICU_MEDS import EVENT_CFG
+from eICU_MEDS.pre_MEDS import LAB_DESCRIPTIONS_PREFIX, read_lab_descriptions, write_lab_descriptions
+
+
+@pytest.fixture(scope="module")
+def events() -> dict[str, object]:
+    """``{"<table>/<event>": EventConfig}`` for every event in the shipped config."""
+    cfg = MessyConfig.load(EVENT_CFG)
+    return {f"{t.input_prefix}/{e.name}": e for t in cfg.event_tables for e in t.events}
+
+
+def _evaluate(expr: str, frame: pl.DataFrame) -> list:
+    return frame.select(v=Parser.to_polars({"v": expr})["v"])["v"].to_list()
+
+
+def test_every_event_describes_its_code_itself(events):
+    """A ``_self`` description on every event: f-string templates, constants on literal codes."""
+    undescribed = sorted(
+        name for name, event in events.items() if "description" not in event.metadata["_self"]
+    )
+    assert not undescribed, undescribed
+
+
+def test_literal_codes_carry_a_constant_description_with_its_source(events):
+    literal = {name: event for name, event in events.items() if not event.code_source_columns}
+    literal |= {
+        name: event
+        for name, event in events.items()
+        if re.fullmatch(r'"[A-Z0-9_/]+" if \$(\w+) == \$\1', str(event.raw_code))
+    }
+    assert len(literal) == 34
+    for name, event in literal.items():
+        description = event.metadata["_self"]["description"]
+        assert re.fullmatch(r'"[^"$\\{}]+"', description), (name, description)
+        # dftly reads the constant back verbatim, so the YAML folding added nothing.
+        assert _evaluate(description, pl.DataFrame({"x": [1]})) == [description[1:-1]]
+    # Each constant records where its text comes from.
+    assert EVENT_CFG.read_text().count("    # Source: ") == len(literal)
+
+
+def test_lab_events_join_the_packaged_table():
+    """The ``lab`` table joins ``lab_descriptions`` on the raw lab name and reads only its description."""
+    cfg = MessyConfig.load(EVENT_CFG)
+    (lab,) = [t for t in cfg.event_tables if t.input_prefix == "lab"]
+    joins = {j.input_prefix: j for j in lab.joins}
+    join = joins[LAB_DESCRIPTIONS_PREFIX]
+    assert (join.left_on, join.right_on, join.cols) == (("labname",), ("labname",), ("description",))
+    assert set(join.cols) <= set(read_lab_descriptions().columns)
+
+
+@pytest.mark.parametrize(
+    ("event", "listed", "unlisted", "blank"),
+    [
+        (
+            "lab/lab_result",
+            "Hemoglobin (eICU lab.labName 'Hgb')",
+            "Lab result (eICU lab.labName 'new lab')",
+            "Lab result (eICU lab.labName 'UNK')",
+        ),
+        (
+            "lab/lab_specimen_drawn",
+            "Lab specimen drawn: Hemoglobin (eICU lab.labName 'Hgb')",
+            "Lab specimen drawn (eICU lab.labName 'new lab')",
+            "Lab specimen drawn (eICU lab.labName 'UNK')",
+        ),
+    ],
 )
+def test_lab_descriptions_fall_back_for_a_name_the_table_does_not_list(
+    events, event, listed, unlisted, blank
+):
+    """The joined description wins; a lab name outside the table (or a blank one) gets a generic one.
 
-CONFIG_FP = Path(__file__).parents[1] / "src" / "eICU_MEDS" / "configs" / "event_configs.yaml"
-
-
-def _events():
-    cfg = yaml.safe_load(CONFIG_FP.read_text())
-    for table, body in cfg.items():
-        if table in ("_defaults", "sources"):
-            continue
-        for name, event in body.items():
-            if name == "_table":
-                continue
-            yield table, name, event
-
-
-def _is_literal_code(code: str) -> bool:
-    """A code expression with no ``$column`` reference: a bare literal or ``"X" if $col == $col``."""
-    return "$" not in code.split(" if ")[0]
+    The generic text is the one releases up to 0.2.0 built from the code after the pipeline.
+    """
+    frame = pl.DataFrame(
+        {"labname": ["Hgb", "new lab", None], "description": ["Hemoglobin", None, None]},
+        schema={"labname": pl.String, "description": pl.String},
+    )
+    assert _evaluate(events[event].metadata["_self"]["description"], frame) == [listed, unlisted, blank]
 
 
 def test_lab_table_is_complete_and_sourced():
@@ -45,122 +101,9 @@ def test_lab_table_is_complete_and_sourced():
     assert "loinc_code" not in df.columns
 
 
-def test_static_table_covers_every_literal_code():
-    static = set(read_static_code_descriptions()["code"])
-    literal = set()
-    for _table, _name, event in _events():
-        code = str(event["code"]).strip()
-        if _is_literal_code(code):
-            literal.add(code.split(" if ")[0].strip().strip('"'))
-    assert literal, "no literal-coded events found; the detection regex is stale"
-    missing = sorted(literal - static)
-    assert not missing, f"literal codes without a description: {missing}"
-    extra = sorted(static - literal)
-    assert not extra, f"described codes the config no longer emits: {extra}"
-
-
-def test_component_coded_events_declare_a_description():
-    """Every event whose code has components describes itself, through ``_self`` or the lab table."""
-    undescribed = []
-    for table, name, event in _events():
-        code = str(event["code"])
-        if _is_literal_code(code):
-            continue
-        meta = event.get("_metadata", {})
-        blocks = [b for b in meta.values() if isinstance(b, dict) and "description" in b]
-        if not blocks:
-            undescribed.append(f"{table}/{name}")
-    assert not undescribed, undescribed
-
-
-def test_lab_blocks_use_the_packaged_prefix():
-    for table, _name, event in _events():
-        if table != "lab":
-            continue
-        block = event["_metadata"][LAB_DESCRIPTIONS_PREFIX]
-        assert block["labname"] == "$labname"
-        assert "$description" in block["description"]
-        assert "parent_codes" not in block, "lab LOINC parents come from suMEDS (sumeds_rules.yaml)"
-        for referenced in re.findall(r"\$(\w+)", " ".join(map(str, block.values()))):
-            assert referenced in read_lab_descriptions().columns, referenced
-
-
 def test_write_lab_descriptions(tmp_path):
     fp = write_lab_descriptions(tmp_path)
     assert fp == tmp_path / f"{LAB_DESCRIPTIONS_PREFIX}.parquet"
     labs = pl.read_parquet(fp)
     assert set(labs.schema.values()) == {pl.String}
     assert labs.height == read_lab_descriptions().height
-
-
-def test_apply_static_descriptions_fills_only_nulls(tmp_path):
-    codes = pl.DataFrame(
-        {
-            "code": ["VITALS//PERIODIC//HEARTRATE", "MEDS_BIRTH", "LAB//RESULT//Hgb//g/dL"],
-            "description": [None, "already extracted", "Hemoglobin"],
-            "parent_codes": pl.Series([None, None, None], dtype=pl.List(pl.String)),
-            "code_template": [None, None, 'f"LAB//RESULT//{$labname}//{$labmeasurenamesystem}"'],
-        }
-    )
-    fp = tmp_path / "codes.parquet"
-    codes.write_parquet(fp)
-    assert apply_static_descriptions(fp) == 1
-    out = pl.read_parquet(fp)
-    assert out.columns == codes.columns and out.height == codes.height
-    by_code = dict(zip(out["code"], out["description"], strict=True))
-    assert by_code["VITALS//PERIODIC//HEARTRATE"].startswith("Heart rate")
-    assert by_code["MEDS_BIRTH"] == "already extracted"
-    assert by_code["LAB//RESULT//Hgb//g/dL"] == "Hemoglobin"
-    assert apply_static_descriptions(fp) == 0  # idempotent
-    # The file must stay valid MEDS code metadata as read from disk (string, not large_string).
-    CodeMetadataSchema.validate(pq.read_table(fp))
-
-
-def test_parent_codes_are_written_sorted(tmp_path):
-    """MEDS-Extract's union leaves the parent order to chance; the written file must not depend on it."""
-    fp = tmp_path / "codes.parquet"
-    for parents in (["ICD9CM/486", "ICD10CM/J18.9"], ["ICD10CM/J18.9", "ICD9CM/486"]):
-        pl.DataFrame(
-            {"code": ["DIAGNOSIS//x"], "description": ["x"], "parent_codes": [parents]}
-        ).write_parquet(fp)
-        apply_static_descriptions(fp)
-        assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM/J18.9", "ICD9CM/486"]]
-
-
-def test_lab_fallback_description_parses_units_and_skips_other_codes():
-    codes = pl.Series(
-        [
-            "LAB//RESULT//total protein//g/dL",
-            "LAB//SPECIMEN_DRAWN//O2 Sat (%)//%",
-            "LAB//RESULT//WBC x 1000//K/mcL",
-            "LAB//RESULT//UNK//UNK",
-            "VITALS//PERIODIC//HEARTRATE",
-            "MEDICATION//STARTED//LAB//x",
-        ]
-    )
-    assert pl.select(lab_fallback_description(pl.lit(codes))).to_series().to_list() == [
-        "Lab result (eICU lab.labName 'total protein')",
-        "Lab specimen drawn (eICU lab.labName 'O2 Sat (%)')",
-        "Lab result (eICU lab.labName 'WBC x 1000')",
-        "Lab result (eICU lab.labName 'UNK')",
-        None,
-        None,
-    ]
-
-
-def test_unlisted_lab_codes_get_the_fallback_and_listed_ones_keep_the_table(tmp_path):
-    codes = pl.DataFrame(
-        {
-            "code": ["LAB//RESULT//Hgb//g/dL", "LAB//RESULT//not in the table//mg/dL"],
-            "description": ["Hemoglobin (eICU lab.labName 'Hgb')", None],
-            "parent_codes": [None, None],
-        }
-    )
-    fp = tmp_path / "codes.parquet"
-    codes.write_parquet(fp)
-    assert apply_static_descriptions(fp) == 1
-    by_code = dict(pl.read_parquet(fp).select("code", "description").iter_rows())
-    assert by_code["LAB//RESULT//Hgb//g/dL"] == "Hemoglobin (eICU lab.labName 'Hgb')"
-    assert (
-        by_code["LAB//RESULT//not in the table//mg/dL"] == "Lab result (eICU lab.labName 'not in the table')"
-    )

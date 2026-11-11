@@ -99,5 +99,14 @@ rules:
   - path: dataset.created_at
     kind: ignore
 
+  # suMEDS records when it enriched the code metadata and with which release. Like `created_at`
+  # and `etl_version`, neither says anything about the content; the rest of `sumeds_enrichment`
+  # (whether it ran, the rules, the coverage) is compared.
+  - path: dataset.sumeds_enrichment.enriched_at
+    kind: ignore
+
+  - path: dataset.sumeds_enrichment.sumeds_version
+    kind: ignore
+
   - path: dataset.location_uri
     kind: ignore

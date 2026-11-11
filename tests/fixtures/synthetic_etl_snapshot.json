@@ -1,0 +1,1148 @@
+{
+ "events": [
+  {
+   "subject_id": 101,
+   "time": "1964-06-28T23:00:00",
+   "code": "MEDS_BIRTH",
+   "source_block": "patient/dob"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T08:00:00",
+   "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
+   "source_block": "patient/hosp_admission",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION//Synthetic source//admit",
+   "source_block": "patient/unit_admission",
+   "hadm_id": 1,
+   "icustay_id": 1,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_HEIGHT",
+   "numeric_value": 170.5,
+   "source_block": "patient/unit_admission_height",
+   "hadm_id": 1,
+   "icustay_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_WEIGHT",
+   "numeric_value": 70.5,
+   "source_block": "patient/unit_admission_weight",
+   "hadm_id": 1,
+   "icustay_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "ADMISSION_DIAGNOSIS//Synthetic admitdxpath",
+   "source_block": "admissionDx/admission_diagnosis",
+   "icustay_id": 1,
+   "admission_dx_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "ALLERGY//Synthetic allergytype",
+   "text_value": "Synthetic allergyname",
+   "source_block": "allergy/allergy"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "CAREPLAN_EOL",
+   "source_block": "carePlanEOL/cplEolDiscussion"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "CAREPLAN_GENERAL//Synthetic cplgroup//Synthetic cplitemvalue",
+   "source_block": "carePlanGeneral/cplItem"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "CAREPLAN_GOAL//Synthetic cplgoalcategory//Synthetic cplgoalvalue//Synthetic cplgoalstatus",
+   "source_block": "carePlanGoal/cplGoal"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "CAREPLAN_INFECTIOUS_DISEASE//Synthetic infectdiseasesite//Synthetic infectdiseaseassessment//Synthetic treatment//Synthetic responsetotherapy",
+   "source_block": "carePlanInfectiousDisease/cplInfectDisease"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "INFUSION_DRUG",
+   "text_value": "Synthetic drugname",
+   "source_block": "infusionDrug/infusion",
+   "drug_rate": "Synthetic drugrate",
+   "infusion_rate": "Synthetic infusionrate",
+   "drug_amount": "Synthetic drugamount",
+   "volume_of_fluid": 1,
+   "medication_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "INTAKE_OUTPUT//Synthetic cellpath",
+   "numeric_value": 1.0,
+   "source_block": "intakeOutput/intake_output",
+   "icustay_id": 1,
+   "intake_output_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "MEDICATION//STARTED//Synthetic drugname",
+   "source_block": "medication/drug_started",
+   "medication_id": 1,
+   "dosage": "Synthetic dosage"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "MEDICATION//STOPPED//Synthetic drugname",
+   "source_block": "medication/drug_stopped",
+   "medication_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "NURSE_ASSESSMENT//Synthetic cellattributepath",
+   "text_value": "Synthetic cellattributevalue",
+   "source_block": "nurseAssessment/nurse_assessment",
+   "icustay_id": 1,
+   "nurse_assess_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "NURSE_CARE//Synthetic cellattributepath",
+   "text_value": "Synthetic cellattributevalue",
+   "source_block": "nurseCare/nurse_care",
+   "icustay_id": 1,
+   "nurse_care_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "NURSE_CHARTING//Synthetic nursingchartcelltypecat//Synthetic nursingchartcelltypevallabel//Synthetic nursingchartcelltypevalname",
+   "text_value": "Synthetic nursingchartvalue",
+   "source_block": "nurseCharting/nurse_charting",
+   "icustay_id": 1,
+   "nurse_chart_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "PAST_HISTORY//Synthetic pasthistorypath",
+   "text_value": "Synthetic pasthistoryvaluetext",
+   "source_block": "pastHistory/past_history",
+   "icustay_id": 1,
+   "past_history_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "PHYSICAL_EXAM//Synthetic physicalexampath",
+   "text_value": "Synthetic physicalexamtext",
+   "source_block": "physicalExam/physical_exam",
+   "icustay_id": 1,
+   "physical_exam_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "RESPIRATORY_CHARTING//Synthetic respcharttypecat//Synthetic respchartvaluelabel",
+   "text_value": "Synthetic respchartvalue",
+   "source_block": "respiratoryCharting/respiratory_charting",
+   "icustay_id": 1,
+   "resp_chart_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/non_invasive_diastolic",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//BP//NONINVASIVE_MEAN",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/non_invasive_mean",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/non_invasive_systolic",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//CARDIAC_INPUT",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/cardiac_input",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//CARDIAC_OUTPUT",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/cardiac_output",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//PAOP",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/paop",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//PVR",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/pvr",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//PVRI",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/pvri",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//SVR",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/svr",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//APERIODIC//SVRI",
+   "numeric_value": 1.0,
+   "source_block": "vitalAperiodic/svri",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/pa_diastolic",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//BP//PULM_ART_MEAN",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/pa_mean",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/pa_systolic",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/systemic_diastolic",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//BP//SYSTEMIC_MEAN",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/systemic_mean",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/systemic_systolic",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//CVP",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/cvp",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//ETCO2",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/etCo2",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//HEARTRATE",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/heartRate",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//ICP",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/ICP",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//RESPIRATION",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/respiration",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//SAO2",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/saO2",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//ST1",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/st1",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//ST2",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/st2",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//ST3",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/st3",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:01:00",
+   "code": "VITALS//PERIODIC//TEMPERATURE",
+   "numeric_value": 1.0,
+   "source_block": "vitalPeriodic/temperature",
+   "vital_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:10:00",
+   "code": "DIAGNOSIS//synthetic system|synthetic disorder",
+   "source_block": "diagnosis/diagnosis",
+   "diagnosis_priority": "Primary"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//Hgb//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//synthetic lab//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//Hgb//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//synthetic lab//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:50:00",
+   "code": "TREATMENT//ENTERED//synthetic therapy|synthetic class",
+   "text_value": "synthetic therapy|synthetic class",
+   "source_block": "treatment/treatment"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/unit_discharge",
+   "hadm_id": 1,
+   "icustay_id": 1,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE_WEIGHT",
+   "numeric_value": 69.5,
+   "source_block": "patient/unit_discharge_weight",
+   "hadm_id": 1,
+   "icustay_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-31T12:00:00",
+   "code": "HOSPITAL_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/hosp_discharge",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 101,
+   "code": "GENDER//Female",
+   "source_block": "patient/gender"
+  },
+  {
+   "subject_id": 101,
+   "code": "RACE//Synthetic ethnicity",
+   "source_block": "patient/ethnicity"
+  },
+  {
+   "subject_id": 102,
+   "time": "1963-06-29T17:00:00",
+   "code": "MEDS_BIRTH",
+   "source_block": "patient/dob"
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T08:00:00",
+   "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
+   "source_block": "patient/hosp_admission",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION//Synthetic source//admit",
+   "source_block": "patient/unit_admission",
+   "hadm_id": 1,
+   "icustay_id": 2,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_HEIGHT",
+   "numeric_value": 170.5,
+   "source_block": "patient/unit_admission_height",
+   "hadm_id": 1,
+   "icustay_id": 2
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_WEIGHT",
+   "numeric_value": 70.5,
+   "source_block": "patient/unit_admission_weight",
+   "hadm_id": 1,
+   "icustay_id": 2
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:20:00",
+   "code": "DIAGNOSIS//synthetic system|synthetic disorder|synthetic subtype",
+   "source_block": "diagnosis/diagnosis",
+   "diagnosis_priority": "Major"
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//Hgb//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//synthetic lab//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//Hgb//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//synthetic lab//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-29T11:00:00",
+   "code": "TREATMENT//ENTERED//synthetic therapy|synthetic class|synthetic drug",
+   "text_value": "synthetic therapy|synthetic class|synthetic drug",
+   "source_block": "treatment/treatment"
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/unit_discharge",
+   "hadm_id": 1,
+   "icustay_id": 2,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE_WEIGHT",
+   "numeric_value": 69.5,
+   "source_block": "patient/unit_discharge_weight",
+   "hadm_id": 1,
+   "icustay_id": 2
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-31T12:00:00",
+   "code": "HOSPITAL_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/hosp_discharge",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 102,
+   "code": "GENDER//Male",
+   "source_block": "patient/gender"
+  },
+  {
+   "subject_id": 102,
+   "code": "RACE//Synthetic ethnicity",
+   "source_block": "patient/ethnicity"
+  },
+  {
+   "subject_id": 103,
+   "time": "1962-06-29T11:00:00",
+   "code": "MEDS_BIRTH",
+   "source_block": "patient/dob"
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T08:00:00",
+   "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
+   "source_block": "patient/hosp_admission",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION//Synthetic source//admit",
+   "source_block": "patient/unit_admission",
+   "hadm_id": 1,
+   "icustay_id": 3,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_HEIGHT",
+   "numeric_value": 170.5,
+   "source_block": "patient/unit_admission_height",
+   "hadm_id": 1,
+   "icustay_id": 3
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_WEIGHT",
+   "numeric_value": 70.5,
+   "source_block": "patient/unit_admission_weight",
+   "hadm_id": 1,
+   "icustay_id": 3
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:30:00",
+   "code": "DIAGNOSIS//synthetic system|uncoded",
+   "source_block": "diagnosis/diagnosis",
+   "diagnosis_priority": "Other"
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//Hgb//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//synthetic lab//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//Hgb//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//synthetic lab//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/unit_discharge",
+   "hadm_id": 1,
+   "icustay_id": 3,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE_WEIGHT",
+   "numeric_value": 69.5,
+   "source_block": "patient/unit_discharge_weight",
+   "hadm_id": 1,
+   "icustay_id": 3
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-31T12:00:00",
+   "code": "HOSPITAL_DISCHARGE//Expired//Synthetic location",
+   "source_block": "patient/hosp_discharge",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 103,
+   "time": "2015-12-31T12:00:00",
+   "code": "MEDS_DEATH",
+   "source_block": "patient/time_of_death"
+  },
+  {
+   "subject_id": 103,
+   "code": "GENDER//Female",
+   "source_block": "patient/gender"
+  },
+  {
+   "subject_id": 103,
+   "code": "RACE//Synthetic ethnicity",
+   "source_block": "patient/ethnicity"
+  },
+  {
+   "subject_id": 104,
+   "time": "1925-06-29T05:00:00",
+   "code": "MEDS_BIRTH",
+   "source_block": "patient/dob"
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T08:00:00",
+   "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
+   "source_block": "patient/hosp_admission",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION//Synthetic source//admit",
+   "source_block": "patient/unit_admission",
+   "hadm_id": 1,
+   "icustay_id": 4,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_HEIGHT",
+   "numeric_value": 170.5,
+   "source_block": "patient/unit_admission_height",
+   "hadm_id": 1,
+   "icustay_id": 4
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:00:00",
+   "code": "ICU_ADMISSION_WEIGHT",
+   "numeric_value": 70.5,
+   "source_block": "patient/unit_admission_weight",
+   "hadm_id": 1,
+   "icustay_id": 4
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//Hgb//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//synthetic lab//g/dL",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//Hgb//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//synthetic lab//g/dL",
+   "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/unit_discharge",
+   "hadm_id": 1,
+   "icustay_id": 4,
+   "ward_id": 10
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-30T19:20:00",
+   "code": "ICU_DISCHARGE_WEIGHT",
+   "numeric_value": 69.5,
+   "source_block": "patient/unit_discharge_weight",
+   "hadm_id": 1,
+   "icustay_id": 4
+  },
+  {
+   "subject_id": 104,
+   "time": "2015-12-31T12:00:00",
+   "code": "HOSPITAL_DISCHARGE//Alive//Synthetic location",
+   "source_block": "patient/hosp_discharge",
+   "hadm_id": 1
+  },
+  {
+   "subject_id": 104,
+   "code": "GENDER//Male",
+   "source_block": "patient/gender"
+  },
+  {
+   "subject_id": 104,
+   "code": "RACE//Synthetic ethnicity",
+   "source_block": "patient/ethnicity"
+  }
+ ],
+ "subject_splits": [
+  [
+   101,
+   "train"
+  ],
+  [
+   102,
+   "held_out"
+  ],
+  [
+   103,
+   "tuning"
+  ],
+  [
+   104,
+   "train"
+  ]
+ ],
+ "codes": [
+  [
+   "ADMISSION_DIAGNOSIS//Synthetic admitdxpath",
+   "Admission diagnosis (APACHE) item path: Synthetic admitdxpath (eICU admissionDx.admitDxPath)",
+   null
+  ],
+  [
+   "ALLERGY//Synthetic allergytype",
+   "Allergy of type Synthetic allergytype (eICU allergy.allergyType: Drug or Non Drug)",
+   null
+  ],
+  [
+   "CAREPLAN_EOL",
+   "End-of-life discussion recorded in the care plan (carePlanEOL.cplEolDiscussionOffset)",
+   null
+  ],
+  [
+   "CAREPLAN_GENERAL//Synthetic cplgroup//Synthetic cplitemvalue",
+   "Care plan item; group Synthetic cplgroup (carePlanGeneral.cplGroup): Synthetic cplitemvalue (carePlanGeneral.cplItemValue)",
+   null
+  ],
+  [
+   "CAREPLAN_GOAL//Synthetic cplgoalcategory//Synthetic cplgoalvalue//Synthetic cplgoalstatus",
+   "Care plan goal; category Synthetic cplgoalcategory (carePlanGoal.cplGoalCategory): Synthetic cplgoalvalue (carePlanGoal.cplGoalValue); status Synthetic cplgoalstatus (carePlanGoal.cplGoalStatus: Active, Resolved or Deferred)",
+   null
+  ],
+  [
+   "CAREPLAN_INFECTIOUS_DISEASE//Synthetic infectdiseasesite//Synthetic infectdiseaseassessment//Synthetic treatment//Synthetic responsetotherapy",
+   "Care plan infectious disease; site Synthetic infectdiseasesite (carePlanInfectiousDisease.infectDiseaseSite); assessment Synthetic infectdiseaseassessment (infectDiseaseAssessment); treatment Synthetic treatment (treatment: Prophylactic, Empiric, Directed); response to therapy Synthetic responsetotherapy (responseToTherapy)",
+   null
+  ],
+  [
+   "DIAGNOSIS//synthetic system|synthetic disorder",
+   "Diagnosis path: synthetic system|synthetic disorder (eICU diagnosis.diagnosisString; sections separated by '|')",
+   [
+    "ICD10CM/J18.9",
+    "ICD9CM/486"
+   ]
+  ],
+  [
+   "DIAGNOSIS//synthetic system|synthetic disorder|synthetic subtype",
+   "Diagnosis path: synthetic system|synthetic disorder|synthetic subtype (eICU diagnosis.diagnosisString; sections separated by '|')",
+   [
+    "ICD10CM/I10",
+    "ICD9CM/401.9"
+   ]
+  ],
+  [
+   "DIAGNOSIS//synthetic system|uncoded",
+   "Diagnosis path: synthetic system|uncoded (eICU diagnosis.diagnosisString; sections separated by '|')",
+   null
+  ],
+  [
+   "GENDER//Female",
+   "Patient gender: Female (eICU patient.gender)",
+   null
+  ],
+  [
+   "GENDER//Male",
+   "Patient gender: Male (eICU patient.gender)",
+   null
+  ],
+  [
+   "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
+   "Hospital admission; admitted from Synthetic source (patient.hospitalAdmitSource); hospital region Synthetic, teaching status Synthetic, bed count category Synthetic (hospital.region, teachingStatus, numBedsCategory)",
+   null
+  ],
+  [
+   "HOSPITAL_DISCHARGE//Alive//Synthetic location",
+   "Hospital discharge; patient's condition upon leaving the hospital: Alive (patient.hospitalDischargeStatus); discharged to Synthetic location (patient.hospitalDischargeLocation)",
+   null
+  ],
+  [
+   "HOSPITAL_DISCHARGE//Expired//Synthetic location",
+   "Hospital discharge; patient's condition upon leaving the hospital: Expired (patient.hospitalDischargeStatus); discharged to Synthetic location (patient.hospitalDischargeLocation)",
+   null
+  ],
+  [
+   "ICU_ADMISSION//Synthetic source//admit",
+   "ICU unit admission; admitted from Synthetic source (patient.unitAdmitSource); unit stay type admit (patient.unitStayType)",
+   null
+  ],
+  [
+   "ICU_ADMISSION_HEIGHT",
+   "Admission height of the patient in cm (patient.admissionHeight)",
+   null
+  ],
+  [
+   "ICU_ADMISSION_WEIGHT",
+   "Admission weight of the patient in kilograms (patient.admissionWeight)",
+   null
+  ],
+  [
+   "ICU_DISCHARGE//Alive//Synthetic location",
+   "ICU unit discharge; patient's condition upon leaving the unit: Alive (patient.unitDischargeStatus); discharged to Synthetic location (patient.unitDischargeLocation)",
+   null
+  ],
+  [
+   "ICU_DISCHARGE_WEIGHT",
+   "Patient weight at time of unit discharge in kilograms (patient.dischargeWeight)",
+   null
+  ],
+  [
+   "INFUSION_DRUG",
+   "Infusion drug administration; the drug name with its rate unit is in text_value (infusionDrug.drugName, e.g. 'Propofol (mcg/kg/min)') and numeric_value is infusionDrug.infusionRate",
+   null
+  ],
+  [
+   "INTAKE_OUTPUT//Synthetic cellpath",
+   "Intake/output flowsheet item path: Synthetic cellpath (eICU intakeOutput.cellPath); the volume or weight is in numeric_value (cellValueNumeric)",
+   null
+  ],
+  [
+   "LAB//RESULT//Hgb//g/dL",
+   "Hemoglobin (eICU lab.labName 'Hgb')",
+   null
+  ],
+  [
+   "LAB//RESULT//synthetic lab//g/dL",
+   "Lab result (eICU lab.labName 'synthetic lab')",
+   null
+  ],
+  [
+   "LAB//SPECIMEN_DRAWN//Hgb//g/dL",
+   "Lab specimen drawn: Hemoglobin (eICU lab.labName 'Hgb')",
+   null
+  ],
+  [
+   "LAB//SPECIMEN_DRAWN//synthetic lab//g/dL",
+   "Lab specimen drawn (eICU lab.labName 'synthetic lab')",
+   null
+  ],
+  [
+   "MEDICATION//STARTED//Synthetic drugname",
+   "Medication order started: Synthetic drugname (eICU medication.drugName)",
+   null
+  ],
+  [
+   "MEDICATION//STOPPED//Synthetic drugname",
+   "Medication order stopped: Synthetic drugname (eICU medication.drugName)",
+   null
+  ],
+  [
+   "MEDS_BIRTH",
+   "Birth (MEDS standard code); derived from patient.age at hospital admission, see README 'Birth'",
+   null
+  ],
+  [
+   "MEDS_DEATH",
+   "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', see README 'Death'",
+   null
+  ],
+  [
+   "NURSE_ASSESSMENT//Synthetic cellattributepath",
+   "Nursing assessment item path: Synthetic cellattributepath (eICU nurseAssessment.cellAttributePath)",
+   null
+  ],
+  [
+   "NURSE_CARE//Synthetic cellattributepath",
+   "Nursing care item path: Synthetic cellattributepath (eICU nurseCare.cellAttributePath)",
+   null
+  ],
+  [
+   "NURSE_CHARTING//Synthetic nursingchartcelltypecat//Synthetic nursingchartcelltypevallabel//Synthetic nursingchartcelltypevalname",
+   "Nurse-charted observation; category Synthetic nursingchartcelltypecat (nurseCharting.nursingChartCellTypeCat), label Synthetic nursingchartcelltypevallabel (nursingChartCellTypeValLabel), name Synthetic nursingchartcelltypevalname (nursingChartCellTypeValName)",
+   null
+  ],
+  [
+   "PAST_HISTORY//Synthetic pasthistorypath",
+   "Past history item path: Synthetic pasthistorypath (eICU pastHistory.pastHistoryPath)",
+   null
+  ],
+  [
+   "PHYSICAL_EXAM//Synthetic physicalexampath",
+   "Physical exam item path: Synthetic physicalexampath (eICU physicalExam.physicalExamPath)",
+   null
+  ],
+  [
+   "RACE//Synthetic ethnicity",
+   "Patient ethnicity: Synthetic ethnicity (eICU patient.ethnicity)",
+   null
+  ],
+  [
+   "RESPIRATORY_CHARTING//Synthetic respcharttypecat//Synthetic respchartvaluelabel",
+   "Respiratory-charted observation; category Synthetic respcharttypecat (respiratoryCharting.respChartTypeCat), label Synthetic respchartvaluelabel (respChartValueLabel)",
+   null
+  ],
+  [
+   "TREATMENT//ENTERED//synthetic therapy|synthetic class",
+   "Treatment path: synthetic therapy|synthetic class (eICU treatment.treatmentString)",
+   null
+  ],
+  [
+   "TREATMENT//ENTERED//synthetic therapy|synthetic class|synthetic drug",
+   "Treatment path: synthetic therapy|synthetic class|synthetic drug (eICU treatment.treatmentString)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC",
+   "Non-invasive (cuff) blood pressure, diastolic, mmHg (vitalAperiodic.nonInvasiveDiastolic)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//BP//NONINVASIVE_MEAN",
+   "Non-invasive (cuff) blood pressure, mean, mmHg (vitalAperiodic.nonInvasiveMean)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC",
+   "Non-invasive (cuff) blood pressure, systolic, mmHg (vitalAperiodic.nonInvasiveSystolic)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//CARDIAC_INPUT",
+   "Cardiac input (vitalAperiodic.cardiacInput; documented only as 'patient cardiac input value', commonly read as cardiac index)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//CARDIAC_OUTPUT",
+   "Cardiac output (vitalAperiodic.cardiacOutput)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//PAOP",
+   "Pulmonary artery occlusion (wedge) pressure (vitalAperiodic.paop)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//PVR",
+   "Pulmonary vascular resistance (vitalAperiodic.pvr)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//PVRI",
+   "Pulmonary vascular resistance index (vitalAperiodic.pvri)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//SVR",
+   "Systemic vascular resistance (vitalAperiodic.svr)",
+   null
+  ],
+  [
+   "VITALS//APERIODIC//SVRI",
+   "Systemic vascular resistance index (vitalAperiodic.svri)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC",
+   "Pulmonary artery pressure, diastolic (vitalPeriodic.paDiastolic)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//BP//PULM_ART_MEAN",
+   "Pulmonary artery pressure, mean (vitalPeriodic.paMean)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC",
+   "Pulmonary artery pressure, systolic (vitalPeriodic.paSystolic)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC",
+   "Systemic (invasive, arterial line) blood pressure, diastolic, mmHg (vitalPeriodic.systemicDiastolic)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//BP//SYSTEMIC_MEAN",
+   "Systemic (invasive, arterial line) blood pressure, mean, mmHg (vitalPeriodic.systemicMean)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC",
+   "Systemic (invasive, arterial line) blood pressure, systolic, mmHg (vitalPeriodic.systemicSystolic)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//CVP",
+   "Central venous pressure (vitalPeriodic.cvp); unit not documented, values above ~200 are likely mmH2O rather than mmHg",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//ETCO2",
+   "End-tidal carbon dioxide (vitalPeriodic.etCo2)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//HEARTRATE",
+   "Heart rate, beats per minute (vitalPeriodic.heartRate)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//ICP",
+   "Intracranial pressure (vitalPeriodic.ICP)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//RESPIRATION",
+   "Respiratory rate, breaths per minute (vitalPeriodic.respiration)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//SAO2",
+   "Pulse oximetry oxygen saturation (SpO2), % (vitalPeriodic.saO2)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//ST1",
+   "ST-segment deviation, ECG lead 1 (vitalPeriodic.st1)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//ST2",
+   "ST-segment deviation, ECG lead 2 (vitalPeriodic.st2)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//ST3",
+   "ST-segment deviation, ECG lead 3 (vitalPeriodic.st3)",
+   null
+  ],
+  [
+   "VITALS//PERIODIC//TEMPERATURE",
+   "Temperature in degrees Celsius (vitalPeriodic.temperature)",
+   null
+  ]
+ ]
+}
