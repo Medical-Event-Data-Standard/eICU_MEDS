@@ -41,10 +41,8 @@ def test_lab_table_is_complete_and_sourced():
     assert not df["labname"].is_duplicated().any()
     assert df["description"].str.len_chars().min() > 0
     assert df["source"].str.len_chars().min() > 0
-    # LOINC codes look like LOINC codes, and an empty cell reads as null (so no dangling LOINC/ parent).
-    loinc = df["loinc_code"].drop_nulls()
-    assert loinc.str.contains(r"^\d{1,5}-\d$").all(), loinc.to_list()
-    assert df["loinc_code"].null_count() > 0
+    # Descriptions only: the lab-name -> LOINC crosswalk is a suMEDS crosswalk table (`eicu/lab_loinc`).
+    assert "loinc_code" not in df.columns
 
 
 def test_static_table_covers_every_literal_code():
@@ -82,6 +80,7 @@ def test_lab_blocks_use_the_packaged_prefix():
         block = event["_metadata"][LAB_DESCRIPTIONS_PREFIX]
         assert block["labname"] == "$labname"
         assert "$description" in block["description"]
+        assert "parent_codes" not in block, "lab LOINC parents come from suMEDS (sumeds_rules.yaml)"
         for referenced in re.findall(r"\$(\w+)", " ".join(map(str, block.values()))):
             assert referenced in read_lab_descriptions().columns, referenced
 
@@ -90,7 +89,7 @@ def test_write_lab_descriptions(tmp_path):
     fp = write_lab_descriptions(tmp_path)
     assert fp == tmp_path / f"{LAB_DESCRIPTIONS_PREFIX}.parquet"
     labs = pl.read_parquet(fp)
-    assert labs.schema["loinc_code"] == pl.String
+    assert set(labs.schema.values()) == {pl.String}
     assert labs.height == read_lab_descriptions().height
 
 
@@ -99,7 +98,7 @@ def test_apply_static_descriptions_fills_only_nulls(tmp_path):
         {
             "code": ["VITALS//PERIODIC//HEARTRATE", "MEDS_BIRTH", "LAB//RESULT//Hgb//g/dL"],
             "description": [None, "already extracted", "Hemoglobin"],
-            "parent_codes": [None, None, ["LOINC/718-7"]],
+            "parent_codes": pl.Series([None, None, None], dtype=pl.List(pl.String)),
             "code_template": [None, None, 'f"LAB//RESULT//{$labname}//{$labmeasurenamesystem}"'],
         }
     )
@@ -115,6 +114,17 @@ def test_apply_static_descriptions_fills_only_nulls(tmp_path):
     assert apply_static_descriptions(fp) == 0  # idempotent
     # The file must stay valid MEDS code metadata as read from disk (string, not large_string).
     CodeMetadataSchema.validate(pq.read_table(fp))
+
+
+def test_parent_codes_are_written_sorted(tmp_path):
+    """MEDS-Extract's union leaves the parent order to chance; the written file must not depend on it."""
+    fp = tmp_path / "codes.parquet"
+    for parents in (["ICD9CM/486", "ICD10CM/J18.9"], ["ICD10CM/J18.9", "ICD9CM/486"]):
+        pl.DataFrame(
+            {"code": ["DIAGNOSIS//x"], "description": ["x"], "parent_codes": [parents]}
+        ).write_parquet(fp)
+        apply_static_descriptions(fp)
+        assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM/J18.9", "ICD9CM/486"]]
 
 
 def test_lab_fallback_description_parses_units_and_skips_other_codes():
@@ -143,7 +153,7 @@ def test_unlisted_lab_codes_get_the_fallback_and_listed_ones_keep_the_table(tmp_
         {
             "code": ["LAB//RESULT//Hgb//g/dL", "LAB//RESULT//not in the table//mg/dL"],
             "description": ["Hemoglobin (eICU lab.labName 'Hgb')", None],
-            "parent_codes": [["LOINC/718-7"], None],
+            "parent_codes": [None, None],
         }
     )
     fp = tmp_path / "codes.parquet"

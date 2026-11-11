@@ -16,6 +16,9 @@ def test_e2e():
             "do_download=True",
             "do_overwrite=True",
             "do_demo=True",
+            # The opt-in suMEDS step runs here so that the packaged rules are checked against
+            # suMEDS's real ontology data (fetched from GitHub), which the unit tests stub out.
+            "do_enrich=True",
         ]
 
         # Point the download at a persistent directory (e.g. one restored by CI's
@@ -75,7 +78,12 @@ VALUE_ONLY_CODES = (
 
 # Charted tables keep a varchar value: numbers go to numeric_value, the rest to text_value, and a
 # blank cell emits nothing, so every charted event carries exactly one of the two.
-CHARTED_PREFIXES = ("NURSE_CHARTING//", "RESPIRATORY_CHARTING//")
+CHARTED_PREFIXES = (
+    "NURSE_CHARTING//",
+    "RESPIRATORY_CHARTING//",
+    "NURSE_ASSESSMENT//",
+    "NURSE_CARE//",
+)
 
 
 def _validate_data_correctness(data_path: Path, metadata_path: Path):
@@ -83,7 +91,11 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     df = pl.scan_parquet(data_path / "**/*.parquet")
 
     valueless = (
-        df.filter(pl.col("code").str.starts_with("VITALS//") | pl.col("code").is_in(VALUE_ONLY_CODES))
+        df.filter(
+            pl.col("code").str.starts_with("VITALS//")
+            | pl.col("code").str.starts_with("INTAKE_OUTPUT//")
+            | pl.col("code").is_in(VALUE_ONLY_CODES)
+        )
         .filter(pl.col("numeric_value").is_null())
         .group_by("code")
         .len()
@@ -109,6 +121,21 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert n_past_history > 0, "No PAST_HISTORY events emitted; the pastHistory table is not extracted."
     assert n_textless == 0, f"{n_textless} PAST_HISTORY events carry no text_value."
+
+    n_intake_output = (
+        df.filter(pl.col("code").str.starts_with("INTAKE_OUTPUT//")).select(pl.len()).collect().item()
+    )
+    assert n_intake_output > 0, "No INTAKE_OUTPUT events emitted; the intakeOutput table is not extracted."
+
+    # The exam path is the finding, so a blank text leaves an event with no value, never two.
+    n_physical_exam, n_two_values = (
+        df.filter(pl.col("code").str.starts_with("PHYSICAL_EXAM//"))
+        .select(pl.len(), (pl.col("numeric_value").is_not_null() & pl.col("text_value").is_not_null()).sum())
+        .collect()
+        .row(0)
+    )
+    assert n_physical_exam > 0, "No PHYSICAL_EXAM events emitted; the physicalExam table is not extracted."
+    assert n_two_values == 0, f"{n_two_values} PHYSICAL_EXAM events carry both a numeric and a text value."
 
     for prefix in CHARTED_PREFIXES:
         n_charted, n_not_one_value = (
@@ -155,3 +182,12 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     codes = pl.read_parquet(metadata_path / "codes.parquet")
     n_with_parents = codes.filter(pl.col("parent_codes").list.len() > 0).height
     assert n_with_parents > 0, "No code in codes.parquet carries parent_codes; the dx -> ICD link is gone."
+
+    # `do_enrich=True`: suMEDS adds parents among eICU's own path codes and LOINC parents for labs.
+    parents = codes.select("code", "parent_codes").explode("parent_codes").drop_nulls()
+    in_dataset = parents.filter(pl.col("parent_codes").is_in(codes["code"].implode()))
+    for family in ("DIAGNOSIS//", "TREATMENT//ENTERED//"):
+        n = in_dataset.filter(pl.col("code").str.starts_with(family)).height
+        assert n > 0, f"No {family} code got an in-dataset parent from the suMEDS hierarchy rules."
+    n_loinc = parents.filter(pl.col("parent_codes").str.starts_with("LOINC")).height
+    assert n_loinc > 0, "No lab code got a LOINC parent from the suMEDS crosswalk."

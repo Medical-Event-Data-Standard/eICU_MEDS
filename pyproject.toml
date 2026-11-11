@@ -1,10 +1,12 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm>=8.0", "wheel"]
+requires = ["setuptools>=64", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "eICU-MEDS"
-dynamic = ["version"]
+# Static so that `uv version --bump <part>` can manage it (uv cannot bump a dynamic version).
+# Between releases it holds the last released version; see DEVELOPMENT.md for cutting a release.
+version = "0.2.1"
 authors = [
   { name="Matthew McDermott", email="mattmcdermott8@gmail.com" }, { name="Robin P. van de Water", email="robin.vandewater@hpi.de" }, { name="Jason Zuu" }
 ]
@@ -43,19 +45,27 @@ dependencies = [
 [dependency-groups]
 # `pytest-rerunfailures` lets CI auto-retry the e2e demo download test on the narrow set
 # of network exceptions seen coming out of PhysioNet (connection reset / IncompleteRead
-# mid-stream) instead of turning a bad upstream minute into a failed CI build.
+# mid-stream) instead of turning a bad upstream minute into a failed CI build. `sumeds` (0.4
+# is the first release with rules) loads the packaged suMEDS rules in tests/test_sumeds_rules.py.
 dev = [
     "pre-commit~=3.8",
     "ruff>=0.11,<1.0",
     "pytest~=9.0",
     "pytest-cov~=7.1",
     "pytest-rerunfailures==16.1",
+    "sumeds>=0.4",
 ]
 
-[tool.setuptools_scm]
+# setuptools-scm used to ship these implicitly (its git file finder), so without this list the
+# wheel would build and install fine but have no ETL configs, lab descriptions or suMEDS rules.
+[tool.setuptools.package-data]
+eICU_MEDS = ["*.yaml", "configs/*.yaml", "metadata/*.csv"]
 
 [project.optional-dependencies]
 slurm_parallelism = ["hydra-submitit-launcher~=1.2"]
+# For `do_enrich=True`. 0.4 is the first release with rules; the cap keeps the ontology data
+# release suMEDS pins (and so the enriched output) fixed for a given eICU-MEDS version.
+sumeds = ["sumeds>=0.4,<0.5"]
 
 [project.scripts]
 MEDS_extract-eICU = "eICU_MEDS.__main__:main"

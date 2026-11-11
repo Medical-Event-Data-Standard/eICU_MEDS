@@ -65,18 +65,16 @@ def lab_fallback_description(code: pl.Expr) -> pl.Expr:
 def read_lab_descriptions(path: Path = LAB_DESCRIPTIONS_CSV) -> pl.DataFrame:
     """Read the packaged lab-description table, as the ``_metadata`` join will see it.
 
-    Every column stays a String (the join key is matched against the raw ``labname`` text), and
-    an empty ``loinc_code`` cell is null, so the ``parent_codes`` expression in the config yields
-    null rather than a dangling ``LOINC/`` for lab names without a bridged LOINC code.
+    Every column stays a String (the join key is matched against the raw ``labname`` text). The
+    table carries descriptions only: LOINC links for lab names are a suMEDS crosswalk
+    (``eicu/lab_loinc``, applied with ``sumeds_rules.yaml``), not part of the ETL output.
 
     Examples:
         >>> df = read_lab_descriptions()
         >>> df.columns
-        ['labname', 'description', 'loinc_code', 'source', 'source_detail']
-        >>> df.filter(pl.col("labname") == "Hgb").select("description", "loinc_code").row(0)
-        ('Hemoglobin', '718-7')
-        >>> df.filter(pl.col("labname") == "MPV")["loinc_code"].item() is None
-        True
+        ['labname', 'description', 'source', 'source_detail']
+        >>> df.filter(pl.col("labname") == "Hgb")["description"].item()
+        'Hemoglobin'
         >>> df["labname"].is_duplicated().any()
         False
     """
@@ -108,7 +106,7 @@ def write_lab_descriptions(output_dir: Path) -> Path:
         >>> import tempfile
         >>> with tempfile.TemporaryDirectory() as d:
         ...     fp = write_lab_descriptions(Path(d))
-        ...     fp.name, pl.read_parquet(fp).schema["loinc_code"]
+        ...     fp.name, pl.read_parquet(fp).schema["labname"]
         ('lab_descriptions.parquet', String)
     """
     out_fp = Path(output_dir) / f"{LAB_DESCRIPTIONS_PREFIX}.parquet"
@@ -140,7 +138,7 @@ def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None
         >>> codes = pl.DataFrame(
         ...     {"code": ["MEDS_BIRTH", "LAB//RESULT//Hgb//g/dL", "LAB//RESULT//newlab//%", "GENDER//Female"],
         ...      "description": [None, "Hemoglobin", None, None],
-        ...      "parent_codes": [None, ["LOINC/718-7"], None, None]}
+        ...      "parent_codes": [None, None, None, None]}
         ... )
         >>> with tempfile.TemporaryDirectory() as d:
         ...     fp = Path(d) / "codes.parquet"
@@ -174,13 +172,29 @@ def apply_static_descriptions(codes_fp: Path, static: pl.DataFrame | None = None
         .select(codes.columns)
     )
     n_filled = int(filled["description"].is_not_null().sum() - codes["description"].is_not_null().sum())
+    write_code_metadata(filled, codes_fp)
+    return n_filled
 
-    out = filled.to_arrow()
+
+def write_code_metadata(codes: pl.DataFrame, codes_fp: Path) -> None:
+    """Atomically replace ``codes_fp`` with ``codes``, validated against the MEDS code-metadata schema.
+
+    polars materializes strings as Arrow ``large_string``, which that schema rejects, so the MEDS
+    columns are cast back to the types the pipeline itself writes (``string``, ``list<string>``).
+    Other columns keep their types.
+
+    ``parent_codes`` is sorted. MEDS-Extract collects it with a union whose order changes from run
+    to run, and suMEDS takes ``vocabulary_id`` and ``concept_code`` from the first parent, so
+    without sorting, two runs over the same data would not write the same file.
+    """
+    if isinstance(codes.schema.get("parent_codes"), pl.List):
+        codes = codes.with_columns(pl.col("parent_codes").list.sort())
+    out = codes.to_arrow()
     meds_types = {"code": pa.string(), "description": pa.string(), "parent_codes": pa.list_(pa.string())}
     out = out.cast(pa.schema([pa.field(f.name, meds_types.get(f.name, f.type)) for f in out.schema]))
     CodeMetadataSchema.validate(out)
 
+    codes_fp = Path(codes_fp)
     tmp_fp = codes_fp.with_suffix(".parquet.tmp")
     pq.write_table(out, tmp_fp)
     os.replace(tmp_fp, codes_fp)
-    return n_filled
