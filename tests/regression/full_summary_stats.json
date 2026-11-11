@@ -207,9 +207,9 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-04T16:50:10.537689+00:00",
+    "created_at": "2026-11-11T01:13:51.085618+00:00",
     "dataset_name": "eICU",
-    "dataset_version": "2.0:0.2.0",
+    "dataset_version": "2.0:0.2.1",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
     "meds_version": "0.4.1",
@@ -223,12 +223,12 @@
       "digest": "sha256:4d32831fce09b6e769bf55f6961bb52931dadd63cfe9a3d52cc62af6a4460cb8",
       "n_files": 168
     },
-    "dataset_metadata": "sha256:577b402bcdb7c0ae7d25a9f3dac984f195eea92144edded76c6907e3168315b2",
+    "dataset_metadata": "sha256:e7805f50b0c7436f0257f005fdcc4104f5fca239a797e87a0cc289b89323164c",
     "method": "files",
     "n_files": 171,
     "subject_splits": "sha256:d17cf2b33533a10621cd508fd0eb27f068a01a56ab8dd04d5ed8957b35e3a931"
   },
-  "extracted_at": "2026-11-10T22:16:03.691584",
+  "extracted_at": "2026-11-11T01:19:17.314183",
   "layout": {
     "code_metadata_columns": {
       "code": "String",

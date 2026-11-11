@@ -207,9 +207,9 @@
     }
   },
   "dataset": {
-    "created_at": "2026-11-10T22:23:08.090068+00:00",
+    "created_at": "2026-11-11T00:47:53.366780+00:00",
     "dataset_name": "eICU",
-    "dataset_version": "2.0.1:0.2.0",
+    "dataset_version": "2.0.1:0.2.1",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.0",
     "meds_version": "0.4.1",
@@ -222,7 +222,7 @@
       "data/train/1.parquet": "sha256:ba677ab101fef428399e7c036fe48e592859f2b1129242a785998ebe922f696d",
       "data/tuning/0.parquet": "sha256:7ff26be88366e65ee001bd3e6ba378bf4d95b5db1a0bf791da8f93450d0b2e94",
       "metadata/codes.parquet": "sha256:cd29372b5d2fd99b965b1571ab686377e98e1861e6fc57ecaaaf89855f63ae38",
-      "metadata/dataset.json": "sha256:1f2a8e824e55660e45c3f5ec53a41fef0fb7c7647cc3aa10c658f1ed5be8a515",
+      "metadata/dataset.json": "sha256:5f56165dd524b11c99855210c5262d514ed209595b4c932678e4794c4223790f",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
     "code_metadata": "sha256:426eb2002689868cec7ba3c5a4681bd0ad8aee00a697e021e270ba2a6e741193",
@@ -231,12 +231,12 @@
       "digest": "sha256:f185b2977c82fea679d69b5e69f94c2314196e7115929fd5422bd30d5dc3155b",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:966a02a69586109b86c72a3410fb6ad664d62579664ff44663ed840bc0ee5f77",
+    "dataset_metadata": "sha256:ba7ae0621e7679eff587621d6656bf293a97025439d690dea2669ff1c311c083",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-10T22:23:37.584921",
+  "extracted_at": "2026-11-11T00:48:04.485081",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
