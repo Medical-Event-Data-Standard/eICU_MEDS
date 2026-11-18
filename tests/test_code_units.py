@@ -19,10 +19,10 @@ from eICU_MEDS import EVENT_CFG
 
 # The literal codes whose column the eICU-CRD table documentation gives a unit for, and that unit.
 DOCUMENTED_UNITS = {
-    "patient/unit_admission_weight": "kilograms",
+    "patient/unit_admission_weight": "kilogram",
     "patient/unit_admission_height": "cm",
-    "patient/unit_discharge_weight": "kilograms",
-    "infusionDrug/patient_weight": "kilograms",
+    "patient/unit_discharge_weight": "kilogram",
+    "infusionDrug/patient_weight": "kilogram",
     "vitalPeriodic/temperature": "celsius",
 }
 
@@ -127,11 +127,13 @@ def test_documented_units_are_constants_on_their_literal_codes(events):
 
 
 def test_documented_units_cite_the_documentation():
-    """Each constant unit is preceded by the documentation's sentence that states it, and the page."""
+    """Each constant unit is preceded by the documentation's sentence that states it, and the page.
+
+    The sentence may use the plural ("in kilograms" for the unit `kilogram`)."""
     text = EVENT_CFG.read_text()
     blocks = re.findall(r"((?:        # .*\n)+)        unit: '\"(\w+)\"'\n", text)
     assert len(blocks) == len(DOCUMENTED_UNITS)
     for comment, unit in blocks:
         comment = " ".join(line.strip().removeprefix("# ") for line in comment.splitlines())
         assert "https://eicu.mit.edu/eicutables/" in comment, comment
-        assert re.search(rf"'[^']*\b{unit}'", comment), comment
+        assert re.search(rf"'[^']*\b{unit}s?'", comment), comment
