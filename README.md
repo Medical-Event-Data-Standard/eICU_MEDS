@@ -290,6 +290,31 @@ vocabulary. In the demo, 860 of the 1,091 diagnosis codes have one; in the full 
 3,933. The `eicu_sort_parent_codes` stage sorts them, so that they read the same way across codes and
 releases; the suMEDS enrichment appends its parents after them.
 
+## Code metadata: units
+
+`metadata/codes.parquet` also has a `unit` column (`List(String)`, the shape MEDS-Extract gives
+extracted metadata), so downstream tools read each code's unit from one place. Codes are not
+changed: a unit already in the code string stays there. Units are as recorded, never normalized.
+Every unit is declared in `configs/event_configs.yaml`, so MEDS-Extract writes it with the rest of
+the code metadata, before the post-stages run.
+
+| Code family                                                                                                             | Unit source                                                                                                                                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LAB//RESULT//…`                                                                                                        | `lab.labMeasureNameSystem` through `_self`, the code's own last component; a blank cell is no unit                                                                                                                                                                                                                                       |
+| `INTAKE_OUTPUT//…`                                                                                                      | the unit label written in `intakeOutput.cellPath`, through `_self`: the last parenthesized token in the path when it is one of the labels the open demo uses (`ml`, `mL`, `kg`, `lb`, `mcg`), so `…\|Output (ml)\|Urine` gets `ml` and `…\|Weight\|Bodyweight (kg)` gets `kg`; any other last token (`(NG)`, `(volume)`) leaves it empty |
+| `VITALS//PERIODIC//TEMPERATURE`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION` | the unit the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/) states for the column, verbatim (`celsius`, `kilograms`, `cm`): a constant `_self` unit next to the code's constant description, with the documentation's sentence and page in a comment above it                                                          |
+
+Everything else has no `unit`: the documentation states no unit for the other vital-sign columns,
+the charted, physical-exam and nursing tables record none, a numeric medication `dosage` is a
+bare number, and the documentation says only that `INFUSION_DRUG`'s `infusionRate` is "generally
+charted as ml/hr". The documented `celsius` is kept as stated, but about 3% of full-release
+temperatures are above 45 and so likely Fahrenheit: range-check rather than trust the unit.
+
+On the full release 6.3% of numeric events have a code with a unit: 95.5% of lab results (the
+rest are 24 lab codes whose unit cell is blank, so the code ends in `//`), 98.1% of intake/output
+values, and the temperature, weight and height codes. The vital signs without a
+documented unit are 77.0% of numeric events.
+
 ## Enriching code metadata with suMEDS
 
 The ETL writes what eICU itself records. Links to external vocabularies that eICU does not

@@ -358,12 +358,29 @@ def test_the_etl_describes_every_code(plain_output: Path):
     )
 
 
+def test_the_etl_writes_each_codes_unit(plain_output: Path):
+    """Lab units from the code's unit component, documented units from their constants, else none.
+
+    MEDS-Extract writes extracted metadata as the list of a code's distinct values.
+    """
+    codes = _codes(plain_output)
+    assert codes["LAB//RESULT//Hgb//g/dL"]["unit"] == ["g/dL"]
+    assert not codes["LAB//SPECIMEN_DRAWN//Hgb//g/dL"]["unit"]  # valueless: no unit
+    assert codes["ICU_ADMISSION_WEIGHT"]["unit"] == ["kilograms"]
+    assert codes["ICU_ADMISSION_HEIGHT"]["unit"] == ["cm"]
+    assert codes["ICU_DISCHARGE_WEIGHT"]["unit"] == ["kilograms"]
+    assert codes["VITALS//PERIODIC//TEMPERATURE"]["unit"] == ["celsius"]
+    assert not codes["VITALS//PERIODIC//HEARTRATE"]["unit"]  # the documentation states none
+    assert not codes["MEDS_BIRTH"]["unit"]
+
+
 def test_enrichment_keeps_what_the_etl_wrote(enriched_output: Path, plain_output: Path):
-    """Descriptions are never overwritten, and the ETL's parents stay first, in their order."""
+    """Descriptions and units are never overwritten, and the ETL's parents stay first, in their order."""
     plain, enriched = _codes(plain_output), _codes(enriched_output)
     assert plain.keys() == enriched.keys()
     for code, row in plain.items():
         assert enriched[code]["description"] == row["description"], code
+        assert enriched[code]["unit"] == row["unit"], code
         parents = row["parent_codes"] or []
         assert (enriched[code]["parent_codes"] or [])[: len(parents)] == parents, code
 

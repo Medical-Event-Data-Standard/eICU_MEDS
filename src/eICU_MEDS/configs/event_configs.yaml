@@ -138,6 +138,10 @@ patient:
       _self:
         description: >-
           "Admission weight of the patient in kilograms (patient.admissionWeight)"
+        # The unit the eICU-CRD documentation states for the column, verbatim (patient.admissionWeight
+        # 'admission weight of the patient in kilograms'; https://eicu.mit.edu/eicutables/patient/, from
+        # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
+        unit: '"kilograms"'
   unit_admission_height:
     code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
     time: $unitadmittimestamp
@@ -149,6 +153,10 @@ patient:
       _self:
         description: >-
           "Admission height of the patient in cm (patient.admissionHeight)"
+        # The unit the eICU-CRD documentation states for the column, verbatim (patient.admissionHeight
+        # 'admission height of the patient in cm'; https://eicu.mit.edu/eicutables/patient/, from
+        # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
+        unit: '"cm"'
   unit_discharge:
     code: f"ICU_DISCHARGE//{$unitdischargestatus ?? 'UNK'}//{$unitdischargelocation ?? 'UNK'}"
     time: $unitdischargetimestamp
@@ -172,6 +180,10 @@ patient:
       _self:
         description: >-
           "Patient weight at time of unit discharge in kilograms (patient.dischargeWeight)"
+        # The unit the eICU-CRD documentation states for the column, verbatim (patient.dischargeWeight
+        # 'patient weight at time of unit discharge in kilograms'; https://eicu.mit.edu/eicutables/patient/,
+        # from MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
+        unit: '"kilograms"'
   time_of_death:
     code: MEDS_DEATH
     time: $time_of_death
@@ -325,6 +337,11 @@ infusionDrug:
       _self:
         description: >-
           "Patient weight recorded during the drug infusion in kilograms (infusionDrug.patientWeight)"
+        # The unit the eICU-CRD documentation states for the column, verbatim (infusionDrug.patientWeight 'the
+        # patient weight recorded during the drug infusion in kilograms';
+        # https://eicu.mit.edu/eicutables/infusiondrug/, from MIT-LCP/eicu-code
+        # website/content/eicutables/infusionDrug.md at 0e14106, MIT).
+        unit: '"kilograms"'
 
 intakeOutput:
   _table:
@@ -345,6 +362,13 @@ intakeOutput:
         description: >-
           f"Intake/output flowsheet item path: {$cellpath} (eICU intakeOutput.cellPath); the volume
           or weight is in numeric_value (cellValueNumeric)"
+        # The unit is the flowsheet's own label, as written in the path: the LAST parenthesized
+        # token, which is the leaf's when it has one (`Bodyweight (kg)`, `Total Amount (mcg)-...`)
+        # and otherwise the heading's the cell sits under (`Output (ml)|Urine`). Only the unit
+        # labels that occur in the public eICU-CRD demo paths are taken; any other last token
+        # (`(volume)`, a brand name) leaves `unit` empty rather than falling back to a heading.
+        # Derived from the code's own component, so one code always has one unit.
+        unit: extract group 1 of /\((ml|mL|kg|lb|mcg)\)[^()]*$/ from $cellpath
 
 lab:
   _table:
@@ -379,6 +403,10 @@ lab:
         description: >-
           f"{$description} (eICU lab.labName '{$labname}')" if $description == $description else
           f"Lab result (eICU lab.labName '{$labname ?? 'UNK'}')"
+        # The unit is the code's own last component (lab.labMeasureNameSystem), so each code has
+        # exactly one. A blank cell (the code ends in `//`) or a null one (`UNK`) is no unit and
+        # leaves `unit` empty rather than holding "" or "UNK".
+        unit: $labmeasurenamesystem if (/\S/ in $labmeasurenamesystem)
 
 medication:
   _table:
@@ -655,6 +683,10 @@ vitalPeriodic:
       _self:
         description: >-
           "Temperature in degrees Celsius (vitalPeriodic.temperature)"
+        # The unit the eICU-CRD documentation states for the column, verbatim (vitalPeriodic.temperature
+        # 'patient's temperature value in celsius'; https://eicu.mit.edu/eicutables/vitalperiodic/, from
+        # MIT-LCP/eicu-code website/content/eicutables/vitalPeriodic.md at 0e14106, MIT).
+        unit: '"celsius"'
   saO2:
     code: '"VITALS//PERIODIC//SAO2" if $sao2 == $sao2'
     time: *vp_time
