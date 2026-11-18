@@ -138,10 +138,10 @@ patient:
       _self:
         description: >-
           "Admission weight of the patient in kilograms (patient.admissionWeight)"
-        # The unit the eICU-CRD documentation states for the column, verbatim (patient.admissionWeight
+        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (patient.admissionWeight
         # 'admission weight of the patient in kilograms'; https://eicu.mit.edu/eicutables/patient/, from
         # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
-        unit: '"kilograms"'
+        unit: '"kilogram"'
   unit_admission_height:
     code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
     time: $unitadmittimestamp
@@ -153,7 +153,7 @@ patient:
       _self:
         description: >-
           "Admission height of the patient in cm (patient.admissionHeight)"
-        # The unit the eICU-CRD documentation states for the column, verbatim (patient.admissionHeight
+        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (patient.admissionHeight
         # 'admission height of the patient in cm'; https://eicu.mit.edu/eicutables/patient/, from
         # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
         unit: '"cm"'
@@ -180,10 +180,10 @@ patient:
       _self:
         description: >-
           "Patient weight at time of unit discharge in kilograms (patient.dischargeWeight)"
-        # The unit the eICU-CRD documentation states for the column, verbatim (patient.dischargeWeight
+        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (patient.dischargeWeight
         # 'patient weight at time of unit discharge in kilograms'; https://eicu.mit.edu/eicutables/patient/,
         # from MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
-        unit: '"kilograms"'
+        unit: '"kilogram"'
   time_of_death:
     code: MEDS_DEATH
     time: $time_of_death
@@ -337,11 +337,11 @@ infusionDrug:
       _self:
         description: >-
           "Patient weight recorded during the drug infusion in kilograms (infusionDrug.patientWeight)"
-        # The unit the eICU-CRD documentation states for the column, verbatim (infusionDrug.patientWeight 'the
+        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (infusionDrug.patientWeight 'the
         # patient weight recorded during the drug infusion in kilograms';
         # https://eicu.mit.edu/eicutables/infusiondrug/, from MIT-LCP/eicu-code
         # website/content/eicutables/infusionDrug.md at 0e14106, MIT).
-        unit: '"kilograms"'
+        unit: '"kilogram"'
 
 intakeOutput:
   _table:
@@ -696,7 +696,7 @@ vitalPeriodic:
       _self:
         description: >-
           "Temperature in degrees Celsius (vitalPeriodic.temperature)"
-        # The unit the eICU-CRD documentation states for the column, verbatim (vitalPeriodic.temperature
+        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (vitalPeriodic.temperature
         # 'patient's temperature value in celsius'; https://eicu.mit.edu/eicutables/vitalperiodic/, from
         # MIT-LCP/eicu-code website/content/eicutables/vitalPeriodic.md at 0e14106, MIT).
         unit: '"celsius"'
