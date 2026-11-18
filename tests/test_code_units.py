@@ -1,7 +1,8 @@
 """Each code's unit is declared in the spec, so MEDS-Extract writes it to ``metadata/codes.parquet``.
 
-Lab codes take the unit from their own unit component and intake/output codes from the unit label in
-their path, through ``_self`` templates; the literal codes whose unit the eICU-CRD documentation
+Lab codes take the unit from their own unit component, intake/output codes from the unit label in
+their path, and nurse-charted, respiratory-charted and physical-exam items from the unit their label
+states, through ``_self`` templates; the literal codes whose unit the eICU-CRD documentation
 states carry it as a ``_self`` constant, as they carry their description. The expressions are read
 from the shipped ``configs/event_configs.yaml`` and evaluated with dftly; ``test_run_with_enrichment``
 checks the units a real run writes.
@@ -50,7 +51,7 @@ def test_lab_result_unit_is_its_own_unit_component(events):
     ]
 
 
-def test_io_unit_is_the_last_parenthesized_label_when_it_is_a_unit(events):
+def test_io_unit_is_the_last_unit_label_in_the_path(events):
     paths = {
         # A heading's label applies to the cells under it.
         "flowsheet|Flowsheet Cell Labels|I&O|Output (ml)|Urine": "ml",
@@ -60,9 +61,10 @@ def test_io_unit_is_the_last_parenthesized_label_when_it_is_a_unit(events):
         "flowsheet|Flowsheet Cell Labels|I&O|Weight|Bodyweight (lb)": "lb",
         "flowsheet|Flowsheet Cell Labels|I&O|Intake (ml)|Generic Intake (ml)|Volume (mL)-NS infusion": "mL",
         "flowsheet|Flowsheet Cell Labels|I&O|Intake (ml)|Generic Intake (ml)|Total Amount (mcg)-PCA": "mcg",
-        # Any other last parenthesized token is not a unit and leaves the unit empty.
-        "flowsheet|Flowsheet Cell Labels|I&O|Output (ml)|Gastric (NG)": None,
-        "flowsheet|Flowsheet Cell Labels|I&O|Intake (ml)|Generic Intake (ml)|Other (volume)": None,
+        # Any other parenthesized token is not a unit; the last unit label before it is taken.
+        "flowsheet|Flowsheet Cell Labels|I&O|Output (ml)|Gastric (NG)": "ml",
+        "flowsheet|Flowsheet Cell Labels|I&O|Intake (ml)|Generic Intake (ml)|Other (volume)": "ml",
+        "flowsheet|Flowsheet Cell Labels|I&O|Intake (ml)|Generic Intake (ml)|Volume (mL)-x (BRAND)": "mL",
         # A path without a unit label has no unit.
         "flowsheet|Flowsheet Cell Labels|I&O|Weight|Bodyweight": None,
     }
@@ -70,9 +72,49 @@ def test_io_unit_is_the_last_parenthesized_label_when_it_is_a_unit(events):
     assert got == list(paths.values())
 
 
+def test_charted_units_are_the_units_their_labels_state(events):
+    """Nurse-charted, respiratory-charted and physical-exam items whose label states a unit in
+    parentheses get it; other parenthesized words (`(patient)`, `(set)`) are not units."""
+    assert _unit_of(
+        events["nurseCharting/nurse_charting"],
+        {
+            "nursingchartcelltypevallabel": ["Temperature", "ECG (secs)", "MAP (mmHg)", "Heart Rate", None],
+            "nursingchartcelltypevalname": ["Temperature (C)", "PR", "Value", "Heart Rate", None],
+        },
+    ) == ["C", "secs", "mmHg", None, None]
+    assert _unit_of(
+        events["respiratoryCharting/respiratory_charting"],
+        {
+            "respchartvaluelabel": [
+                "FIO2 (%)",
+                "Minute Ventilation Set(L/min)",
+                "Insp Flow (l/min)",
+                "RR (patient)",
+                None,
+            ]
+        },
+    ) == ["%", "L/min", "l/min", None, None]
+    assert _unit_of(
+        events["physicalExam/physical_exam"],
+        {
+            "physicalexampath": [
+                "notes/Physical Exam/Constitutional/Weight and I&O/Weight (kg)/Current",
+                "notes/Physical Exam/Constitutional/Weight and I&O/I&&O (ml)/Urine",
+                "notes/Physical Exam/Vital Sign and Physiological Data/BP (systolic)/Current",
+            ]
+        },
+    ) == ["kg", "ml", None]
+
+
 def test_documented_units_are_constants_on_their_literal_codes(events):
     with_unit = {name for name, event in events.items() if "unit" in event.metadata["_self"]}
-    literal = with_unit - {"lab/lab_result", "intakeOutput/intake_output"}
+    literal = with_unit - {
+        "lab/lab_result",
+        "intakeOutput/intake_output",
+        "nurseCharting/nurse_charting",
+        "respiratoryCharting/respiratory_charting",
+        "physicalExam/physical_exam",
+    }
     assert literal == set(DOCUMENTED_UNITS)
     for name, unit in DOCUMENTED_UNITS.items():
         event = events[name]
