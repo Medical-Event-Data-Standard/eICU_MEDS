@@ -25,7 +25,9 @@ classifiers = [
 # upper bound at the next known-or-expected breaking major. MEDS-Extract 0.x minors are breaking
 # (0.8 renamed the MESSY `_table.join` key to `_table.joins`), so raise its cap deliberately when
 # migrating. 0.8.1 is the first release with extension stages (`etl.pre_stages`/`post_stages`, which
-# run this package's pre-MEDS stage) and `_self` metadata on literal codes.
+# run this package's pre-MEDS stage) and `_self` metadata on literal codes; 0.9.0 writes the `unit`
+# column of `metadata/codes.parquet` as one string per code (MEDS_extract#336), where 0.8 wrote the
+# list of a code's distinct units.
 #
 # `requests`/`beautifulsoup4` are gone: the bespoke `download.py` scraper was replaced
 # by MEDS-Extract's download layer (the `[download]` extra, httpx + tenacity), driven
@@ -50,7 +52,7 @@ classifiers = [
 # column). It is capped below the next minor because its rules format and CLI are still 0.x, and
 # because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
-    "meds-extract[download]>=0.8.1,<0.9",
+    "meds-extract[download]>=0.9.0,<0.10",
     "sumeds>=0.6.3,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]

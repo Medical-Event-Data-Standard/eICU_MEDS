@@ -363,12 +363,12 @@ intakeOutput:
           f"Intake/output flowsheet item path: {$cellpath} (eICU intakeOutput.cellPath); the volume
           or weight is in numeric_value (cellValueNumeric)"
         # The unit is the flowsheet's own label, as written in the path: the LAST parenthesized
-        # token, which is the leaf's when it has one (`Bodyweight (kg)`, `Total Amount (mcg)-...`)
-        # and otherwise the heading's the cell sits under (`Output (ml)|Urine`). Only the unit
-        # labels that occur in the public eICU-CRD demo paths are taken; any other last token
-        # (`(volume)`, a brand name) leaves `unit` empty rather than falling back to a heading.
-        # Derived from the code's own component, so one code always has one unit.
-        unit: extract group 1 of /\((ml|mL|kg|lb|mcg)\)[^()]*$/ from $cellpath
+        # unit label, which is the leaf's when it has one (`Bodyweight (kg)`, `Volume (mL)-drug
+        # (BRAND) ...`) and otherwise that of the heading the cell sits under (`Output (ml)|Urine`,
+        # `Output (ml)|Gastric (NG)`). Only the unit labels that occur in the public eICU-CRD demo
+        # paths are taken (`(volume)`, a brand name are not units); a path without one leaves
+        # `unit` empty. Derived from the code's own component, so one code always has one unit.
+        unit: extract group 1 of /.*\((ml|mL|kg|lb|mcg)\)/ from $cellpath
 
 lab:
   _table:
@@ -489,6 +489,13 @@ nurseCharting:
           (nurseCharting.nursingChartCellTypeCat), label {$nursingchartcelltypevallabel ?? 'UNK'}
           (nursingChartCellTypeValLabel), name {$nursingchartcelltypevalname ?? 'UNK'}
           (nursingChartCellTypeValName)"
+        # The unit the item's own name or label states, in parentheses (`Temperature (C)`,
+        # `MAP (mmHg)`, `ECG (secs)`), the name's before the label's. Only the unit labels of the
+        # public eICU-CRD demo are taken; derived from the code's own components, so one code has
+        # one unit.
+        unit: >-
+          (extract group 1 of /.*\((C|F|mmHg|secs)\)/ from $nursingchartcelltypevalname) ??
+          (extract group 1 of /.*\((C|F|mmHg|secs)\)/ from $nursingchartcelltypevallabel)
 
 pastHistory:
   _table:
@@ -527,6 +534,9 @@ physicalExam:
       _self:
         description: >-
           f"Physical exam item path: {$physicalexampath} (eICU physicalExam.physicalExamPath)"
+        # The unit the path states, in parentheses (`Weight (kg)/Current`, `I&&O (ml)/Urine`), as in
+        # nurseCharting; only the unit labels of the public demo.
+        unit: extract group 1 of /.*\((ml|kg)\)/ from $physicalexampath
 
 respiratoryCharting:
   _table:
@@ -548,6 +558,9 @@ respiratoryCharting:
           f"Respiratory-charted observation; category {$respcharttypecat ?? 'UNK'}
           (respiratoryCharting.respChartTypeCat), label {$respchartvaluelabel ?? 'UNK'}
           (respChartValueLabel)"
+        # The unit the label states, in parentheses (`FIO2 (%)`, `Insp Flow (l/min)`), as in
+        # nurseCharting; only the unit labels of the public demo (`(set)`, `(patient)` are not).
+        unit: extract group 1 of /.*\((%|l\/min|L\/min|sec)\)/ from $respchartvaluelabel
 
 treatment:
   _table:
