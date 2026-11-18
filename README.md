@@ -292,11 +292,14 @@ releases; the suMEDS enrichment appends its parents after them.
 
 ## Code metadata: units
 
-`metadata/codes.parquet` also has a `unit` column (`List(String)`, the shape MEDS-Extract gives
-extracted metadata), so downstream tools read each code's unit from one place. Codes are not
-changed: a unit already in the code string stays there. Units are as recorded, never normalized.
-Every unit is declared in `configs/event_configs.yaml`, so MEDS-Extract writes it with the rest of
-the code metadata, before the post-stages run.
+`metadata/codes.parquet` also has a `unit` column, so downstream tools read each code's unit from
+one place. `unit` is a nullable string: the unit of the code's numeric values as recorded (never
+normalized), one per code. MEDS does not standardize this column. Codes are not changed: a unit
+already in the code string stays there. Every unit is declared in `configs/event_configs.yaml`, so
+MEDS-Extract writes it with the rest of the code metadata, before the post-stages run. Since 0.9.0
+MEDS-Extract writes `unit` as one string per code
+([MEDS_extract#336](https://github.com/mmcdermott/MEDS_extract/pull/336)): it strips
+each value, drops blank ones and fails the run if a code has more than one unit.
 
 | Code family                                                                                                             | Unit source                                                                                                                                                                                                                                                                                                                              |
 | ----------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
