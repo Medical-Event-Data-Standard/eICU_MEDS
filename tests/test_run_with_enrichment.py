@@ -366,11 +366,13 @@ def test_the_etl_writes_each_codes_unit(plain_output: Path):
     assert pl.read_parquet(plain_output / "metadata" / "codes.parquet").schema["unit"] == pl.String
     codes = _codes(plain_output)
     assert codes["LAB//RESULT//Hgb//g/dL"]["unit"] == "g/dL"
+    # suMEDS's `sumeds_normalize_units` writes `unit` in UCUM and keeps the spelling as recorded.
+    assert codes["LAB//RESULT//Hgb//g/dL"]["unit_source_value"] == "g/dL"
     assert codes["LAB//SPECIMEN_DRAWN//Hgb//g/dL"]["unit"] is None  # valueless: no unit
-    assert codes["ICU_ADMISSION_WEIGHT"]["unit"] == "kilogram"
+    assert codes["ICU_ADMISSION_WEIGHT"]["unit"] == "kg"
     assert codes["ICU_ADMISSION_HEIGHT"]["unit"] == "cm"
-    assert codes["ICU_DISCHARGE_WEIGHT"]["unit"] == "kilogram"
-    assert codes["VITALS//PERIODIC//TEMPERATURE"]["unit"] == "celsius"
+    assert codes["ICU_DISCHARGE_WEIGHT"]["unit"] == "kg"
+    assert codes["VITALS//PERIODIC//TEMPERATURE"]["unit"] == "Cel"
     assert codes["VITALS//PERIODIC//HEARTRATE"]["unit"] is None  # the documentation states none
     assert codes["MEDS_BIRTH"]["unit"] is None
 

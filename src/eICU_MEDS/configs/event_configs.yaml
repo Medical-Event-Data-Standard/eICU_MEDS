@@ -36,6 +36,9 @@ etl:
   post_stages:
     # Sorts each code's ICD parents by the parent code; see `sort_parent_codes.py`.
     - eicu_sort_parent_codes
+    # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
+    # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
+    - sumeds_normalize_units
     # suMEDS enriches metadata/codes.parquet in place with the rules this package registers as
     # `eICU`, and records it in metadata/dataset.json. It soft-fails (e.g. without internet);
     # `suMEDS-enrich OUTPUT_DIR` finishes it later, and `skip_stages=[sumeds_enrich]` leaves it out.
@@ -138,10 +141,10 @@ patient:
       _self:
         description: >-
           "Admission weight of the patient in kilograms (patient.admissionWeight)"
-        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (patient.admissionWeight
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (patient.admissionWeight
         # 'admission weight of the patient in kilograms'; https://eicu.mit.edu/eicutables/patient/, from
         # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
-        unit: '"kilogram"'
+        unit: '"kg"'
   unit_admission_height:
     code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
     time: $unitadmittimestamp
@@ -153,7 +156,7 @@ patient:
       _self:
         description: >-
           "Admission height of the patient in cm (patient.admissionHeight)"
-        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (patient.admissionHeight
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (patient.admissionHeight
         # 'admission height of the patient in cm'; https://eicu.mit.edu/eicutables/patient/, from
         # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
         unit: '"cm"'
@@ -180,10 +183,10 @@ patient:
       _self:
         description: >-
           "Patient weight at time of unit discharge in kilograms (patient.dischargeWeight)"
-        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (patient.dischargeWeight
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (patient.dischargeWeight
         # 'patient weight at time of unit discharge in kilograms'; https://eicu.mit.edu/eicutables/patient/,
         # from MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
-        unit: '"kilogram"'
+        unit: '"kg"'
   time_of_death:
     code: MEDS_DEATH
     time: $time_of_death
@@ -337,11 +340,11 @@ infusionDrug:
       _self:
         description: >-
           "Patient weight recorded during the drug infusion in kilograms (infusionDrug.patientWeight)"
-        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (infusionDrug.patientWeight 'the
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (infusionDrug.patientWeight 'the
         # patient weight recorded during the drug infusion in kilograms';
         # https://eicu.mit.edu/eicutables/infusiondrug/, from MIT-LCP/eicu-code
         # website/content/eicutables/infusionDrug.md at 0e14106, MIT).
-        unit: '"kilogram"'
+        unit: '"kg"'
 
 intakeOutput:
   _table:
@@ -696,10 +699,10 @@ vitalPeriodic:
       _self:
         description: >-
           "Temperature in degrees Celsius (vitalPeriodic.temperature)"
-        # The unit the eICU-CRD documentation states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`) (vitalPeriodic.temperature
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (vitalPeriodic.temperature
         # 'patient's temperature value in celsius'; https://eicu.mit.edu/eicutables/vitalperiodic/, from
         # MIT-LCP/eicu-code website/content/eicutables/vitalPeriodic.md at 0e14106, MIT).
-        unit: '"celsius"'
+        unit: '"Cel"'
   saO2:
     code: '"VITALS//PERIODIC//SAO2" if $sao2 == $sao2'
     time: *vp_time

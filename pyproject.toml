@@ -53,7 +53,7 @@ classifiers = [
 # because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
     "meds-extract[download]>=0.9.0,<0.10",
-    "sumeds>=0.6.4,<0.7",
+    "sumeds>=0.6.5,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 
