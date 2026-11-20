@@ -11,12 +11,12 @@ from eICU_MEDS.sort_parent_codes import sort_parent_codes
 def test_parent_codes_are_sorted_whatever_their_order(tmp_path):
     """The written file does not depend on the order MEDS-Extract listed the parents in."""
     fp = tmp_path / "codes.parquet"
-    for parents in (["ICD9CM/486", "ICD10CM/J18.9"], ["ICD10CM/J18.9", "ICD9CM/486"]):
+    for parents in (["ICD9CM//486", "ICD10CM//J18.9"], ["ICD10CM//J18.9", "ICD9CM//486"]):
         pq.write_table(
             pa.table({"code": ["DIAGNOSIS//x"], "description": ["x"], "parent_codes": [parents]}), fp
         )
         assert sort_parent_codes(fp)
-        assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM/J18.9", "ICD9CM/486"]]
+        assert pl.read_parquet(fp)["parent_codes"].to_list() == [["ICD10CM//J18.9", "ICD9CM//486"]]
         CodeMetadataSchema.validate(pq.read_table(fp))
 
 
@@ -35,7 +35,7 @@ def test_the_schema_meds_extract_wrote_is_kept(tmp_path):
         {
             "code": ["DIAGNOSIS//x", "MEDS_BIRTH"],
             "description": ["x", None],
-            "parent_codes": [["ICD9CM/486", "ICD10CM/J18.9"], None],
+            "parent_codes": [["ICD9CM//486", "ICD10CM//J18.9"], None],
             "code_template": ['f"DIAGNOSIS//{$diagnosisstring}"', None],
         },
         schema=schema,
@@ -56,13 +56,15 @@ def test_enriched_parent_order_is_kept(tmp_path):
     parent has no name).
     """
     fp = tmp_path / "codes.parquet"
-    names = pa.array([[("ICD9CM/486", "Pneumonia, organism unspecified")]], pa.map_(pa.string(), pa.string()))
+    names = pa.array(
+        [[("ICD9CM//486", "Pneumonia, organism unspecified")]], pa.map_(pa.string(), pa.string())
+    )
     pq.write_table(
         pa.table(
             {
                 "code": ["DIAGNOSIS//x|y"],
                 "description": ["x|y"],
-                "parent_codes": [["ICD9CM/486", "DIAGNOSIS//x"]],
+                "parent_codes": [["ICD9CM//486", "DIAGNOSIS//x"]],
                 "parent_names": names,
             }
         ),

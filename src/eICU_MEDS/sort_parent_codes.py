@@ -3,7 +3,7 @@
 MEDS-Extract lists a code's ``parent_codes`` in the row order of the metadata table they come
 from. For eICU that is ``dx_icd_map``, sorted by the raw ICD code (``pre_MEDS.build_dx_icd_map``),
 while the parents themselves are the prefixed codes the event config makes of them
-(``ICD9CM/…``, ``ICD10CM/…``). This stage sorts each list by the parent code itself, as releases up
+(``ICD9CM//…``, ``ICD10CM//…``). This stage sorts each list by the parent code itself, as releases up
 to 0.2.0 did, so the lists read the same way across codes and releases. It runs after the canonical
 pipeline and before ``sumeds_enrich``, which keeps the ETL's parents first and appends its own.
 """
@@ -44,7 +44,7 @@ def sort_parent_codes(codes_fp: Path, out_fp: Path | None = None) -> bool:
         ...     {
         ...         "code": ["DIAGNOSIS//x", "MEDS_BIRTH"],
         ...         "description": ["x", "Birth"],
-        ...         "parent_codes": [["ICD9CM/486", "ICD10CM/J18.9"], None],
+        ...         "parent_codes": [["ICD9CM//486", "ICD10CM//J18.9"], None],
         ...     }
         ... )
         >>> with tempfile.TemporaryDirectory() as d:
@@ -54,7 +54,7 @@ def sort_parent_codes(codes_fp: Path, out_fp: Path | None = None) -> bool:
         ...     out = pq.read_table(fp)
         True
         >>> out["parent_codes"].to_pylist()
-        [['ICD10CM/J18.9', 'ICD9CM/486'], None]
+        [['ICD10CM//J18.9', 'ICD9CM//486'], None]
         >>> out.schema == codes.schema
         True
     """

@@ -38,12 +38,12 @@ def test_vocabulary_is_decided_by_grammar(parent_codes_expr):
     only the vocabulary prefix.
     """
     cases = {
-        "401.9": "ICD9CM/401.9",
-        "430": "ICD9CM/430",
-        "E870": "ICD9CM/E870",  # ICD-9 E-code: 4 chars, so not a legal ICD-10 code
-        "I10": "ICD10CM/I10",
-        "E11.9": "ICD10CM/E11.9",  # letter-initial but unambiguously ICD-10
-        "S32.00": "ICD10CM/S32.00",
+        "401.9": "ICD9CM//401.9",
+        "430": "ICD9CM//430",
+        "E870": "ICD9CM//E870",  # ICD-9 E-code: 4 chars, so not a legal ICD-10 code
+        "I10": "ICD10CM//I10",
+        "E11.9": "ICD10CM//E11.9",  # letter-initial but unambiguously ICD-10
+        "S32.00": "ICD10CM//S32.00",
     }
     assert _classify(parent_codes_expr, list(cases)) == list(cases.values())
 
@@ -56,8 +56,8 @@ def test_letter_initial_icd9_is_not_misread_as_icd10(parent_codes_expr):
     so a letter check misclassifies them — and misclassifies ICD-10 E-codes in the other
     direction.
     """
-    assert _classify(parent_codes_expr, ["E870", "E980.0"]) == ["ICD9CM/E870", "ICD9CM/E980.0"]
-    assert _classify(parent_codes_expr, ["E11.9", "E87.2"]) == ["ICD10CM/E11.9", "ICD10CM/E87.2"]
+    assert _classify(parent_codes_expr, ["E870", "E980.0"]) == ["ICD9CM//E870", "ICD9CM//E980.0"]
+    assert _classify(parent_codes_expr, ["E11.9", "E87.2"]) == ["ICD10CM//E11.9", "ICD10CM//E87.2"]
 
 
 def test_ambiguous_and_unmatched_codes_get_no_parent(parent_codes_expr):
@@ -90,12 +90,12 @@ def test_explode_feeds_the_classifier_end_to_end(parent_codes_expr):
     )
     got = dict(parents.iter_rows())
 
-    assert got["cv|htn"] == ["ICD10CM/I10", "ICD9CM/401.9"]
+    assert got["cv|htn"] == ["ICD10CM//I10", "ICD9CM//401.9"]
     assert got["resp|sepsis+arf"] == [
-        "ICD10CM/J96.0",
-        "ICD10CM/R65.20",
-        "ICD9CM/038.9",
-        "ICD9CM/518.81",
+        "ICD10CM//J96.0",
+        "ICD10CM//R65.20",
+        "ICD9CM//038.9",
+        "ICD9CM//518.81",
     ]
     assert "onc|leukemia" not in got, "an uncoded problem must contribute no parents"
 
@@ -105,4 +105,4 @@ def test_duplicate_codes_collapse(parent_codes_expr):
     raw = pl.LazyFrame({"diagnosisstring": ["p|q"], "icd9code": ["486, 486, 486, 486, 486, J18.9"]})
     mapped = build_dx_icd_map(raw).collect()
     parents = sorted(mapped.with_columns(p=parent_codes_expr).drop_nulls("p")["p"].to_list())
-    assert parents == ["ICD10CM/J18.9", "ICD9CM/486"]
+    assert parents == ["ICD10CM//J18.9", "ICD9CM//486"]

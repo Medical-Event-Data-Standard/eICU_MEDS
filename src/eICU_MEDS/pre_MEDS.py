@@ -25,7 +25,7 @@ So the split of responsibilities is deliberately minimal:
 
 * **here (Python)** — group to distinct ``(diagnosisstring, icd9code)`` pairs, explode the
   cell into one row per raw code, and deduplicate.
-* **the config (dftly)** — classify each raw code into ``ICD9CM/...`` / ``ICD10CM/...``.
+* **the config (dftly)** — classify each raw code into ``ICD9CM//...`` / ``ICD10CM//...``.
 
 No regex, no vocabulary knowledge, and no formatting decisions live in this file.
 
