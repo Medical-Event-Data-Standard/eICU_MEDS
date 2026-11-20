@@ -880,16 +880,16 @@
    "DIAGNOSIS//synthetic system|synthetic disorder",
    "Diagnosis path: synthetic system|synthetic disorder (eICU diagnosis.diagnosisString; sections separated by '|')",
    [
-    "ICD10CM/J18.9",
-    "ICD9CM/486"
+    "ICD10CM//J18.9",
+    "ICD9CM//486"
    ]
   ],
   [
    "DIAGNOSIS//synthetic system|synthetic disorder|synthetic subtype",
    "Diagnosis path: synthetic system|synthetic disorder|synthetic subtype (eICU diagnosis.diagnosisString; sections separated by '|')",
    [
-    "ICD10CM/I10",
-    "ICD9CM/401.9"
+    "ICD10CM//I10",
+    "ICD9CM//401.9"
    ]
   ],
   [
