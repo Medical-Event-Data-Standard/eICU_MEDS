@@ -410,8 +410,14 @@ def test_the_etl_writes_each_codes_unit(plain_output: Path):
     assert codes["LAB//RESULT//Hgb//g/dL"]["unit_source_value"] == "g/dL"
     assert codes["LAB//SPECIMEN_DRAWN//Hgb//g/dL"]["unit"] is None  # valueless: no unit
     # A blank unit is `UNK` in the code and no unit; no code keeps whitespace or an empty unit part.
+    # The unit-free stems that `link_single_units` adds (`LAB//RESULT//Hgb`) are the only other rows.
     assert codes["LAB//RESULT//blank-unit lab//UNK"]["unit"] is None
-    assert [code for code in codes if code.startswith("LAB//") and not code.endswith(("/dL", "//UNK"))] == []
+    stems = {code.rsplit("//", 1)[0] for code in codes if code.startswith("LAB//")}
+    assert [
+        code
+        for code in codes
+        if code.startswith("LAB//") and not code.endswith(("/dL", "//UNK")) and code not in stems
+    ] == []
     assert codes["ICU_ADMISSION_WEIGHT"]["unit"] == "kg"
     assert codes["ICU_ADMISSION_HEIGHT"]["unit"] == "cm"
     assert codes["ICU_DISCHARGE_WEIGHT"]["unit"] == "kg"
@@ -452,12 +458,13 @@ def test_enrichment_adds_vocabulary_and_same_table_parents(enriched_output: Path
     treatment = enriched[f"TREATMENT//ENTERED//{TREATMENT_LEAF}"]
     assert treatment["parent_codes"] == [f"TREATMENT//ENTERED//{TREATMENT_PATH}"]
 
-    # The lab crosswalk links Hgb to LOINC; a lab name outside it is left alone.
+    # The lab crosswalk links Hgb to LOINC; a lab name outside it is left alone. Both keep their
+    # unit-free stem (`link_single_units`), which the ETL's own stage adds first.
     hgb = enriched["LAB//RESULT//Hgb//g/dL"]
-    assert hgb["parent_codes"] == ["LOINC//718-7"]
-    assert _names(hgb) == {"LOINC//718-7": title("LOINC", "718-7")}
+    assert hgb["parent_codes"] == ["LAB//RESULT//Hgb", "LOINC//718-7"]
+    assert _names(hgb)["LOINC//718-7"] == title("LOINC", "718-7")
     assert (hgb["vocabulary_id"], hgb["concept_code"]) == ("LOINC", "718-7")
-    assert not enriched["LAB//RESULT//synthetic lab//g/dL"]["parent_codes"]
+    assert enriched["LAB//RESULT//synthetic lab//g/dL"]["parent_codes"] == ["LAB//RESULT//synthetic lab"]
 
 
 def test_dataset_json_records_the_enrichment(enriched_output: Path, plain_output: Path):

@@ -52,11 +52,13 @@ classifiers = [
 # column); 0.6.6 registers `sumeds_link_unit_siblings`, the first post-stage. It is capped below
 # the next minor because its rules format and CLI are still 0.x, and
 # because each minor pins the ontology data release, and so the enriched output.
+# suMEDS 0.6.9 adds the `link_single_units` option of `sumeds_link_unit_siblings`, which the spec
+# sets.
 dependencies = [
     # 0.9.2 is the first MEDS-Extract release that reads the spec's
     # `etl.cleanup_intermediates` (mmcdermott/MEDS_extract#340).
     "meds-extract[download]>=0.9.2,<0.10",
-    "sumeds>=0.6.7,<0.7",
+    "sumeds>=0.6.9,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 

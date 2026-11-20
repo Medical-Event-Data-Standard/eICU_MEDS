@@ -973,9 +973,16 @@
    null
   ],
   [
-   "LAB//RESULT//Hgb//g/dL",
+   "LAB//RESULT//Hgb",
    "Hemoglobin (eICU lab.labName 'Hgb')",
    null
+  ],
+  [
+   "LAB//RESULT//Hgb//g/dL",
+   "Hemoglobin (eICU lab.labName 'Hgb')",
+   [
+    "LAB//RESULT//Hgb"
+   ]
   ],
   [
    "LAB//RESULT//blank-unit lab//UNK",
@@ -983,9 +990,16 @@
    null
   ],
   [
-   "LAB//RESULT//synthetic lab//g/dL",
+   "LAB//RESULT//synthetic lab",
    "Lab result (eICU lab.labName 'synthetic lab')",
    null
+  ],
+  [
+   "LAB//RESULT//synthetic lab//g/dL",
+   "Lab result (eICU lab.labName 'synthetic lab')",
+   [
+    "LAB//RESULT//synthetic lab"
+   ]
   ],
   [
    "LAB//SPECIMEN_DRAWN//Hgb//g/dL",

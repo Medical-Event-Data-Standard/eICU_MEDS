@@ -45,9 +45,11 @@ etl:
     # component, to the code without it
     # (https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md). `LAB//RESULT//…`
     # codes end in their unit (lab.labMeasureNameSystem), so a lab seen in two or more units (and
-    # its `…//UNK` code) gets `LAB//RESULT//<labname>` as parent, with a row of its own. Default
-    # options.
-    - sumeds_link_unit_siblings
+    # its `…//UNK` code) gets `LAB//RESULT//<labname>` as parent, with a row of its own. With
+    # `link_single_units`, so does a lab seen in one unit, so that every code ending in its unit has
+    # its unit-free stem; a lone `…//UNK` code gets none. Default options otherwise.
+    - sumeds_link_unit_siblings:
+        link_single_units: true
     # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
     # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
     - sumeds_normalize_units
