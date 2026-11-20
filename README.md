@@ -608,6 +608,7 @@ and cutting a release with `uv version --bump`.
 
     To migrate, rewrite old codes with the regexes `^MEDICATION//STARTED//` → `MEDICATION//START//` and
     `^MEDICATION//STOPPED//` → `MEDICATION//END//`.
+
 - **Intermediate stage outputs are no longer kept.** Up to 0.3.0, a run left each stage's output in
     `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `eicu_pre_meds/`, `eicu_sort_parent_codes/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
     `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
