@@ -90,7 +90,7 @@ label period starts.
 ### Events after the stay ends
 
 Late entries can be timed after hospital discharge. On the demo, 14.9% of medication events fall
-after hospital discharge (mostly `MEDICATION//STOPPED` at a planned stop time), and under 1.5% of
+after hospital discharge (mostly `MEDICATION//END` at a planned stop time), and under 1.5% of
 every other code family (1.0% for `NURSE_CARE`, 0.06% for vitals). Inputs cut at the prediction
 time exclude them. Labels that look for "any event after X" should not count them as care received.
 
@@ -156,16 +156,16 @@ rows: a median of 22 hours later, and 6.6 days or more for 10% of them. An end-o
 is a strong mortality signal, so a model can see it up to days before anyone documented it.
 **Fix:** time it at `cplEolSaveOffset`, as the other care-plan tables already are.
 
-**`medication`.** `MEDICATION//STARTED//<drug>` is timed at `drugStartOffset`, but in 53.9% of
+**`medication`.** `MEDICATION//START//<drug>` is timed at `drugStartOffset`, but in 53.9% of
 orders the start is earlier than the order was entered (`drugOrderOffset`): a median of 31
 minutes earlier, and 46 hours or more for 10% of those rows. Most hospitals sync orders into
 eCareManager when the pharmacist verifies them, which likely explains why the recorded start so
 often precedes the order. **Fix:** time
-`STARTED` at the later of the two offsets. `MEDICATION//STOPPED//<drug>` has smaller problems: 3.0%
+`START` at the later of the two offsets. `MEDICATION//END//<drug>` has smaller problems: 3.0%
 of stop offsets are exactly 0, which looks like a placeholder and puts the stop at unit admission,
 and 7.1% are earlier than the start.
 
-Cancelled orders (2.8% of rows) currently emit `STARTED` and `STOPPED` like any other order.
+Cancelled orders (2.8% of rows) currently emit `START` and `END` like any other order.
 [#20](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pull/20) (for
 [#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10)) proposes emitting
 `MEDICATION//ORDER_CANCELLED//<drug>` at the start offset instead. eICU records no cancellation time, so timing that
