@@ -34,7 +34,8 @@ so `meds-extract-run` runs all of it. When you run this, it will:
     so an interrupted run resumes rather than restarting.
 2. Write the two tables the config reads that the release does not have (the ICD codes of each
     diagnosis path and the packaged lab descriptions) into `data/eicu_meds/eicu_pre_meds`, with this
-    package's `eicu_pre_meds` stage. The raw directory is never modified.
+    package's `eicu_pre_meds` stage. The raw directory is never modified. Like every stage directory,
+    it is deleted once the whole run has succeeded (see below).
 3. Construct the MEDS cohort from the raw tables — every transformation, join, pseudotime derivation
     and code description is declared in the spec — and write it to `data/eicu_meds/data` and
     `data/eicu_meds/metadata`.
@@ -73,8 +74,16 @@ PhysioNet throttles each connection to about 50 KB/s but not the total, so more 
 connections download faster: `download_concurrency=8` (the default is 4) matches what
 `MEDS_extract-eICU` used.
 
-Each stage keeps its intermediate output under `output_dir`, so a failed run resumes where it stopped;
-`do_cleanup_intermediates=true` deletes them once the run has succeeded. See the
+Each stage writes its intermediate output to `output_dir/<stage>/`, and those directories (the
+`eicu_pre_meds` tables included) are deleted after a successful run, by default: the spec sets
+MEDS-Extract's `etl.cleanup_intermediates: true`, so a finished output holds only `data/`,
+`metadata/`, `.logs/` and `.meds_extract_run/`. A failed run keeps them, so the same command resumes
+where it stopped, and the same command on a finished output still does nothing. To keep them (to look
+at a stage's output; `output_dir/.logs/pipeline.log` keeps the stage logs either way), add
+`"overrides=['cleanup_intermediates=false']"`; the `do_cleanup_intermediates=` flag of older
+MEDS-Extract releases is gone. Cleanup never deletes raw data: a download into the default
+`output_dir/.meds_extract_run/raw_input` stays, and `download_dest_dir=` elsewhere lets other output
+directories reuse it. See the
 [MEDS-Extract README](https://github.com/mmcdermott/MEDS_extract#running-a-packaged-dataset-etl) for
 the other options of `meds-extract-run`.
 
@@ -584,6 +593,13 @@ and cutting a release with `uv version --bump`.
 ## Breaking changes
 
 ### Unreleased
+
+- **Intermediate stage outputs are no longer kept.** Up to 0.3.0, a run left each stage's output in
+    `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `eicu_pre_meds/`, `eicu_sort_parent_codes/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
+    `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
+    `data/`, `metadata/`, `.logs/` and `.meds_extract_run/`. The MEDS data and metadata are
+    unchanged. To migrate, add `"overrides=['cleanup_intermediates=false']"` to `meds-extract-run`
+    wherever you read a stage directory after the run.
 
 - **`hadm_id` is the hospital stay, and the hospital moves to `hospital_id`.** Up to 0.3.0, `hadm_id`
     held `hospitalid`, the id of the hospital (a site, shared by every stay there). It now holds

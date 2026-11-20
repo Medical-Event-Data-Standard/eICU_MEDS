@@ -2,6 +2,8 @@
 # canonical extraction stages always run, between the extension stages listed here.
 etl:
   dataset_name: eICU
+  # Delete the <output_dir>/<stage> dirs after a successful run; keep: "overrides=['cleanup_intermediates=false']"
+  cleanup_intermediates: true
   # MEDS-Extract treats shard size as a property of the dataset; worker counts belong to the
   # machine (`stage_runner_fp=`, see the README).
   n_subjects_per_shard: 1000
