@@ -437,16 +437,16 @@ def test_enrichment_adds_vocabulary_and_same_table_parents(enriched_output: Path
     # The ETL's ICD references get their names and ancestors from the packs, and the diagnosis
     # path gets the nearest shorter path that is itself a code.
     leaf = enriched[f"DIAGNOSIS//{DX_LEAF}"]
-    assert plain[f"DIAGNOSIS//{DX_LEAF}"]["parent_codes"] == ["ICD10CM/I10", "ICD9CM/401.9"]
+    assert plain[f"DIAGNOSIS//{DX_LEAF}"]["parent_codes"] == ["ICD10CM//I10", "ICD9CM//401.9"]
     assert set(leaf["parent_codes"]) == {
-        "ICD10CM/I10",
-        "ICD9CM/401.9",
+        "ICD10CM//I10",
+        "ICD9CM//401.9",
         "ICD9CM//401",
         f"DIAGNOSIS//{DX_PATH}",
     }
     assert _names(leaf) == {
-        "ICD10CM/I10": title("ICD10CM", "I10"),
-        "ICD9CM/401.9": title("ICD9CM", "401.9"),
+        "ICD10CM//I10": title("ICD10CM", "I10"),
+        "ICD9CM//401.9": title("ICD9CM", "401.9"),
         "ICD9CM//401": title("ICD9CM", "401"),
     }
     treatment = enriched[f"TREATMENT//ENTERED//{TREATMENT_LEAF}"]
