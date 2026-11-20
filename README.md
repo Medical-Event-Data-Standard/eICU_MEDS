@@ -293,9 +293,11 @@ releases; the suMEDS enrichment appends its parents after them.
 ## Code metadata: units
 
 `metadata/codes.parquet` also has a `unit` column, so downstream tools read each code's unit from
-one place. `unit` is a nullable string: the unit of the code's numeric values as recorded (never
-normalized), one per code. MEDS does not standardize this column. Codes are not changed: a unit
-already in the code string stays there. Every unit is declared in `configs/event_configs.yaml`, so
+one place. `unit` is a nullable string: the unit of the code's numeric values, one per code, written
+in [UCUM](https://ucum.org/) by suMEDS's `sumeds_normalize_units` post-stage (`mEq/L` becomes `meq/L`,
+`mmHg` becomes `mm[Hg]`). The spelling as recorded stays in `unit_source_value`, and a spelling
+suMEDS does not know is kept as it is. Codes are not changed: a unit already in the code string
+stays there as recorded (`LAB//RESULT//…//mEq/L` keeps its name). Every unit is declared in `configs/event_configs.yaml`, so
 MEDS-Extract writes it with the rest of the code metadata, before the post-stages run. Since 0.9.0
 MEDS-Extract writes `unit` as one string per code
 ([MEDS_extract#336](https://github.com/mmcdermott/MEDS_extract/pull/336)): it strips
@@ -306,14 +308,14 @@ each value, drops blank ones and fails the run if a code has more than one unit.
 | `LAB//RESULT//…`                                                                                                        | `lab.labMeasureNameSystem` through `_self`, the code's own last component; a blank cell is no unit                                                                                                                                                                                                                                                                                |
 | `INTAKE_OUTPUT//…`                                                                                                      | the unit label written in `intakeOutput.cellPath`, through `_self`: the last parenthesized unit label in the path, of the labels the open demo uses (`ml`, `mL`, `kg`, `lb`, `mcg`), so `…\|Output (ml)\|Urine` and `…\|Output (ml)\|Gastric (NG)` get `ml` and `…\|Weight\|Bodyweight (kg)` gets `kg`; other parenthesized words (`(NG)`, `(volume)`, brand names) are not units |
 | `NURSE_CHARTING//…`, `RESPIRATORY_CHARTING//…`, `PHYSICAL_EXAM//…`                                                      | the unit the item's own label states in parentheses, through `_self`, of the labels the open demo uses: nurse charting `C`, `F`, `mmHg`, `secs` (`Temperature (C)`, `MAP (mmHg)`, `ECG (secs)`), respiratory charting `%`, `l/min`, `L/min`, `sec` (`FIO2 (%)`), physical exam `ml`, `kg` (`Weight (kg)/Current`); `(patient)`, `(set)`, `(systolic)` and the like are not units  |
-| `VITALS//PERIODIC//TEMPERATURE`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION` | the unit the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/) states for the column, spelled as in the other MEDS ETLs (`celsius`, `kilogram`, `cm`; the documentation says "kilograms"): a constant `_self` unit next to the code's constant description, with the documentation's sentence and page in a comment above it                                       |
+| `VITALS//PERIODIC//TEMPERATURE`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION` | the unit the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/) states for the column, written as its UCUM code (`Cel`, `kg`, `cm`; the documentation says "celsius", "kilograms", "cm"): a constant `_self` unit next to the code's constant description, with the documentation's sentence and page in a comment above it                                         |
 
 Every unit is the code's own component, a unit its own label states, or a single documented unit,
 so no code has more than one. Everything else has no `unit`: the documentation states no unit for
 the other vital-sign columns, the other charted, physical-exam and nursing items state none, a
 numeric medication `dosage` is a bare number, and the documentation says only that
 `INFUSION_DRUG`'s `infusionRate` is "generally charted as ml/hr" (the rate unit is in each row's
-drug name, `text_value`, so the literal code has none). The documented `celsius` is kept as stated,
+drug name, `text_value`, so the literal code has none). The documented Celsius (`Cel`) is kept as stated,
 but about 3% of full-release temperatures are above 45 and so likely Fahrenheit: range-check rather
 than trust the unit.
 
@@ -340,6 +342,7 @@ suMEDS command. The spec runs suMEDS's `sumeds_enrich` stage with them as the la
 etl:
   post_stages:
     - eicu_sort_parent_codes
+    - sumeds_normalize_units  # `unit` in UCUM; see Code metadata: units
     - sumeds_enrich:
         rules: eICU
 ```

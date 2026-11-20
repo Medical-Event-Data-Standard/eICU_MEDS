@@ -19,12 +19,14 @@ from eICU_MEDS import EVENT_CFG
 
 # The literal codes whose column the eICU-CRD table documentation gives a unit for, and that unit.
 DOCUMENTED_UNITS = {
-    "patient/unit_admission_weight": "kilogram",
+    "patient/unit_admission_weight": "kg",
     "patient/unit_admission_height": "cm",
-    "patient/unit_discharge_weight": "kilogram",
-    "infusionDrug/patient_weight": "kilogram",
-    "vitalPeriodic/temperature": "celsius",
+    "patient/unit_discharge_weight": "kg",
+    "infusionDrug/patient_weight": "kg",
+    "vitalPeriodic/temperature": "Cel",
 }
+# The word the documentation (and the code's description) uses for a UCUM unit, where they differ.
+UNIT_WORDS = {"kg": "kilograms", "Cel": "celsius"}
 
 
 @pytest.fixture(scope="module")
@@ -122,18 +124,20 @@ def test_documented_units_are_constants_on_their_literal_codes(events):
             r'"[A-Z_/]+" if \$(\w+) == \$\1', str(event.raw_code)
         )
         assert event.metadata["_self"]["unit"] == f'"{unit}"', name
-        # The description says the same unit.
-        assert unit.lower() in event.metadata["_self"]["description"].lower(), name
+        # The description says the same unit, in words.
+        word = UNIT_WORDS.get(unit, unit)
+        assert word in event.metadata["_self"]["description"].lower(), name
 
 
 def test_documented_units_cite_the_documentation():
     """Each constant unit is preceded by the documentation's sentence that states it, and the page.
 
-    The sentence may use the plural ("in kilograms" for the unit `kilogram`)."""
+    The unit is the UCUM code of the word the sentence uses (`kg` for "kilograms", `Cel` for "celsius")."""
     text = EVENT_CFG.read_text()
     blocks = re.findall(r"((?:        # .*\n)+)        unit: '\"(\w+)\"'\n", text)
     assert len(blocks) == len(DOCUMENTED_UNITS)
     for comment, unit in blocks:
         comment = " ".join(line.strip().removeprefix("# ") for line in comment.splitlines())
         assert "https://eicu.mit.edu/eicutables/" in comment, comment
-        assert re.search(rf"'[^']*\b{unit}s?'", comment), comment
+        word = UNIT_WORDS.get(unit, unit)
+        assert re.search(rf"'[^']*\b{word}'", comment), comment

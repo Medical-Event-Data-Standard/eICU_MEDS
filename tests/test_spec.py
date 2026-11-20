@@ -42,7 +42,13 @@ def test_the_spec_is_registered_as_the_packaged_config(spec):
 
 def test_the_run_wraps_the_canonical_stages_in_this_packages_extension_stages(spec, tmp_path):
     pipeline = spec.pipeline_config(input_dir=tmp_path / "raw", output_dir=tmp_path / "out")
-    assert _stage_names(pipeline) == ["eicu_pre_meds", *CANONICAL, "eicu_sort_parent_codes", "sumeds_enrich"]
+    assert _stage_names(pipeline) == [
+        "eicu_pre_meds",
+        *CANONICAL,
+        "eicu_sort_parent_codes",
+        "sumeds_normalize_units",
+        "sumeds_enrich",
+    ]
     assert _stage_options(pipeline, "sumeds_enrich")["rules"] == "eICU"
     assert _stage_options(pipeline, "split_and_shard_subjects")["n_subjects_per_shard"] == 1000
     # The two stages that read raw sources look in the pre-stage's directory first.
@@ -56,7 +62,12 @@ def test_enrichment_can_be_left_out(spec, tmp_path):
     pipeline = spec.pipeline_config(
         input_dir=tmp_path / "raw", output_dir=tmp_path / "out", skip_stages=["sumeds_enrich"]
     )
-    assert _stage_names(pipeline) == ["eicu_pre_meds", *CANONICAL, "eicu_sort_parent_codes"]
+    assert _stage_names(pipeline) == [
+        "eicu_pre_meds",
+        *CANONICAL,
+        "eicu_sort_parent_codes",
+        "sumeds_normalize_units",
+    ]
 
 
 def test_the_extension_stages_are_installed_and_of_the_right_kind(spec):
