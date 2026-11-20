@@ -307,7 +307,7 @@ MEDS 0.4 makes `description` optional, so consumers must still not rely on it be
 non-null for datasets built with older releases.
 
 ICD parent codes for diagnoses are the other piece of code metadata: each `DIAGNOSIS//...`
-code gets `ICD9CM/...` and/or `ICD10CM/...` parent codes from the `icd9code` column of
+code gets `ICD9CM//...` and/or `ICD10CM//...` parent codes from the `icd9code` column of
 `diagnosis`. That column lists several codes in one cell, and the config cannot split a cell into
 several metadata rows yet ([dftly#87](https://github.com/mmcdermott/dftly/issues/87)), so the
 `eicu_pre_meds` stage does that one step (the `dx_icd_map` table) and the config decides each code's
@@ -459,11 +459,11 @@ meds-extract-run spec=eICU output_dir=$OUT do_download=false input_dir=$RAW \
     the full release that adds 2,929 diagnosis and 2,096 treatment parents; admission diagnosis
     paths are recorded only as leaves, so that rule adds none today.
 
-suMEDS also looks up every `ICD9CM/…` and `ICD10CM/…` parent the ETL writes for a diagnosis code
+suMEDS also looks up every `ICD9CM//…` and `ICD10CM//…` parent the ETL writes for a diagnosis code
 in its ICD-9-CM and ICD-10-CM packs, and appends that code's ancestors.
 
 The ETL alone emits no LOINC parents for lab codes (builds of `main` after #27 wrote
-`LOINC/<code>` for the same 50 lab names), and it never emitted parents among eICU codes:
+`LOINC//<code>` for the same 50 lab names), and it never emitted parents among eICU codes:
 `metadata/codes.parquet` from the ETL has ICD parents for diagnoses only, and suMEDS supplies
 the rest. It never removes or rewrites the ETL's own descriptions or parents: those stay first
 in `parent_codes`, and what suMEDS adds is appended after them. `parent_names` maps each parent
@@ -608,6 +608,12 @@ and cutting a release with `uv version --bump`.
     To migrate, read the hospital from `hospital_id` wherever you read `hadm_id`
     (`pl.col("hadm_id")` → `pl.col("hospital_id")`), and use `hadm_id` (or `subject_id`) for the
     hospital stay.
+
+- **Vocabulary parents are spelled `VOCABULARY//CODE`.** The ICD parents the ETL writes for
+    diagnoses (`ICD9CM`, `ICD10CM`) used one slash, `ICD10CM/J18.9`; they now use two,
+    `ICD10CM//J18.9`, the spelling suMEDS already writes for the parents it adds. Codes, events and
+    the sorted order of each code's parents are unchanged. To migrate, respell old parents with the
+    regex `^([^/]+)/(?!/)` → `\1//`. suMEDS and alignEHR already read both spellings as the same parent.
 
 ## Citation
 

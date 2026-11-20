@@ -324,9 +324,9 @@ diagnosis:
       dx_icd_map:
         diagnosisstring: $diagnosisstring
         parent_codes: >-
-          f"ICD9CM/{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
+          f"ICD9CM//{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
           $icd_code) and (not (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code)))
-          else f"ICD10CM/{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
+          else f"ICD10CM//{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
           (not (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_code)))
 
 infusionDrug:
