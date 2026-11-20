@@ -74,6 +74,7 @@ def _validate_meds_dataset(dataset_path: Path):
     assert dataset["dataset_version"].startswith("2.0.1:")
     assert dataset["sumeds_enrichment"]["enriched"] is True
     assert dataset["sumeds_enrichment"]["rules"] == "eICU"
+    assert dataset["site_id_columns"] == ["hospital_id"]
 
     _validate_data_correctness(data_path, metadata_path)
 
@@ -123,6 +124,19 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
         .collect()
     )
     assert unlinked.is_empty(), f"Unit-stay events missing hadm_id/icustay_id:\n{unlinked}"
+
+    # `hadm_id` is the hospital stay, which is the subject; the hospital itself is in `hospital_id`.
+    n_linked, n_mismatched, n_siteless = (
+        df.filter(pl.col("hadm_id").is_not_null())
+        .select(
+            pl.len(),
+            (pl.col("hadm_id") != pl.col("subject_id")).sum(),
+            pl.col("hospital_id").is_null().sum(),
+        )
+        .collect()
+        .row(0)
+    )
+    assert n_linked > 0 and n_mismatched == 0 and n_siteless == 0, (n_linked, n_mismatched, n_siteless)
 
     n_past_history, n_textless = (
         df.filter(pl.col("code").str.starts_with("PAST_HISTORY//"))

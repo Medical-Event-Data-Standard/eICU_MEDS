@@ -113,6 +113,26 @@ the date of an event reveals how long until hospital discharge. See
 [docs/data_leakage.md](docs/data_leakage.md) for this and every other way the output can leak
 information, table by table.
 
+## Stay and site ids
+
+The id columns follow the MIMIC-IV ETL's names, so `hadm_id` is a hospital stay in both:
+
+| column        | eICU source                                 | on which events                                                                                                                                                                 | `metadata/dataset.json` |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `subject_id`  | `patienthealthsystemstayid` (hospital stay) | all                                                                                                                                                                             | (core column)           |
+| `hadm_id`     | `patienthealthsystemstayid` (hospital stay) | the hospital and unit admissions and discharges, and the unit weights and height                                                                                                | `raw_source_id_columns` |
+| `icustay_id`  | `patientunitstayid` (unit stay)             | the unit events of the patient table, and the events of admissionDx, intakeOutput, nurseAssessment, nurseCare, nurseCharting, pastHistory, physicalExam and respiratoryCharting | `raw_source_id_columns` |
+| `hospital_id` | `hospitalid` (the hospital, one of 208)     | the same events as `hadm_id`                                                                                                                                                    | `site_id_columns`       |
+
+Every clinical eICU table is keyed by the unit stay (`patientunitstayid`), and the ETL joins `patient`
+on it to find the subject (`patienthealthsystemstayid`) and the time anchor. Because the subject is the
+hospital stay, `hadm_id` always equals `subject_id`; it is there so that queries written for `hadm_id`
+mean the same thing across datasets. One hospital stay can span several unit stays; `icustay_id` tells
+them apart on the events listed above (the other tables, such as `lab` and the vitals, are keyed by unit
+stay too but do not carry it yet). `hospital_id` is the site of care, not a stay: a `site_id_columns`
+column, as the [MEDS dataset metadata schema](https://github.com/Medical-Event-Data-Standard/meds)
+defines it.
+
 ## Death
 
 `MEDS_DEATH` is emitted at hospital discharge when `hospitalDischargeStatus == "Expired"`, and from
@@ -560,6 +580,19 @@ The end-to-end test (`tests/e2e_demo_test.py`) downloads the public eICU demo fr
 slow on a first run. `tests/test_run_with_enrichment.py` runs the ETL and the suMEDS enrichment
 offline, on a few synthetic rows and a tiny local ontology source. [DEVELOPMENT.md](DEVELOPMENT.md) covers testing, running the ETL on the full release,
 and cutting a release with `uv version --bump`.
+
+## Breaking changes
+
+### Unreleased
+
+- **`hadm_id` is the hospital stay, and the hospital moves to `hospital_id`.** Up to 0.3.0, `hadm_id`
+    held `hospitalid`, the id of the hospital (a site, shared by every stay there). It now holds
+    `patienthealthsystemstayid`, the hospital stay, which is also the `subject_id`. The hospital is in
+    a new column, `hospital_id`, listed under `site_id_columns` in `metadata/dataset.json`. Both are set
+    on the same events of the patient table as before. Event rows and codes are otherwise unchanged.
+    To migrate, read the hospital from `hospital_id` wherever you read `hadm_id`
+    (`pl.col("hadm_id")` → `pl.col("hospital_id")`), and use `hadm_id` (or `subject_id`) for the
+    hospital stay.
 
 ## Citation
 

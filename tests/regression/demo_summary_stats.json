@@ -239,12 +239,12 @@
     "code_modifier_columns": [
       "diagnosis_priority"
     ],
-    "created_at": "2026-11-12T01:40:41.021850+00:00",
+    "created_at": "2026-11-20T16:01:52.956534+00:00",
     "dataset_name": "eICU",
     "dataset_version": "2.0.1:0.3.0",
     "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
     "etl_name": "MEDS_transforms",
-    "etl_version": "0.7.0",
+    "etl_version": "0.7.3",
     "license": "PhysioNet Credentialed Health Data License 1.5.0",
     "meds_version": "0.4.1",
     "other_extension_columns": [
@@ -272,6 +272,9 @@
       "resp_chart_id",
       "vital_id"
     ],
+    "site_id_columns": [
+      "hospital_id"
+    ],
     "sumeds_enrichment": {
       "athena": false,
       "coverage": {
@@ -286,7 +289,7 @@
         ]
       },
       "enriched": true,
-      "enriched_at": "2026-11-12T01:40:44Z",
+      "enriched_at": "2026-11-20T16:01:58Z",
       "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
       "options": {
         "child_codes": false,
@@ -299,31 +302,31 @@
       },
       "rules": "eICU",
       "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
-      "sumeds_version": "0.6.3"
+      "sumeds_version": "0.6.7"
     }
   },
   "dataset_digest": {
     "by_file": {
-      "data/held_out/0.parquet": "sha256:68023e67238658bde582d46d6ee813b9f887eeb9b346230797ba5c213162edef",
-      "data/train/0.parquet": "sha256:54cb9d82664ee52df4556591adb7a826ad228de4ea5b15d51dabc0de3ea7fbb4",
-      "data/train/1.parquet": "sha256:ba677ab101fef428399e7c036fe48e592859f2b1129242a785998ebe922f696d",
-      "data/tuning/0.parquet": "sha256:7ff26be88366e65ee001bd3e6ba378bf4d95b5db1a0bf791da8f93450d0b2e94",
-      "metadata/codes.parquet": "sha256:bc9503593de6fbb2d3885804e9af4bc8a4440d8d1ab37a49a26112b0357937ca",
-      "metadata/dataset.json": "sha256:b84f871f2708596b4afe47d4d3e12d6175a4a949b60ccaf8dffe2f244796bdce",
+      "data/held_out/0.parquet": "sha256:9259012ad5062baa9a322c7242300cdc4e26d6a3936143c6180c7a7f6ba3389d",
+      "data/train/0.parquet": "sha256:8b08568f87dc85a6f2939dba6adf20bdbde8863b224e3dc00de268fec9c38476",
+      "data/train/1.parquet": "sha256:4bac87e0a35cd4b4730fb4c96d5c4c0a8fb9abb55bfc70e487d8d33c53fdced5",
+      "data/tuning/0.parquet": "sha256:1a15ef9ed726cbb1652474a2d82089268ff56f21fa1289750093af32e4e61a0e",
+      "metadata/codes.parquet": "sha256:8a5c35711d9b646f0723427907b28f1a1dcd1735d6c591a16a296fa730a4e328",
+      "metadata/dataset.json": "sha256:cda1db024f9d86267beee167c48807b16ab1491586ce06583228cda7cdfc0532",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
-    "code_metadata": "sha256:56d086b00a07880e1d6e926728691a2e2b86694f2f01ebc5bbf2a6c41d6b2a21",
-    "combined": "sha256:70e6d430073f8735687d616f6083b97f0628ef5d3a374b48a621fdf2b75d132c",
+    "code_metadata": "sha256:230c1eaa674a8d99b7e6f83f548264689c5046b2a78bcf836b0bc9e505bbf2ee",
+    "combined": "sha256:bd5cc186a4da93cccf68b0a4f82cd78ffb9500becec90041fa241fba8bfb17f4",
     "data": {
-      "digest": "sha256:f185b2977c82fea679d69b5e69f94c2314196e7115929fd5422bd30d5dc3155b",
+      "digest": "sha256:38b40857639a369e3f10e6ed4fc02f437f1e25c53e7b26e2cb6130afe8d5a210",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:c54dafad01f316d12e581197531b1b62df3f83a17c4e4d8101531d76df0e0432",
+    "dataset_metadata": "sha256:3ff37780912ee97abe4628010bdad9d5684f28a863a14b2f05cc4c0d9329a06b",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-12T01:40:45.301558",
+  "extracted_at": "2026-11-20T16:01:59.470745",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
@@ -335,6 +338,8 @@
       "parent_codes": "List(String)",
       "parent_names": "Map(String, String)",
       "standard_concept": "String",
+      "unit": "String",
+      "unit_source_value": "String",
       "vocabulary_id": "String"
     },
     "column_dtype_conflicts": {},
@@ -346,6 +351,7 @@
       "drug_amount": 4,
       "drug_rate": 4,
       "hadm_id": 4,
+      "hospital_id": 4,
       "icustay_id": 4,
       "infusion_rate": 4,
       "intake_output_id": 4,
@@ -374,6 +380,7 @@
       "drug_amount": "String",
       "drug_rate": "String",
       "hadm_id": "Int64",
+      "hospital_id": "Int64",
       "icustay_id": "Int64",
       "infusion_rate": "String",
       "intake_output_id": "Int64",
@@ -401,6 +408,7 @@
       "drug_amount",
       "drug_rate",
       "hadm_id",
+      "hospital_id",
       "icustay_id",
       "infusion_rate",
       "intake_output_id",
