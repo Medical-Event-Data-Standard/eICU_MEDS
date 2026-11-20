@@ -49,11 +49,12 @@ classifiers = [
 # record in `metadata/dataset.json`; 0.6.2 registers the `sumeds_enrich` stage, which the spec runs
 # after extraction; 0.6.3 summarizes code metadata keyed by `code` alone, as MEDS-Extract writes
 # it, although the spec declares `diagnosis_priority` as a code modifier (0.6.2 fails on the missing
-# column). It is capped below the next minor because its rules format and CLI are still 0.x, and
+# column); 0.6.6 registers `sumeds_link_unit_siblings`, the first post-stage. It is capped below
+# the next minor because its rules format and CLI are still 0.x, and
 # because each minor pins the ontology data release, and so the enriched output.
 dependencies = [
     "meds-extract[download]>=0.9.0,<0.10",
-    "sumeds>=0.6.5,<0.7",
+    "sumeds>=0.6.7,<0.7",
     "hydra-joblib-launcher~=1.2",
 ]
 
