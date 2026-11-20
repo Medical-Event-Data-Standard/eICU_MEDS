@@ -592,7 +592,7 @@ and cutting a release with `uv version --bump`.
     every code that ends in its unit gets the code without the unit (its stem) as its last
     `parent_codes` entry, and the stem gets a row of its own (no unit, no events), also when the
     item has a single unit (`LAB//RESULT//<labname>//<unit>` gets `LAB//RESULT//<labname>`). Before, only items recorded in two or more units did.
-    Events are unchanged. On a synthetic (MESSY-synth) build, 62 `LAB//RESULT` codes gain a stem parent and 62 stem rows are added. To migrate, nothing is needed unless a tool expects every
+    Events are unchanged. On a synthetic (MESSY-synth) build, 62 `LAB//RESULT` codes gain a stem parent and 62 stem rows are added; on the public eICU demo, 128 stem rows are added (8,122 → 8,250 codes). To migrate, nothing is needed unless a tool expects every
     `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
     ignore a parent that is the code without its last `//` component.
 
