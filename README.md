@@ -594,6 +594,20 @@ and cutting a release with `uv version --bump`.
 
 ### Unreleased
 
+- **Medication orders are `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`**, not
+    `MEDICATION//STARTED//<drug>` and `MEDICATION//STOPPED//<drug>`
+    ([alignEHR#53](https://github.com/rvandewater/alignEHR/issues/53)). This is the spelling all MEDS
+    ETLs move to for the two ends of an interval, `<FAMILY>//START//…` and `<FAMILY>//END//…`, so a
+    start pairs with its end by swapping `START` for `END`. Events, times, values and code metadata are
+    otherwise unchanged.
+
+    | Old                           | New                         |
+    | ----------------------------- | --------------------------- |
+    | `MEDICATION//STARTED//<drug>` | `MEDICATION//START//<drug>` |
+    | `MEDICATION//STOPPED//<drug>` | `MEDICATION//END//<drug>`   |
+
+    To migrate, rewrite old codes with the regexes `^MEDICATION//STARTED//` → `MEDICATION//START//` and
+    `^MEDICATION//STOPPED//` → `MEDICATION//END//`.
 - **Intermediate stage outputs are no longer kept.** Up to 0.3.0, a run left each stage's output in
     `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `eicu_pre_meds/`, `eicu_sort_parent_codes/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
     `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
