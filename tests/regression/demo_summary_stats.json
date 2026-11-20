@@ -252,7 +252,7 @@
     "code_modifier_columns": [
       "diagnosis_priority"
     ],
-    "created_at": "2026-11-20T20:16:01.014666+00:00",
+    "created_at": "2026-11-20T21:27:28.788254+00:00",
     "dataset_name": "eICU",
     "dataset_version": "2.0.1:0.3.0",
     "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
@@ -302,7 +302,7 @@
         ]
       },
       "enriched": true,
-      "enriched_at": "2026-11-20T20:16:05Z",
+      "enriched_at": "2026-11-20T21:27:34Z",
       "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
       "options": {
         "child_codes": false,
@@ -315,7 +315,7 @@
       },
       "rules": "eICU",
       "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
-      "sumeds_version": "0.6.8"
+      "sumeds_version": "0.6.9"
     }
   },
   "dataset_digest": {
@@ -325,7 +325,7 @@
       "data/train/1.parquet": "sha256:1bfc0926268d3c64e4d8113cb0720fee0454c6b5f5c39c88b5bae66503e2afbb",
       "data/tuning/0.parquet": "sha256:1720905929543189b13307c4c544e4c9a6fa2076fef6eb315caaccbe3acd1fef",
       "metadata/codes.parquet": "sha256:5b07bf50a0d2f9fa77e7613aec86e47fdcf82a3700ce72ff5b5259aeee087c49",
-      "metadata/dataset.json": "sha256:d8745f15fa16263762fef7ea2aa740ef662a085077e8bb977af529c2a4d04752",
+      "metadata/dataset.json": "sha256:22351836f3c22412aaf653c25195959e6304fe0c94704e5c2527241d998479a1",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
     "code_metadata": "sha256:26241686484871f780934fc92604d8ab4d9807c321d117008c1e3c410f3b0b1d",
@@ -334,12 +334,12 @@
       "digest": "sha256:2371272af4cee681ca474566e0d59ee1a0061831f387f213293a376d7636dac3",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:5d69ec784db3015c031eede335bf36567ca29040f221008ffa3f808045143211",
+    "dataset_metadata": "sha256:53863b565755392fb2c16d9e0c883f053c68a2b724ff4894e88005cac3d15d5b",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-20T20:16:06.927830",
+  "extracted_at": "2026-11-20T21:27:35.682762",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
