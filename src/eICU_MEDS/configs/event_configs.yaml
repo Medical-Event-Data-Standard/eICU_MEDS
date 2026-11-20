@@ -434,8 +434,10 @@ medication:
   _table:
     joins: *anchor_join
     cols: *anchor_cols
+  # An order is two codes, `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`, the spelling
+  # the MEDS ETLs move to for the two ends of an interval (alignEHR#53); swap START for END to pair.
   drug_started:
-    code: f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
+    code: f"MEDICATION//START//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
     _metadata:
       _self:
@@ -445,7 +447,7 @@ medication:
     dosage: $dosage
     medication_id: $medicationid
   drug_stopped:
-    code: f"MEDICATION//STOPPED//{$drugname ?? 'UNK'}"
+    code: f"MEDICATION//END//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstopoffset)::minutes
     _metadata:
       _self:
