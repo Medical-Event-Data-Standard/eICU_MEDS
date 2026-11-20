@@ -45,8 +45,9 @@ def test_the_run_wraps_the_canonical_stages_in_this_packages_extension_stages(sp
     assert _stage_names(pipeline) == [
         "eicu_pre_meds",
         *CANONICAL,
-        "eicu_sort_parent_codes",
+        "sumeds_link_unit_siblings",
         "sumeds_normalize_units",
+        "eicu_sort_parent_codes",
         "sumeds_enrich",
     ]
     assert _stage_options(pipeline, "sumeds_enrich")["rules"] == "eICU"
@@ -65,8 +66,9 @@ def test_enrichment_can_be_left_out(spec, tmp_path):
     assert _stage_names(pipeline) == [
         "eicu_pre_meds",
         *CANONICAL,
-        "eicu_sort_parent_codes",
+        "sumeds_link_unit_siblings",
         "sumeds_normalize_units",
+        "eicu_sort_parent_codes",
     ]
 
 

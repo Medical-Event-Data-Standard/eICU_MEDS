@@ -34,11 +34,18 @@ etl:
     # of each diagnosis path, and the packaged `lab_descriptions`); see `pre_MEDS.py`.
     - eicu_pre_meds
   post_stages:
-    # Sorts each code's ICD parents by the parent code; see `sort_parent_codes.py`.
-    - eicu_sort_parent_codes
+    # suMEDS's shared stage that links unit siblings, codes that differ only in a last `//<unit>`
+    # component, to the code without it
+    # (https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md). `LAB//RESULT//…`
+    # codes end in their unit (lab.labMeasureNameSystem), so a lab seen in two or more units (and
+    # its `…//UNK` code) gets `LAB//RESULT//<labname>` as parent, with a row of its own. Default
+    # options.
+    - sumeds_link_unit_siblings
     # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
     # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
     - sumeds_normalize_units
+    # Sorts each code's ICD parents by the parent code; see `sort_parent_codes.py`.
+    - eicu_sort_parent_codes
     # suMEDS enriches metadata/codes.parquet in place with the rules this package registers as
     # `eICU`, and records it in metadata/dataset.json. It soft-fails (e.g. without internet);
     # `suMEDS-enrich OUTPUT_DIR` finishes it later, and `skip_stages=[sumeds_enrich]` leaves it out.

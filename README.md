@@ -38,8 +38,13 @@ so `meds-extract-run` runs all of it. When you run this, it will:
 3. Construct the MEDS cohort from the raw tables — every transformation, join, pseudotime derivation
     and code description is declared in the spec — and write it to `data/eicu_meds/data` and
     `data/eicu_meds/metadata`.
-4. Sort each code's ICD parent codes (`eicu_sort_parent_codes`).
-5. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
+4. Run suMEDS's shared `sumeds_link_unit_siblings`, which links codes that differ only in their
+    unit ([docs](https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md)): a lab
+    seen in two or more units (`LAB//RESULT//{labname}//{unit}`, and its `…//UNK` code) gets
+    `LAB//RESULT//{labname}` as parent, with a row of its own; then `sumeds_normalize_units` writes
+    `unit` in UCUM.
+5. Sort each code's ICD parent codes (`eicu_sort_parent_codes`).
+6. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
     (installed with this package): LOINC parents for lab codes and parents among eICU's own codes
     (see [Enriching code metadata with suMEDS](#enriching-code-metadata-with-sumeds)). A failed
     enrichment (e.g. without internet) does not fail the run, and `metadata/dataset.json` records
@@ -341,8 +346,9 @@ suMEDS command. The spec runs suMEDS's `sumeds_enrich` stage with them as the la
 ```yaml
 etl:
   post_stages:
-    - eicu_sort_parent_codes
+    - sumeds_link_unit_siblings  # links lab codes that differ only in their unit
     - sumeds_normalize_units  # `unit` in UCUM; see Code metadata: units
+    - eicu_sort_parent_codes
     - sumeds_enrich:
         rules: eICU
 ```
