@@ -585,6 +585,21 @@ and cutting a release with `uv version --bump`.
 
 ### Unreleased
 
+- **Medication orders are `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`**, not
+    `MEDICATION//STARTED//<drug>` and `MEDICATION//STOPPED//<drug>`
+    ([alignEHR#53](https://github.com/rvandewater/alignEHR/issues/53)). This is the spelling all MEDS
+    ETLs move to for the two ends of an interval, `<FAMILY>//START//…` and `<FAMILY>//END//…`, so a
+    start pairs with its end by swapping `START` for `END`. Events, times, values and code metadata are
+    otherwise unchanged.
+
+    | Old                           | New                         |
+    | ----------------------------- | --------------------------- |
+    | `MEDICATION//STARTED//<drug>` | `MEDICATION//START//<drug>` |
+    | `MEDICATION//STOPPED//<drug>` | `MEDICATION//END//<drug>`   |
+
+    To migrate, rewrite old codes with the regexes `^MEDICATION//STARTED//` → `MEDICATION//START//` and
+    `^MEDICATION//STOPPED//` → `MEDICATION//END//`.
+
 - **`hadm_id` is the hospital stay, and the hospital moves to `hospital_id`.** Up to 0.3.0, `hadm_id`
     held `hospitalid`, the id of the hospital (a site, shared by every stay there). It now holds
     `patienthealthsystemstayid`, the hospital stay, which is also the `subject_id`. The hospital is in
@@ -593,6 +608,7 @@ and cutting a release with `uv version --bump`.
     To migrate, read the hospital from `hospital_id` wherever you read `hadm_id`
     (`pl.col("hadm_id")` → `pl.col("hospital_id")`), and use `hadm_id` (or `subject_id`) for the
     hospital stay.
+
 - **Vocabulary parents are spelled `VOCABULARY//CODE`.** The ICD parents the ETL writes for
     diagnoses (`ICD9CM`, `ICD10CM`) used one slash, `ICD10CM/J18.9`; they now use two,
     `ICD10CM//J18.9`, the spelling suMEDS already writes for the parents it adds. Codes, events and
