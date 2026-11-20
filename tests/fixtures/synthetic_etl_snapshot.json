@@ -11,14 +11,16 @@
    "time": "2015-12-29T08:00:00",
    "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
    "source_block": "patient/hosp_admission",
-   "hadm_id": 1
+   "hadm_id": 101,
+   "hospital_id": 1
   },
   {
    "subject_id": 101,
    "time": "2015-12-29T10:00:00",
    "code": "ICU_ADMISSION//Synthetic source//admit",
    "source_block": "patient/unit_admission",
-   "hadm_id": 1,
+   "hadm_id": 101,
+   "hospital_id": 1,
    "icustay_id": 1,
    "ward_id": 10
   },
@@ -28,7 +30,8 @@
    "code": "ICU_ADMISSION_HEIGHT",
    "numeric_value": 170.5,
    "source_block": "patient/unit_admission_height",
-   "hadm_id": 1,
+   "hadm_id": 101,
+   "hospital_id": 1,
    "icustay_id": 1
   },
   {
@@ -37,7 +40,8 @@
    "code": "ICU_ADMISSION_WEIGHT",
    "numeric_value": 70.5,
    "source_block": "patient/unit_admission_weight",
-   "hadm_id": 1,
+   "hadm_id": 101,
+   "hospital_id": 1,
    "icustay_id": 1
   },
   {
@@ -426,7 +430,8 @@
    "time": "2015-12-30T19:20:00",
    "code": "ICU_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/unit_discharge",
-   "hadm_id": 1,
+   "hadm_id": 101,
+   "hospital_id": 1,
    "icustay_id": 1,
    "ward_id": 10
   },
@@ -436,7 +441,8 @@
    "code": "ICU_DISCHARGE_WEIGHT",
    "numeric_value": 69.5,
    "source_block": "patient/unit_discharge_weight",
-   "hadm_id": 1,
+   "hadm_id": 101,
+   "hospital_id": 1,
    "icustay_id": 1
   },
   {
@@ -444,7 +450,8 @@
    "time": "2015-12-31T12:00:00",
    "code": "HOSPITAL_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/hosp_discharge",
-   "hadm_id": 1
+   "hadm_id": 101,
+   "hospital_id": 1
   },
   {
    "subject_id": 101,
@@ -467,14 +474,16 @@
    "time": "2015-12-29T08:00:00",
    "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
    "source_block": "patient/hosp_admission",
-   "hadm_id": 1
+   "hadm_id": 102,
+   "hospital_id": 1
   },
   {
    "subject_id": 102,
    "time": "2015-12-29T10:00:00",
    "code": "ICU_ADMISSION//Synthetic source//admit",
    "source_block": "patient/unit_admission",
-   "hadm_id": 1,
+   "hadm_id": 102,
+   "hospital_id": 1,
    "icustay_id": 2,
    "ward_id": 10
   },
@@ -484,7 +493,8 @@
    "code": "ICU_ADMISSION_HEIGHT",
    "numeric_value": 170.5,
    "source_block": "patient/unit_admission_height",
-   "hadm_id": 1,
+   "hadm_id": 102,
+   "hospital_id": 1,
    "icustay_id": 2
   },
   {
@@ -493,7 +503,8 @@
    "code": "ICU_ADMISSION_WEIGHT",
    "numeric_value": 70.5,
    "source_block": "patient/unit_admission_weight",
-   "hadm_id": 1,
+   "hadm_id": 102,
+   "hospital_id": 1,
    "icustay_id": 2
   },
   {
@@ -545,7 +556,8 @@
    "time": "2015-12-30T19:20:00",
    "code": "ICU_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/unit_discharge",
-   "hadm_id": 1,
+   "hadm_id": 102,
+   "hospital_id": 1,
    "icustay_id": 2,
    "ward_id": 10
   },
@@ -555,7 +567,8 @@
    "code": "ICU_DISCHARGE_WEIGHT",
    "numeric_value": 69.5,
    "source_block": "patient/unit_discharge_weight",
-   "hadm_id": 1,
+   "hadm_id": 102,
+   "hospital_id": 1,
    "icustay_id": 2
   },
   {
@@ -563,7 +576,8 @@
    "time": "2015-12-31T12:00:00",
    "code": "HOSPITAL_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/hosp_discharge",
-   "hadm_id": 1
+   "hadm_id": 102,
+   "hospital_id": 1
   },
   {
    "subject_id": 102,
@@ -586,14 +600,16 @@
    "time": "2015-12-29T08:00:00",
    "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
    "source_block": "patient/hosp_admission",
-   "hadm_id": 1
+   "hadm_id": 103,
+   "hospital_id": 1
   },
   {
    "subject_id": 103,
    "time": "2015-12-29T10:00:00",
    "code": "ICU_ADMISSION//Synthetic source//admit",
    "source_block": "patient/unit_admission",
-   "hadm_id": 1,
+   "hadm_id": 103,
+   "hospital_id": 1,
    "icustay_id": 3,
    "ward_id": 10
   },
@@ -603,7 +619,8 @@
    "code": "ICU_ADMISSION_HEIGHT",
    "numeric_value": 170.5,
    "source_block": "patient/unit_admission_height",
-   "hadm_id": 1,
+   "hadm_id": 103,
+   "hospital_id": 1,
    "icustay_id": 3
   },
   {
@@ -612,7 +629,8 @@
    "code": "ICU_ADMISSION_WEIGHT",
    "numeric_value": 70.5,
    "source_block": "patient/unit_admission_weight",
-   "hadm_id": 1,
+   "hadm_id": 103,
+   "hospital_id": 1,
    "icustay_id": 3
   },
   {
@@ -657,7 +675,8 @@
    "time": "2015-12-30T19:20:00",
    "code": "ICU_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/unit_discharge",
-   "hadm_id": 1,
+   "hadm_id": 103,
+   "hospital_id": 1,
    "icustay_id": 3,
    "ward_id": 10
   },
@@ -667,7 +686,8 @@
    "code": "ICU_DISCHARGE_WEIGHT",
    "numeric_value": 69.5,
    "source_block": "patient/unit_discharge_weight",
-   "hadm_id": 1,
+   "hadm_id": 103,
+   "hospital_id": 1,
    "icustay_id": 3
   },
   {
@@ -675,7 +695,8 @@
    "time": "2015-12-31T12:00:00",
    "code": "HOSPITAL_DISCHARGE//Expired//Synthetic location",
    "source_block": "patient/hosp_discharge",
-   "hadm_id": 1
+   "hadm_id": 103,
+   "hospital_id": 1
   },
   {
    "subject_id": 103,
@@ -704,14 +725,16 @@
    "time": "2015-12-29T08:00:00",
    "code": "HOSPITAL_ADMISSION//Synthetic source//Synthetic//Synthetic//Synthetic",
    "source_block": "patient/hosp_admission",
-   "hadm_id": 1
+   "hadm_id": 104,
+   "hospital_id": 1
   },
   {
    "subject_id": 104,
    "time": "2015-12-29T10:00:00",
    "code": "ICU_ADMISSION//Synthetic source//admit",
    "source_block": "patient/unit_admission",
-   "hadm_id": 1,
+   "hadm_id": 104,
+   "hospital_id": 1,
    "icustay_id": 4,
    "ward_id": 10
   },
@@ -721,7 +744,8 @@
    "code": "ICU_ADMISSION_HEIGHT",
    "numeric_value": 170.5,
    "source_block": "patient/unit_admission_height",
-   "hadm_id": 1,
+   "hadm_id": 104,
+   "hospital_id": 1,
    "icustay_id": 4
   },
   {
@@ -730,7 +754,8 @@
    "code": "ICU_ADMISSION_WEIGHT",
    "numeric_value": 70.5,
    "source_block": "patient/unit_admission_weight",
-   "hadm_id": 1,
+   "hadm_id": 104,
+   "hospital_id": 1,
    "icustay_id": 4
   },
   {
@@ -768,7 +793,8 @@
    "time": "2015-12-30T19:20:00",
    "code": "ICU_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/unit_discharge",
-   "hadm_id": 1,
+   "hadm_id": 104,
+   "hospital_id": 1,
    "icustay_id": 4,
    "ward_id": 10
   },
@@ -778,7 +804,8 @@
    "code": "ICU_DISCHARGE_WEIGHT",
    "numeric_value": 69.5,
    "source_block": "patient/unit_discharge_weight",
-   "hadm_id": 1,
+   "hadm_id": 104,
+   "hospital_id": 1,
    "icustay_id": 4
   },
   {
@@ -786,7 +813,8 @@
    "time": "2015-12-31T12:00:00",
    "code": "HOSPITAL_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/hosp_discharge",
-   "hadm_id": 1
+   "hadm_id": 104,
+   "hospital_id": 1
   },
   {
    "subject_id": 104,

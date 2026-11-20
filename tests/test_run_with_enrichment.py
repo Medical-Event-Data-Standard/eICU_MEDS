@@ -321,6 +321,32 @@ def test_output_matches_the_runner_it_replaces(plain_output: Path):
     assert snapshot["events"] == expected["events"]
 
 
+def test_hadm_id_is_the_hospital_stay_and_hospital_id_the_site(plain_output: Path):
+    """``hadm_id`` is ``patienthealthsystemstayid`` (the subject); the hospital is in ``hospital_id``."""
+    dataset = _dataset(plain_output)
+    assert dataset["site_id_columns"] == ["hospital_id"]
+    assert "hadm_id" in dataset["raw_source_id_columns"]
+    assert "hospital_id" not in dataset["raw_source_id_columns"] + dataset["other_extension_columns"]
+
+    data = pl.concat([pl.read_parquet(fp) for fp in (plain_output / "data").rglob("*.parquet")])
+    linked = data.filter(pl.col("hadm_id").is_not_null())
+    assert set(linked["source_block"]) == {
+        f"patient/{event}"
+        for event in (
+            "hosp_admission",
+            "hosp_discharge",
+            "unit_admission",
+            "unit_admission_weight",
+            "unit_admission_height",
+            "unit_discharge",
+            "unit_discharge_weight",
+        )
+    }
+    assert (linked["hadm_id"] == linked["subject_id"]).all()
+    assert linked["hospital_id"].to_list() == [1] * linked.height
+    assert data.filter(pl.col("hadm_id").is_null())["hospital_id"].null_count() == data.height - linked.height
+
+
 def test_codes_parquet_is_replaced_by_valid_meds_metadata(enriched_output: Path):
     metadata = enriched_output / "metadata"
     table = pq.read_table(metadata / "codes.parquet")

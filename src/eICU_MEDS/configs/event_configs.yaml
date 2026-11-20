@@ -10,8 +10,9 @@ etl:
   # is under the Open Data Commons Open Database License v1.0).
   license: PhysioNet Credentialed Health Data License 1.5.0
   description_uri: https://physionet.org/content/eicu-crd/2.0/
-  # Row ids of the raw tables the events come from. `hadm_id` holds `hospitalid` and `icustay_id`
-  # holds `patientunitstayid`; `medication_id` is `medicationid` or `infusiondrugid`.
+  # Row ids of the raw tables the events come from. `hadm_id` holds the hospital stay
+  # (`patienthealthsystemstayid`, which is also the subject) and `icustay_id` the unit stay
+  # (`patientunitstayid`); `medication_id` is `medicationid` or `infusiondrugid`.
   raw_source_id_columns:
     - hadm_id
     - icustay_id
@@ -29,6 +30,10 @@ etl:
   # `diagnosis.diagnosisPriority` (Primary, Major, Other) qualifies the diagnosis code.
   code_modifier_columns:
     - diagnosis_priority
+  # The site of care: `hospital_id` holds `patient.hospitalID`, the hospital the stay was in (the
+  # release covers 208), on the events of the patient table that also carry `hadm_id`.
+  site_id_columns:
+    - hospital_id
   pre_stages:
     # Writes the tables this config reads that the raw release lacks (`dx_icd_map`, the ICD codes
     # of each diagnosis path, and the packaged `lab_descriptions`); see `pre_MEDS.py`.
@@ -109,7 +114,8 @@ patient:
       f"HOSPITAL_ADMISSION//{$hospitaladmitsource ?? 'UNK'}//{$region ?? 'UNK'}//{$teachingstatus ??
       'UNK'}//{$numbedscategory ?? 'UNK'}"
     time: $hospitaladmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     _metadata:
       _self:
         description: >-
@@ -119,7 +125,8 @@ patient:
   hosp_discharge:
     code: f"HOSPITAL_DISCHARGE//{$hospitaldischargestatus ?? 'UNK'}//{$hospitaldischargelocation ?? 'UNK'}"
     time: $hospitaldischargetimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     _metadata:
       _self:
         description: >-
@@ -129,7 +136,8 @@ patient:
   unit_admission:
     code: f"ICU_ADMISSION//{$unitadmitsource ?? 'UNK'}//{$unitstaytype ?? 'UNK'}"
     time: $unitadmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     ward_id: $wardid
     _metadata:
@@ -140,7 +148,8 @@ patient:
   unit_admission_weight:
     code: '"ICU_ADMISSION_WEIGHT" if $admissionweight == $admissionweight'
     time: $unitadmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $admissionweight
     # Source: eicu-docs:patient.admissionWeight
@@ -155,7 +164,8 @@ patient:
   unit_admission_height:
     code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
     time: $unitadmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $admissionheight
     # Source: eicu-docs:patient.admissionHeight
@@ -170,7 +180,8 @@ patient:
   unit_discharge:
     code: f"ICU_DISCHARGE//{$unitdischargestatus ?? 'UNK'}//{$unitdischargelocation ?? 'UNK'}"
     time: $unitdischargetimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     ward_id: $wardid
     _metadata:
@@ -182,7 +193,8 @@ patient:
   unit_discharge_weight:
     code: '"ICU_DISCHARGE_WEIGHT" if $dischargeweight == $dischargeweight'
     time: $unitdischargetimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $dischargeweight
     # Source: eicu-docs:patient.dischargeWeight
