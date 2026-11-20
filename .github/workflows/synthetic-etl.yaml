@@ -44,7 +44,7 @@ jobs:
       - name: Install dependencies
         run: |
           uv sync --locked
-          uv pip install "MESSY_synth==0.1.0"
+          uv pip install "MESSY_synth==0.1.1"
 
       # The `--column-format` registrations: every table builds its anchor time as
       # f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}" parsed as "%Y-%m-%d %H:%M:%S".
