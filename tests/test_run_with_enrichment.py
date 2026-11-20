@@ -100,6 +100,8 @@ TABLES = {
             "icd9code": "",
         },
     ],
+    # The unit is recorded padded with whitespace on some rows; the code's unit is stripped, so every
+    # row of a lab name is one code. A blank unit gives `…//UNK`.
     "lab": [
         {
             "patientunitstayid": stay,
@@ -107,12 +109,24 @@ TABLES = {
             "labresultrevisedoffset": 45,
             "labtypeid": 1,
             "labname": labname,
-            "labmeasurenamesystem": "g/dL",
+            "labmeasurenamesystem": unit,
             "labresult": 12.5,
             "labresulttext": "12.5",
         }
-        for stay in STAYS
+        for stay, unit in zip(STAYS, ["g/dL", " g/dL", "g/dL ", "\tg/dL"], strict=True)
         for labname in ("Hgb", "synthetic lab")
+    ]
+    + [
+        {
+            "patientunitstayid": 1,
+            "labresultoffset": 40,
+            "labresultrevisedoffset": 45,
+            "labtypeid": 1,
+            "labname": "blank-unit lab",
+            "labmeasurenamesystem": "  ",
+            "labresult": 1.0,
+            "labresulttext": "1.0",
+        }
     ],
     "treatment": [
         {"patientunitstayid": 1, "treatmentoffset": 50, "treatmentstring": TREATMENT_PATH},
@@ -395,6 +409,9 @@ def test_the_etl_writes_each_codes_unit(plain_output: Path):
     # suMEDS's `sumeds_normalize_units` writes `unit` in UCUM and keeps the spelling as recorded.
     assert codes["LAB//RESULT//Hgb//g/dL"]["unit_source_value"] == "g/dL"
     assert codes["LAB//SPECIMEN_DRAWN//Hgb//g/dL"]["unit"] is None  # valueless: no unit
+    # A blank unit is `UNK` in the code and no unit; no code keeps whitespace or an empty unit part.
+    assert codes["LAB//RESULT//blank-unit lab//UNK"]["unit"] is None
+    assert [code for code in codes if code.startswith("LAB//") and not code.endswith(("/dL", "//UNK"))] == []
     assert codes["ICU_ADMISSION_WEIGHT"]["unit"] == "kg"
     assert codes["ICU_ADMISSION_HEIGHT"]["unit"] == "cm"
     assert codes["ICU_DISCHARGE_WEIGHT"]["unit"] == "kg"

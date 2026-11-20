@@ -398,6 +398,13 @@
   {
    "subject_id": 101,
    "time": "2015-12-29T10:40:00",
+   "code": "LAB//SPECIMEN_DRAWN//blank-unit lab//UNK",
+   "source_block": "lab/lab_specimen_drawn",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:40:00",
    "code": "LAB//SPECIMEN_DRAWN//synthetic lab//g/dL",
    "source_block": "lab/lab_specimen_drawn",
    "lab_type_id": 1
@@ -407,6 +414,14 @@
    "time": "2015-12-29T10:45:00",
    "code": "LAB//RESULT//Hgb//g/dL",
    "numeric_value": 12.5,
+   "source_block": "lab/lab_result",
+   "lab_type_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T10:45:00",
+   "code": "LAB//RESULT//blank-unit lab//UNK",
+   "numeric_value": 1.0,
    "source_block": "lab/lab_result",
    "lab_type_id": 1
   },
@@ -963,6 +978,11 @@
    null
   ],
   [
+   "LAB//RESULT//blank-unit lab//UNK",
+   "Lab result (eICU lab.labName 'blank-unit lab')",
+   null
+  ],
+  [
    "LAB//RESULT//synthetic lab//g/dL",
    "Lab result (eICU lab.labName 'synthetic lab')",
    null
@@ -970,6 +990,11 @@
   [
    "LAB//SPECIMEN_DRAWN//Hgb//g/dL",
    "Lab specimen drawn: Hemoglobin (eICU lab.labName 'Hgb')",
+   null
+  ],
+  [
+   "LAB//SPECIMEN_DRAWN//blank-unit lab//UNK",
+   "Lab specimen drawn (eICU lab.labName 'blank-unit lab')",
    null
   ],
   [
