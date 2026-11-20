@@ -410,8 +410,14 @@ def test_the_etl_writes_each_codes_unit(plain_output: Path):
     assert codes["LAB//RESULT//Hgb//g/dL"]["unit_source_value"] == "g/dL"
     assert codes["LAB//SPECIMEN_DRAWN//Hgb//g/dL"]["unit"] is None  # valueless: no unit
     # A blank unit is `UNK` in the code and no unit; no code keeps whitespace or an empty unit part.
+    # The unit-free stems that `link_single_units` adds (`LAB//RESULT//Hgb`) are the only other rows.
     assert codes["LAB//RESULT//blank-unit lab//UNK"]["unit"] is None
-    assert [code for code in codes if code.startswith("LAB//") and not code.endswith(("/dL", "//UNK"))] == []
+    stems = {code.rsplit("//", 1)[0] for code in codes if code.startswith("LAB//")}
+    assert [
+        code
+        for code in codes
+        if code.startswith("LAB//") and not code.endswith(("/dL", "//UNK")) and code not in stems
+    ] == []
     assert codes["ICU_ADMISSION_WEIGHT"]["unit"] == "kg"
     assert codes["ICU_ADMISSION_HEIGHT"]["unit"] == "cm"
     assert codes["ICU_DISCHARGE_WEIGHT"]["unit"] == "kg"

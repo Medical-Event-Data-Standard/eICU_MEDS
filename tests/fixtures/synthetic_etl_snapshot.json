@@ -985,13 +985,13 @@
    ]
   ],
   [
-   "LAB//RESULT//synthetic lab",
-   "Lab result (eICU lab.labName 'synthetic lab')",
+   "LAB//RESULT//blank-unit lab//UNK",
+   "Lab result (eICU lab.labName 'blank-unit lab')",
    null
   ],
   [
-   "LAB//RESULT//blank-unit lab//UNK",
-   "Lab result (eICU lab.labName 'blank-unit lab')",
+   "LAB//RESULT//synthetic lab",
+   "Lab result (eICU lab.labName 'synthetic lab')",
    null
   ],
   [
