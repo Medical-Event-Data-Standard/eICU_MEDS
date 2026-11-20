@@ -99,13 +99,13 @@ def test_lab_loinc_crosswalk_key_is_the_raw_lab_name(unit):
     assert not labnames.str.contains("//", literal=True).any()
     assert not labnames.str.ends_with("/").any()
     for labname in labnames:
-        code = _render(template, labname=labname, labmeasurenamesystem=unit)
+        code = _render(template, labname=labname, _value_unit=unit)
         assert code == f"LAB//RESULT//{labname}//{unit}"
         assert crosswalk.key(code) == labname, code
 
 
 def test_lab_loinc_crosswalk_skips_other_lab_codes():
-    drawn = _render(_code_template("lab", "lab_specimen_drawn"), labname="Hgb", labmeasurenamesystem="g/dL")
+    drawn = _render(_code_template("lab", "lab_specimen_drawn"), labname="Hgb", _value_unit="g/dL")
     assert drawn == "LAB//SPECIMEN_DRAWN//Hgb//g/dL"
     assert _rule("eicu-lab-loinc").key(drawn) is None
 

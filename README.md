@@ -34,7 +34,8 @@ so `meds-extract-run` runs all of it. When you run this, it will:
     so an interrupted run resumes rather than restarting.
 2. Write the two tables the config reads that the release does not have (the ICD codes of each
     diagnosis path and the packaged lab descriptions) into `data/eicu_meds/eicu_pre_meds`, with this
-    package's `eicu_pre_meds` stage. The raw directory is never modified.
+    package's `eicu_pre_meds` stage. The raw directory is never modified. Like every stage directory,
+    it is deleted once the whole run has succeeded (see below).
 3. Construct the MEDS cohort from the raw tables — every transformation, join, pseudotime derivation
     and code description is declared in the spec — and write it to `data/eicu_meds/data` and
     `data/eicu_meds/metadata`.
@@ -74,8 +75,16 @@ PhysioNet throttles each connection to about 50 KB/s but not the total, so more 
 connections download faster: `download_concurrency=8` (the default is 4) matches what
 `MEDS_extract-eICU` used.
 
-Each stage keeps its intermediate output under `output_dir`, so a failed run resumes where it stopped;
-`do_cleanup_intermediates=true` deletes them once the run has succeeded. See the
+Each stage writes its intermediate output to `output_dir/<stage>/`, and those directories (the
+`eicu_pre_meds` tables included) are deleted after a successful run, by default: the spec sets
+MEDS-Extract's `etl.cleanup_intermediates: true`, so a finished output holds only `data/`,
+`metadata/`, `.logs/` and `.meds_extract_run/`. A failed run keeps them, so the same command resumes
+where it stopped, and the same command on a finished output still does nothing. To keep them (to look
+at a stage's output; `output_dir/.logs/pipeline.log` keeps the stage logs either way), add
+`"overrides=['cleanup_intermediates=false']"`; the `do_cleanup_intermediates=` flag of older
+MEDS-Extract releases is gone. Cleanup never deletes raw data: a download into the default
+`output_dir/.meds_extract_run/raw_input` stays, and `download_dest_dir=` elsewhere lets other output
+directories reuse it. See the
 [MEDS-Extract README](https://github.com/mmcdermott/MEDS_extract#running-a-packaged-dataset-etl) for
 the other options of `meds-extract-run`.
 
@@ -331,7 +340,7 @@ each value, drops blank ones and fails the run if a code has more than one unit.
 
 | Code family                                                                                                             | Unit source                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `LAB//RESULT//…`                                                                                                        | `lab.labMeasureNameSystem` through `_self`, the code's own last component; a blank cell is no unit                                                                                                                                                                                                                                                                                |
+| `LAB//RESULT//…`                                                                                                        | `lab.labMeasureNameSystem` through `_self`, the code's own last component; a blank cell is no unit (and `UNK` in the code)                                                                                                                                                                                                                                                        |
 | `INTAKE_OUTPUT//…`                                                                                                      | the unit label written in `intakeOutput.cellPath`, through `_self`: the last parenthesized unit label in the path, of the labels the open demo uses (`ml`, `mL`, `kg`, `lb`, `mcg`), so `…\|Output (ml)\|Urine` and `…\|Output (ml)\|Gastric (NG)` get `ml` and `…\|Weight\|Bodyweight (kg)` gets `kg`; other parenthesized words (`(NG)`, `(volume)`, brand names) are not units |
 | `NURSE_CHARTING//…`, `RESPIRATORY_CHARTING//…`, `PHYSICAL_EXAM//…`                                                      | the unit the item's own label states in parentheses, through `_self`, of the labels the open demo uses: nurse charting `C`, `F`, `mmHg`, `secs` (`Temperature (C)`, `MAP (mmHg)`, `ECG (secs)`), respiratory charting `%`, `l/min`, `L/min`, `sec` (`FIO2 (%)`), physical exam `ml`, `kg` (`Weight (kg)/Current`); `(patient)`, `(set)`, `(systolic)` and the like are not units  |
 | `VITALS//PERIODIC//TEMPERATURE`, `ICU_ADMISSION_WEIGHT`/`_HEIGHT`, `ICU_DISCHARGE_WEIGHT`, `SUBJECT_WEIGHT_AT_INFUSION` | the unit the [eICU-CRD table documentation](https://eicu.mit.edu/eicutables/) states for the column, written as its UCUM code (`Cel`, `kg`, `cm`; the documentation says "celsius", "kilograms", "cm"): a constant `_self` unit next to the code's constant description, with the documentation's sentence and page in a comment above it                                         |
@@ -347,10 +356,12 @@ than trust the unit.
 
 The lab codes are the only codes whose last component is their unit, and eICU records each lab
 name with one unit, so no two codes differ only in their unit and the ETL adds no parent linking
-such codes.
+such codes. The unit in a lab code is stripped of surrounding whitespace; missing or blank is `UNK`
+(`LAB//RESULT//{labname}//UNK`). MEDS-Extract compares units the same way when it writes `unit`, so
+` mg/dL` and `mg/dL` give one code.
 
 On the full release about 7.9% of numeric events have a code with a unit: 95.5% of lab results
-(the rest are 24 lab codes whose unit cell is blank, so the code ends in `//`), all intake/output
+(the rest are 24 lab codes whose unit cell is blank, so the code ends in `//UNK`), all intake/output
 values, the temperature, weight and height codes, and the charted and physical-exam items whose
 label states a unit. The vital signs without a documented unit are 77.0% of numeric events.
 
@@ -596,6 +607,24 @@ and cutting a release with `uv version --bump`.
     `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
     ignore a parent that is the code without its last `//` component.
 
+- **A blank lab unit is `UNK`, and a lab code's unit is stripped of surrounding whitespace.**
+    `LAB//RESULT//{labname}//{unit}` and `LAB//SPECIMEN_DRAWN//{labname}//{unit}` took the unit
+    (`lab.labMeasureNameSystem`) as recorded, so a lab name whose unit cell is blank (an empty string,
+    not null) got a code ending in `//`. That code is now `…//UNK`, as a null unit already was, and a
+    padded unit gives the same code as the stripped one. In the open demo, 37,707 events (18,877
+    results and 18,830 specimen-drawn events) of 38 codes (19 lab names) change, from `…//` to
+    `…//UNK`; no demo unit is padded. On the full release, 24 lab-result codes end in `//`. Events,
+    times, values and the rest of the code metadata are otherwise unchanged.
+
+    | Old                                      | New                                   |
+    | ---------------------------------------- | ------------------------------------- |
+    | `LAB//RESULT//<labname>//`               | `LAB//RESULT//<labname>//UNK`         |
+    | `LAB//SPECIMEN_DRAWN//<labname>//`       | `LAB//SPECIMEN_DRAWN//<labname>//UNK` |
+    | `LAB//…//<labname>//<unit padded by ws>` | `LAB//…//<labname>//<unit>`           |
+
+    To migrate, rewrite old lab codes with the regexes `^(LAB//(?:RESULT|SPECIMEN_DRAWN)//.*//)\s*$`
+    → `\1UNK` and `^(LAB//(?:RESULT|SPECIMEN_DRAWN)//.*//)\s+(.*?)\s*$` → `\1\2`.
+
 - **Medication orders are `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`**, not
     `MEDICATION//STARTED//<drug>` and `MEDICATION//STOPPED//<drug>`
     ([alignEHR#53](https://github.com/rvandewater/alignEHR/issues/53)). This is the spelling all MEDS
@@ -610,6 +639,13 @@ and cutting a release with `uv version --bump`.
 
     To migrate, rewrite old codes with the regexes `^MEDICATION//STARTED//` → `MEDICATION//START//` and
     `^MEDICATION//STOPPED//` → `MEDICATION//END//`.
+
+- **Intermediate stage outputs are no longer kept.** Up to 0.3.0, a run left each stage's output in
+    `<output_dir>/<stage>/` (`convert_to_parquet/`, `convert_to_MEDS_events/`, `eicu_pre_meds/`, `eicu_sort_parent_codes/`, `sumeds_enrich/`, …). The spec now sets MEDS-Extract's
+    `etl.cleanup_intermediates: true`, so a successful run deletes those directories and keeps only
+    `data/`, `metadata/`, `.logs/` and `.meds_extract_run/`. The MEDS data and metadata are
+    unchanged. To migrate, add `"overrides=['cleanup_intermediates=false']"` to `meds-extract-run`
+    wherever you read a stage directory after the run.
 
 - **`hadm_id` is the hospital stay, and the hospital moves to `hospital_id`.** Up to 0.3.0, `hadm_id`
     held `hospitalid`, the id of the hospital (a site, shared by every stay there). It now holds

@@ -2,6 +2,8 @@
 # canonical extraction stages always run, between the extension stages listed here.
 etl:
   dataset_name: eICU
+  # Delete the <output_dir>/<stage> dirs after a successful run; keep: "overrides=['cleanup_intermediates=false']"
+  cleanup_intermediates: true
   # MEDS-Extract treats shard size as a property of the dataset; worker counts belong to the
   # machine (`stage_runner_fp=`, see the README).
   n_subjects_per_shard: 1000
@@ -403,12 +405,19 @@ lab:
       lab_descriptions:
         key: labname
         cols: [description]
-    cols: *anchor_cols
+    cols:
+      <<: *anchor_cols
+      # The unit (lab.labMeasureNameSystem) as the codes' last part: stripped of surrounding
+      # whitespace, and `UNK` where it is missing or blank, as MEDS-Extract compares units when it
+      # writes `codes.parquet` (stripped, blanks dropped), so ` mg/dL` and `mg/dL` give one code. dftly
+      # 0.7 has no strip function, so the extract takes the text from the first to the last
+      # non-whitespace character (`(?s)` lets it span line breaks), which is null when there is none.
+      _value_unit: '(extract /(?s)\S(?:.*\S)?/ from $labmeasurenamesystem) ?? "UNK"'
   # A lab name the table does not list (or a blank one) gets a generic description. No LOINC parent
   # here: the lab-name -> LOINC crosswalk is a suMEDS crosswalk table (`eicu/lab_loinc`), applied
   # with `sumeds_rules.yaml`; see the README.
   lab_specimen_drawn:
-    code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$_value_unit}"
     time: $unitadmittimestamp - (-$labresultoffset)::minutes
     lab_type_id: $labtypeid
     _metadata:
@@ -417,7 +426,7 @@ lab:
           f"Lab specimen drawn: {$description} (eICU lab.labName '{$labname}')" if $description ==
           $description else f"Lab specimen drawn (eICU lab.labName '{$labname ?? 'UNK'}')"
   lab_result:
-    code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$_value_unit}"
     time: $unitadmittimestamp - (-$labresultrevisedoffset)::minutes
     numeric_value: $labresult
     text_value: $labresulttext
@@ -427,9 +436,9 @@ lab:
         description: >-
           f"{$description} (eICU lab.labName '{$labname}')" if $description == $description else
           f"Lab result (eICU lab.labName '{$labname ?? 'UNK'}')"
-        # The unit is the code's own last component (lab.labMeasureNameSystem), so each code has
-        # exactly one. A blank cell (the code ends in `//`) or a null one (`UNK`) is no unit and
-        # leaves `unit` empty rather than holding "" or "UNK".
+        # The unit is the code's own last component (lab.labMeasureNameSystem, stripped), so each
+        # code has exactly one. A blank or null cell (the code ends in `//UNK`) is no unit and leaves
+        # `unit` empty rather than holding "" or "UNK".
         unit: $labmeasurenamesystem if (/\S/ in $labmeasurenamesystem)
 
 medication:
