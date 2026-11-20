@@ -41,8 +41,9 @@ so `meds-extract-run` runs all of it. When you run this, it will:
 4. Run suMEDS's shared `sumeds_link_unit_siblings`, which links codes that differ only in their
     unit ([docs](https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md)): a lab
     seen in two or more units (`LAB//RESULT//{labname}//{unit}`, and its `…//UNK` code) gets
-    `LAB//RESULT//{labname}` as parent, with a row of its own; then `sumeds_normalize_units` writes
-    `unit` in UCUM.
+    `LAB//RESULT//{labname}` as parent, with a row of its own. With `link_single_units: true`, a
+    lab seen in one unit gets its stem too, so every code that ends in its unit has one. Then
+    `sumeds_normalize_units` writes `unit` in UCUM.
 5. Sort each code's ICD parent codes (`eicu_sort_parent_codes`).
 6. Enrich `metadata/codes.parquet` in place with [suMEDS](https://github.com/rvandewater/SumMEDS)
     (installed with this package): LOINC parents for lab codes and parents among eICU's own codes
@@ -366,7 +367,8 @@ suMEDS command. The spec runs suMEDS's `sumeds_enrich` stage with them as the la
 ```yaml
 etl:
   post_stages:
-    - sumeds_link_unit_siblings  # links lab codes that differ only in their unit
+    - sumeds_link_unit_siblings:  # links lab codes that differ only in their unit
+        link_single_units: true  # and gives a lab seen in one unit its unit-free stem too
     - sumeds_normalize_units  # `unit` in UCUM; see Code metadata: units
     - eicu_sort_parent_codes
     - sumeds_enrich:
@@ -584,6 +586,15 @@ and cutting a release with `uv version --bump`.
 ## Breaking changes
 
 ### Unreleased
+
+- **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
+    ([#53](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pull/53)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
+    every code that ends in its unit gets the code without the unit (its stem) as its last
+    `parent_codes` entry, and the stem gets a row of its own (no unit, no events), also when the
+    item has a single unit (`LAB//RESULT//<labname>//<unit>` gets `LAB//RESULT//<labname>`). Before, only items recorded in two or more units did.
+    Events are unchanged. On a synthetic (MESSY-synth) build, 62 `LAB//RESULT` codes gain a stem parent and 62 stem rows are added. To migrate, nothing is needed unless a tool expects every
+    `codes.parquet` row to have events: drop the stem rows (no `code_template`, no `unit`), or
+    ignore a parent that is the code without its last `//` component.
 
 - **Medication orders are `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`**, not
     `MEDICATION//STARTED//<drug>` and `MEDICATION//STOPPED//<drug>`

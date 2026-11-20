@@ -435,12 +435,13 @@ def test_enrichment_adds_vocabulary_and_same_table_parents(enriched_output: Path
     treatment = enriched[f"TREATMENT//ENTERED//{TREATMENT_LEAF}"]
     assert treatment["parent_codes"] == [f"TREATMENT//ENTERED//{TREATMENT_PATH}"]
 
-    # The lab crosswalk links Hgb to LOINC; a lab name outside it is left alone.
+    # The lab crosswalk links Hgb to LOINC; a lab name outside it is left alone. Both keep their
+    # unit-free stem (`link_single_units`), which the ETL's own stage adds first.
     hgb = enriched["LAB//RESULT//Hgb//g/dL"]
-    assert hgb["parent_codes"] == ["LOINC//718-7"]
-    assert _names(hgb) == {"LOINC//718-7": title("LOINC", "718-7")}
+    assert hgb["parent_codes"] == ["LAB//RESULT//Hgb", "LOINC//718-7"]
+    assert _names(hgb)["LOINC//718-7"] == title("LOINC", "718-7")
     assert (hgb["vocabulary_id"], hgb["concept_code"]) == ("LOINC", "718-7")
-    assert not enriched["LAB//RESULT//synthetic lab//g/dL"]["parent_codes"]
+    assert enriched["LAB//RESULT//synthetic lab//g/dL"]["parent_codes"] == ["LAB//RESULT//synthetic lab"]
 
 
 def test_dataset_json_records_the_enrichment(enriched_output: Path, plain_output: Path):
