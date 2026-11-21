@@ -252,9 +252,9 @@
     "code_modifier_columns": [
       "diagnosis_priority"
     ],
-    "created_at": "2026-11-20T21:50:05.599460+00:00",
+    "created_at": "2026-11-21T19:02:47.725346+00:00",
     "dataset_name": "eICU",
-    "dataset_version": "2.0.1:0.3.0",
+    "dataset_version": "2.0.1:0.4.0",
     "description_uri": "https://physionet.org/content/eicu-crd/2.0/",
     "etl_name": "MEDS_transforms",
     "etl_version": "0.7.3",
@@ -302,7 +302,7 @@
         ]
       },
       "enriched": true,
-      "enriched_at": "2026-11-20T21:50:11Z",
+      "enriched_at": "2026-11-21T19:02:52Z",
       "ontology_source": "rvandewater/sumeds-ontologies@v0.2.0",
       "options": {
         "child_codes": false,
@@ -315,7 +315,7 @@
       },
       "rules": "eICU",
       "rules_sha256": "2df738a04dbae0a5f0393e8fd3d787329ee87a0386ba414c9cb9b982275051a5",
-      "sumeds_version": "0.6.9"
+      "sumeds_version": "0.6.11"
     }
   },
   "dataset_digest": {
@@ -324,22 +324,22 @@
       "data/train/0.parquet": "sha256:f2cb22ec428e6d759354baad2a4579f9a789997e70defba79c412741d88e01db",
       "data/train/1.parquet": "sha256:9b714ae89d3c2fa9f32e12f2f510236c73e54edeb23c66219070fa09dd41651f",
       "data/tuning/0.parquet": "sha256:f13baf6546ff4e5f26b0c59b9ff7fd8c47e4582aa3b291072392a4ce7a4d9c88",
-      "metadata/codes.parquet": "sha256:09954401f2fa351836bd1534575d94338239c5c9af5f002dcfc21ad7c685dabf",
-      "metadata/dataset.json": "sha256:4a0816ca49b7631b0b1b78a29acaba5dde2e65285dca876c834ba5b97096e949",
+      "metadata/codes.parquet": "sha256:bb746d4353182fbb6950a0c6a4e180034f81b30f709bb8809f79e8f341ccd1eb",
+      "metadata/dataset.json": "sha256:0b6a17a5c6618af3c938c21200e4b07a8821721f375d993c4d01fb417249df72",
       "metadata/subject_splits.parquet": "sha256:fd6f8ed30a247e74703defb8240cb1c8ab393ff46f89e782e2446fcd398fe895"
     },
-    "code_metadata": "sha256:311d9a0890501a24b5ebce28df6a8f26c79f3dabd234e863b07d42388e3b5757",
-    "combined": "sha256:184266f1164d8c056fcec5b22c2ac4dd38f168cd24e77c01745cf247765732dc",
+    "code_metadata": "sha256:9c077c2b22a10509fc9bc15465e2586fdb7420e62ccfd736d7c1b02565cb0590",
+    "combined": "sha256:5e378d60c43ce5da826f259ae58ee021cb7086551b7675f1c52da5a182a871d3",
     "data": {
       "digest": "sha256:a5b753a1a4db2cebf2db451019cb36d783d036e53c7c0ae937b5dd04c7ffb7cd",
       "n_files": 4
     },
-    "dataset_metadata": "sha256:38add246b6df5fcb31f8f334eaa1df9ffab72758f986c227441530d2191d385b",
+    "dataset_metadata": "sha256:03e65135b1f88d56a7780d4453af0024daadbed40c434fab85486441b8d660d0",
     "method": "files",
     "n_files": 7,
     "subject_splits": "sha256:80166e2a4d6a25c4474552f7edb081e74568b8ff3d1d706b3380b44205d0da98"
   },
-  "extracted_at": "2026-11-20T21:50:12.614030",
+  "extracted_at": "2026-11-21T19:03:46.649137",
   "layout": {
     "code_metadata_columns": {
       "code": "String",
