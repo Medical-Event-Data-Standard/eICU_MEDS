@@ -15,3 +15,4 @@ class TestUnitComponents(UnitComponentContract):
         "lab/lab_specimen_drawn",
         "lab/lab_result",
     )
+    require_unit_in_code = True
