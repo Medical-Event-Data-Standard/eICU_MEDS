@@ -596,7 +596,9 @@ and cutting a release with `uv version --bump`.
 
 ## Breaking changes
 
-### Unreleased
+### 0.4.0 (2026-11-20)
+
+- Rebuilt on the full release; `tests/regression/full_summary_stats.json` regenerated.
 
 - **`codes.parquet` gains unit-free stem rows and stem parents for single-unit codes**
     ([#53](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pull/53)). suMEDS's `sumeds_link_unit_siblings` now runs with `link_single_units: true`:
