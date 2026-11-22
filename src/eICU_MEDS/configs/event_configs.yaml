@@ -1,9 +1,82 @@
+# How `meds-extract-run spec=eICU` runs this config (pyproject.toml registers it as `eICU`). The
+# canonical extraction stages always run, between the extension stages listed here.
+etl:
+  dataset_name: eICU
+  # Delete the <output_dir>/<stage> dirs after a successful run; keep: "overrides=['cleanup_intermediates=false']"
+  cleanup_intermediates: true
+  # MEDS-Extract treats shard size as a property of the dataset; worker counts belong to the
+  # machine (`stage_runner_fp=`, see the README).
+  n_subjects_per_shard: 1000
+  # Written into metadata/dataset.json. There is one `etl:` block per spec, so these describe the
+  # full release, also on a demo build (the demo, https://physionet.org/content/eicu-crd-demo/2.0.1/,
+  # is under the Open Data Commons Open Database License v1.0).
+  license: PhysioNet Credentialed Health Data License 1.5.0
+  description_uri: https://physionet.org/content/eicu-crd/2.0/
+  # Row ids of the raw tables the events come from. `hadm_id` holds the hospital stay
+  # (`patienthealthsystemstayid`, which is also the subject) and `icustay_id` the unit stay
+  # (`patientunitstayid`); `medication_id` is `medicationid` or `infusiondrugid`.
+  raw_source_id_columns:
+    - hadm_id
+    - icustay_id
+    - ward_id
+    - admission_dx_id
+    - medication_id
+    - intake_output_id
+    - nurse_assess_id
+    - nurse_care_id
+    - nurse_chart_id
+    - past_history_id
+    - physical_exam_id
+    - resp_chart_id
+    - vital_id
+  # `diagnosis.diagnosisPriority` (Primary, Major, Other) qualifies the diagnosis code.
+  code_modifier_columns:
+    - diagnosis_priority
+  # The site of care: `hospital_id` holds `patient.hospitalID`, the hospital the stay was in (the
+  # release covers 208), on the events of the patient table that also carry `hadm_id`.
+  site_id_columns:
+    - hospital_id
+  pre_stages:
+    # Writes the tables this config reads that the raw release lacks (`dx_icd_map`, the ICD codes
+    # of each diagnosis path, and the packaged `lab_descriptions`); see `pre_MEDS.py`.
+    - eicu_pre_meds
+  post_stages:
+    # suMEDS's shared stage that links unit siblings, codes that differ only in a last `//<unit>`
+    # component, to the code without it
+    # (https://github.com/rvandewater/suMEDS/blob/main/docs/unit_siblings.md). `LAB//RESULT//…`
+    # codes end in their unit (lab.labMeasureNameSystem), so a lab seen in two or more units (and
+    # its `…//UNK` code) gets `LAB//RESULT//<labname>` as parent, with a row of its own. With
+    # `link_single_units`, so does a lab seen in one unit, so that every code ending in its unit has
+    # its unit-free stem; a lone `…//UNK` code gets none. Default options otherwise.
+    - sumeds_link_unit_siblings:
+        link_single_units: true
+    # One UCUM spelling for every `unit` (suMEDS's shared table, e.g. `Cel`, `mm[Hg]`, `mg/dL`); the
+    # spelling as recorded stays in `unit_source_value`, and an unknown spelling is kept as it is.
+    - sumeds_normalize_units
+    # Sorts each code's ICD parents by the parent code; see `sort_parent_codes.py`.
+    - eicu_sort_parent_codes
+    # suMEDS enriches metadata/codes.parquet in place with the rules this package registers as
+    # `eICU`, and records it in metadata/dataset.json. It soft-fails (e.g. without internet);
+    # `suMEDS-enrich OUTPUT_DIR` finishes it later, and `skip_stages=[sumeds_enrich]` leaves it out.
+    - sumeds_enrich:
+        rules: eICU
+
 _defaults:
   subject_id: $patienthealthsystemstayid
 
+# Descriptions. Events whose code has components describe it with an f-string `_self` template over
+# those components. A literal code (`MEDS_BIRTH`, or `"VITALS//PERIODIC//HEARTRATE" if $x == $x`)
+# has none, so its `_self` block is a constant, and the comment above it records the source of the
+# text: `eicu-docs:<table>.<column>`, the column in the eICU-CRD table documentation
+# (https://eicu.mit.edu/eicutables/); `weavehr:<concept> (<unit>)`, the WeavEHR concept and unit
+# (https://github.com/aidh-ms/WeavEHR); `mimic-items:<itemid> <label>`, the MIMIC-IV d_items label
+# of the item WeavEHR maps to the same concept (open MIMIC-IV demo, ODbL); `expansion`, where only
+# the abbreviation is documented. Lab descriptions come from `metadata/lab_descriptions.csv`, which
+# records its sources per row.
+
 patient:
   _table:
-    join:
+    joins:
       hospital:
         key: hospitalid
         cols: [numbedscategory, teachingstatus, region]
@@ -21,6 +94,11 @@ patient:
   dob:
     code: MEDS_BIRTH
     time: $dateofbirth
+    # Source: MEDS standard; eicu-docs:patient.age
+    _metadata:
+      _self:
+        description: >-
+          "Birth (MEDS standard code); derived from patient.age at hospital admission, see README 'Birth'"
   gender:
     code: f"GENDER//{$gender ?? 'UNK'}"
     time: null
@@ -40,7 +118,8 @@ patient:
       f"HOSPITAL_ADMISSION//{$hospitaladmitsource ?? 'UNK'}//{$region ?? 'UNK'}//{$teachingstatus ??
       'UNK'}//{$numbedscategory ?? 'UNK'}"
     time: $hospitaladmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     _metadata:
       _self:
         description: >-
@@ -50,7 +129,8 @@ patient:
   hosp_discharge:
     code: f"HOSPITAL_DISCHARGE//{$hospitaldischargestatus ?? 'UNK'}//{$hospitaldischargelocation ?? 'UNK'}"
     time: $hospitaldischargetimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     _metadata:
       _self:
         description: >-
@@ -60,7 +140,8 @@ patient:
   unit_admission:
     code: f"ICU_ADMISSION//{$unitadmitsource ?? 'UNK'}//{$unitstaytype ?? 'UNK'}"
     time: $unitadmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     ward_id: $wardid
     _metadata:
@@ -71,19 +152,40 @@ patient:
   unit_admission_weight:
     code: '"ICU_ADMISSION_WEIGHT" if $admissionweight == $admissionweight'
     time: $unitadmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $admissionweight
+    # Source: eicu-docs:patient.admissionWeight
+    _metadata:
+      _self:
+        description: >-
+          "Admission weight of the patient in kilograms (patient.admissionWeight)"
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (patient.admissionWeight
+        # 'admission weight of the patient in kilograms'; https://eicu.mit.edu/eicutables/patient/, from
+        # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
+        unit: '"kg"'
   unit_admission_height:
     code: '"ICU_ADMISSION_HEIGHT" if $admissionheight == $admissionheight'
     time: $unitadmittimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $admissionheight
+    # Source: eicu-docs:patient.admissionHeight
+    _metadata:
+      _self:
+        description: >-
+          "Admission height of the patient in cm (patient.admissionHeight)"
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (patient.admissionHeight
+        # 'admission height of the patient in cm'; https://eicu.mit.edu/eicutables/patient/, from
+        # MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
+        unit: '"cm"'
   unit_discharge:
     code: f"ICU_DISCHARGE//{$unitdischargestatus ?? 'UNK'}//{$unitdischargelocation ?? 'UNK'}"
     time: $unitdischargetimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     ward_id: $wardid
     _metadata:
@@ -95,16 +197,31 @@ patient:
   unit_discharge_weight:
     code: '"ICU_DISCHARGE_WEIGHT" if $dischargeweight == $dischargeweight'
     time: $unitdischargetimestamp
-    hadm_id: $hospitalid
+    hadm_id: $patienthealthsystemstayid
+    hospital_id: $hospitalid
     icustay_id: $patientunitstayid
     numeric_value: $dischargeweight
+    # Source: eicu-docs:patient.dischargeWeight
+    _metadata:
+      _self:
+        description: >-
+          "Patient weight at time of unit discharge in kilograms (patient.dischargeWeight)"
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (patient.dischargeWeight
+        # 'patient weight at time of unit discharge in kilograms'; https://eicu.mit.edu/eicutables/patient/,
+        # from MIT-LCP/eicu-code website/content/eicutables/patient.md at 0e14106, MIT).
+        unit: '"kg"'
   time_of_death:
     code: MEDS_DEATH
     time: $time_of_death
+    # Source: MEDS standard; eicu-docs:patient.hospitalDischargeStatus
+    _metadata:
+      _self:
+        description: >-
+          "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', see README 'Death'"
 
 admissionDx:
   _table:
-    join: &anchor_join
+    joins: &anchor_join
       patient:
         key: patientunitstayid
         cols:
@@ -128,7 +245,7 @@ admissionDx:
 
 allergy:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   allergy:
     code: f"ALLERGY//{$allergytype ?? 'UNK'}"
@@ -141,7 +258,7 @@ allergy:
 
 carePlanGeneral:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplItem:
     code: f"CAREPLAN_GENERAL//{$cplgroup ?? 'UNK'}//{$cplitemvalue ?? 'UNK'}"
@@ -154,15 +271,20 @@ carePlanGeneral:
 
 carePlanEOL:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplEolDiscussion:
     code: CAREPLAN_EOL
     time: $unitadmittimestamp - (-$cpleoldiscussionoffset)::minutes
+    # Source: eicu-docs:carePlanEOL.cplEolDiscussionOffset
+    _metadata:
+      _self:
+        description: >-
+          "End-of-life discussion recorded in the care plan (carePlanEOL.cplEolDiscussionOffset)"
 
 carePlanGoal:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplGoal:
     code: f"CAREPLAN_GOAL//{$cplgoalcategory ?? 'UNK'}//{$cplgoalvalue ?? 'UNK'}//{$cplgoalstatus ?? 'UNK'}"
@@ -176,7 +298,7 @@ carePlanGoal:
 
 carePlanInfectiousDisease:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   cplInfectDisease:
     code: >-
@@ -193,7 +315,7 @@ carePlanInfectiousDisease:
 
 diagnosis:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   diagnosis:
     code: f"DIAGNOSIS//{$diagnosisstring}"
@@ -206,14 +328,14 @@ diagnosis:
       dx_icd_map:
         diagnosisstring: $diagnosisstring
         parent_codes: >-
-          f"ICD9CM/{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
+          f"ICD9CM//{$icd_code}" if ((/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in
           $icd_code) and (not (/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code)))
-          else f"ICD10CM/{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
+          else f"ICD10CM//{$icd_code}" if ((/^[A-TV-Z]\d[0-9A-Z](?:\.[0-9A-Z]{1,4})?$/ in $icd_code) and
           (not (/^(?:\d{3}(?:\.\d{1,2})?|E\d{3}(?:\.\d)?|V\d{2}(?:\.\d{1,2})?)$/ in $icd_code)))
 
 infusionDrug:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols:
       <<: *anchor_cols
       _patient_weight: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $patientweight)::float64'
@@ -227,14 +349,29 @@ infusionDrug:
     volume_of_fluid: $volumeoffluid
     numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $infusionrate)::float64'
     medication_id: $infusiondrugid
+    # Source: eicu-docs:infusionDrug.drugName, infusionRate
+    _metadata:
+      _self:
+        description: >-
+          "Infusion drug administration; the drug name with its rate unit is in text_value (infusionDrug.drugName, e.g. 'Propofol (mcg/kg/min)') and numeric_value is infusionDrug.infusionRate"
   patient_weight:
     code: '"SUBJECT_WEIGHT_AT_INFUSION" if $_patient_weight == $_patient_weight'
     time: $unitadmittimestamp - (-$infusionoffset)::minutes
     numeric_value: $_patient_weight
+    # Source: eicu-docs:infusionDrug.patientWeight
+    _metadata:
+      _self:
+        description: >-
+          "Patient weight recorded during the drug infusion in kilograms (infusionDrug.patientWeight)"
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (infusionDrug.patientWeight 'the
+        # patient weight recorded during the drug infusion in kilograms';
+        # https://eicu.mit.edu/eicutables/infusiondrug/, from MIT-LCP/eicu-code
+        # website/content/eicutables/infusionDrug.md at 0e14106, MIT).
+        unit: '"kg"'
 
 intakeOutput:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # One event per flowsheet row, valued by cellValueNumeric (cellValueText is the same number as
   # text). The intake/output/dialysis/net totals are not emitted: they are cumulative up to the
@@ -251,46 +388,71 @@ intakeOutput:
         description: >-
           f"Intake/output flowsheet item path: {$cellpath} (eICU intakeOutput.cellPath); the volume
           or weight is in numeric_value (cellValueNumeric)"
+        # The unit is the flowsheet's own label, as written in the path: the LAST parenthesized
+        # unit label, which is the leaf's when it has one (`Bodyweight (kg)`, `Volume (mL)-drug
+        # (BRAND) ...`) and otherwise that of the heading the cell sits under (`Output (ml)|Urine`,
+        # `Output (ml)|Gastric (NG)`). Only the unit labels that occur in the public eICU-CRD demo
+        # paths are taken (`(volume)`, a brand name are not units); a path without one leaves
+        # `unit` empty. Derived from the code's own component, so one code always has one unit.
+        unit: extract group 1 of /.*\((ml|mL|kg|lb|mcg)\)/ from $cellpath
 
 lab:
   _table:
-    join: *anchor_join
-    cols: *anchor_cols
+    joins:
+      <<: *anchor_join
+      # The packaged lab-description table, which the `eicu_pre_meds` pre-stage writes. Keyed on
+      # labname only, so a description covers every unit variant of the lab name.
+      lab_descriptions:
+        key: labname
+        cols: [description]
+    cols:
+      <<: *anchor_cols
+      # The unit (lab.labMeasureNameSystem) as the codes' last part: stripped of surrounding
+      # whitespace, and `UNK` where it is missing or blank, as MEDS-Extract compares units when it
+      # writes `codes.parquet` (stripped, blanks dropped), so ` mg/dL` and `mg/dL` give one code. dftly
+      # 0.7 has no strip function, so the extract takes the text from the first to the last
+      # non-whitespace character (`(?s)` lets it span line breaks), which is null when there is none.
+      _value_unit: '(extract /(?s)\S(?:.*\S)?/ from $labmeasurenamesystem) ?? "UNK"'
+  # A lab name the table does not list (or a blank one) gets a generic description. No LOINC parent
+  # here: the lab-name -> LOINC crosswalk is a suMEDS crosswalk table (`eicu/lab_loinc`), applied
+  # with `sumeds_rules.yaml`; see the README.
   lab_specimen_drawn:
-    code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    code: f"LAB//SPECIMEN_DRAWN//{$labname ?? 'UNK'}//{$_value_unit}"
     time: $unitadmittimestamp - (-$labresultoffset)::minutes
     lab_type_id: $labtypeid
-    # Keyed on labname only (a partial match): the description broadcasts to every unit variant.
-    # `lab_descriptions` is the packaged table that pre-MEDS writes next to the raw files.
     _metadata:
-      lab_descriptions:
-        labname: $labname
+      _self:
         description: >-
-          f"Lab specimen drawn: {$description} (eICU lab.labName '{$labname}')"
+          f"Lab specimen drawn: {$description} (eICU lab.labName '{$labname}')" if $description ==
+          $description else f"Lab specimen drawn (eICU lab.labName '{$labname ?? 'UNK'}')"
   lab_result:
-    code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$labmeasurenamesystem ?? 'UNK'}"
+    code: f"LAB//RESULT//{$labname ?? 'UNK'}//{$_value_unit}"
     time: $unitadmittimestamp - (-$labresultrevisedoffset)::minutes
     numeric_value: $labresult
     text_value: $labresulttext
     lab_type_id: $labtypeid
     _metadata:
-      lab_descriptions:
-        labname: $labname
+      _self:
         description: >-
-          f"{$description} (eICU lab.labName '{$labname}')"
-        # No LOINC parent here: the lab-name -> LOINC crosswalk is a suMEDS crosswalk table
-        # (`eicu/lab_loinc`) and applied with `sumeds_rules.yaml`; see the README.
+          f"{$description} (eICU lab.labName '{$labname}')" if $description == $description else
+          f"Lab result (eICU lab.labName '{$labname ?? 'UNK'}')"
+        # The unit is the code's own last component (lab.labMeasureNameSystem, stripped), so each
+        # code has exactly one. A blank or null cell (the code ends in `//UNK`) is no unit and leaves
+        # `unit` empty rather than holding "" or "UNK".
+        unit: $labmeasurenamesystem if (/\S/ in $labmeasurenamesystem)
 
 medication:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
+  # An order is two codes, `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`, the spelling
+  # the MEDS ETLs move to for the two ends of an interval (alignEHR#53); swap START for END to pair.
   # A cancelled order may or may not have been given before cancellation, and eICU does not
   # say which, so it gets its own code instead of asserting administration. See the README.
   drug_started:
     code: >-
       f"MEDICATION//ORDER_CANCELLED//{$drugname ?? 'UNK'}" if $drugordercancelled == "Yes"
-      else f"MEDICATION//STARTED//{$drugname ?? 'UNK'}"
+      else f"MEDICATION//START//{$drugname ?? 'UNK'}"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
     _metadata:
       _self:
@@ -302,7 +464,7 @@ medication:
     dosage: $dosage
     medication_id: $medicationid
   drug_stopped:
-    code: f"MEDICATION//STOPPED//{$drugname ?? 'UNK'}" if $drugordercancelled != "Yes"
+    code: f"MEDICATION//END//{$drugname ?? 'UNK'}" if $drugordercancelled != "Yes"
     time: $unitadmittimestamp - (-$drugstopoffset)::minutes
     _metadata:
       _self:
@@ -312,7 +474,7 @@ medication:
 
 nurseAssessment:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The path ends in the attribute and determines the label, so it alone is the code. The value
   # is split like the charted values, and a blank one emits nothing.
@@ -330,7 +492,7 @@ nurseAssessment:
 
 nurseCare:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # Laid out like nurseAssessment: the path is the code and the value is split the same way.
   nurse_care:
@@ -347,7 +509,7 @@ nurseCare:
 
 nurseCharting:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The value cell is varchar: numbers go to numeric_value through the shared guard, anything
   # else (GCS descriptors, "Oral", "WDL") to text_value. A blank cell is no observation. Timed
@@ -368,10 +530,17 @@ nurseCharting:
           (nurseCharting.nursingChartCellTypeCat), label {$nursingchartcelltypevallabel ?? 'UNK'}
           (nursingChartCellTypeValLabel), name {$nursingchartcelltypevalname ?? 'UNK'}
           (nursingChartCellTypeValName)"
+        # The unit the item's own name or label states, in parentheses (`Temperature (C)`,
+        # `MAP (mmHg)`, `ECG (secs)`), the name's before the label's. Only the unit labels of the
+        # public eICU-CRD demo are taken; derived from the code's own components, so one code has
+        # one unit.
+        unit: >-
+          (extract group 1 of /.*\((C|F|mmHg|secs)\)/ from $nursingchartcelltypevalname) ??
+          (extract group 1 of /.*\((C|F|mmHg|secs)\)/ from $nursingchartcelltypevallabel)
 
 pastHistory:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The value is always the leaf of the path, so the path alone is the code; the display text
   # rides along as text_value. Timed at entry, not at the note's offset, so the history is not
@@ -389,7 +558,7 @@ pastHistory:
 
 physicalExam:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The path ends in the picklist choice (physicalExamValue), so the path alone is the code. The
   # entered text is the measurement for vital-sign, weight and I&O items and repeats the choice
@@ -406,10 +575,13 @@ physicalExam:
       _self:
         description: >-
           f"Physical exam item path: {$physicalexampath} (eICU physicalExam.physicalExamPath)"
+        # The unit the path states, in parentheses (`Weight (kg)/Current`, `I&&O (ml)/Urine`), as in
+        # nurseCharting; only the unit labels of the public demo.
+        unit: extract group 1 of /.*\((ml|kg)\)/ from $physicalexampath
 
 respiratoryCharting:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   # The same varchar value cell as nurseCharting, split the same way.
   respiratory_charting:
@@ -427,10 +599,13 @@ respiratoryCharting:
           f"Respiratory-charted observation; category {$respcharttypecat ?? 'UNK'}
           (respiratoryCharting.respChartTypeCat), label {$respchartvaluelabel ?? 'UNK'}
           (respChartValueLabel)"
+        # The unit the label states, in parentheses (`FIO2 (%)`, `Insp Flow (l/min)`), as in
+        # nurseCharting; only the unit labels of the public demo (`(set)`, `(patient)` are not).
+        unit: extract group 1 of /.*\((%|l\/min|L\/min|sec)\)/ from $respchartvaluelabel
 
 treatment:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   treatment:
     code: f"TREATMENT//ENTERED//{$treatmentstring ?? 'UNK'}"
@@ -443,62 +618,112 @@ treatment:
 
 vitalAperiodic:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   non_invasive_systolic:
     code: '"VITALS//APERIODIC//BP//NONINVASIVE_SYSTOLIC" if $noninvasivesystolic == $noninvasivesystolic'
     time: &vap_time $unitadmittimestamp - (-$observationoffset)::minutes
     vital_id: &vap_id $vitalaperiodicid
     numeric_value: $noninvasivesystolic
+    # Source: eicu-docs:vitalAperiodic.nonInvasiveSystolic; mimic-items:220179 Non Invasive Blood Pressure systolic
+    _metadata:
+      _self:
+        description: >-
+          "Non-invasive (cuff) blood pressure, systolic, mmHg (vitalAperiodic.nonInvasiveSystolic)"
   non_invasive_diastolic:
     code: '"VITALS//APERIODIC//BP//NONINVASIVE_DIASTOLIC" if $noninvasivediastolic == $noninvasivediastolic'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $noninvasivediastolic
+    # Source: eicu-docs:vitalAperiodic.nonInvasiveDiastolic; mimic-items:220180 Non Invasive Blood Pressure diastolic
+    _metadata:
+      _self:
+        description: >-
+          "Non-invasive (cuff) blood pressure, diastolic, mmHg (vitalAperiodic.nonInvasiveDiastolic)"
   non_invasive_mean:
     code: '"VITALS//APERIODIC//BP//NONINVASIVE_MEAN" if $noninvasivemean == $noninvasivemean'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $noninvasivemean
+    # Source: eicu-docs:vitalAperiodic.nonInvasiveMean; weavehr:mean_arterial_pressure (mmHg); mimic-items:220181 Non Invasive Blood Pressure mean
+    _metadata:
+      _self:
+        description: >-
+          "Non-invasive (cuff) blood pressure, mean, mmHg (vitalAperiodic.nonInvasiveMean)"
   paop:
     code: '"VITALS//APERIODIC//PAOP" if $paop == $paop'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $paop
+    # Source: eicu-docs:vitalAperiodic.paop; mimic-items:223771 PCWP (mmHg)
+    _metadata:
+      _self:
+        description: >-
+          "Pulmonary artery occlusion (wedge) pressure (vitalAperiodic.paop)"
   cardiac_output:
     code: '"VITALS//APERIODIC//CARDIAC_OUTPUT" if $cardiacoutput == $cardiacoutput'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $cardiacoutput
+    # Source: eicu-docs:vitalAperiodic.cardiacOutput; mimic-items:220088 Cardiac Output (thermodilution) (L/min)
+    _metadata:
+      _self:
+        description: >-
+          "Cardiac output (vitalAperiodic.cardiacOutput)"
   cardiac_input:
     code: '"VITALS//APERIODIC//CARDIAC_INPUT" if $cardiacinput == $cardiacinput'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $cardiacinput
+    # Source: eicu-docs:vitalAperiodic.cardiacInput; expansion
+    _metadata:
+      _self:
+        description: >-
+          "Cardiac input (vitalAperiodic.cardiacInput; documented only as 'patient cardiac input value', commonly read as cardiac index)"
   svr:
     code: '"VITALS//APERIODIC//SVR" if $svr == $svr'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $svr
+    # Source: eicu-docs:vitalAperiodic.svr; expansion
+    _metadata:
+      _self:
+        description: >-
+          "Systemic vascular resistance (vitalAperiodic.svr)"
   svri:
     code: '"VITALS//APERIODIC//SVRI" if $svri == $svri'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $svri
+    # Source: eicu-docs:vitalAperiodic.svri; expansion; mimic-items:228185 SVRI (PiCCO)
+    _metadata:
+      _self:
+        description: >-
+          "Systemic vascular resistance index (vitalAperiodic.svri)"
   pvr:
     code: '"VITALS//APERIODIC//PVR" if $pvr == $pvr'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $pvr
+    # Source: eicu-docs:vitalAperiodic.pvr; expansion
+    _metadata:
+      _self:
+        description: >-
+          "Pulmonary vascular resistance (vitalAperiodic.pvr)"
   pvri:
     code: '"VITALS//APERIODIC//PVRI" if $pvri == $pvri'
     time: *vap_time
     vital_id: *vap_id
     numeric_value: $pvri
+    # Source: eicu-docs:vitalAperiodic.pvri; expansion
+    _metadata:
+      _self:
+        description: >-
+          "Pulmonary vascular resistance index (vitalAperiodic.pvri)"
 
 vitalPeriodic:
   _table:
-    join: *anchor_join
+    joins: *anchor_join
     cols: *anchor_cols
   temperature:
     code: '"VITALS//PERIODIC//TEMPERATURE" if $temperature == $temperature'
@@ -507,83 +732,172 @@ vitalPeriodic:
     time: &vp_time $unitadmittimestamp - (-$observationoffset)::minutes
     vital_id: &vp_id $vitalperiodicid
     numeric_value: $temperature
+    # Source: eicu-docs:vitalPeriodic.temperature 'patient's temperature value in celsius'; weavehr:temperature (C); mimic-items:223762 Temperature Celsius
+    _metadata:
+      _self:
+        description: >-
+          "Temperature in degrees Celsius (vitalPeriodic.temperature)"
+        # The unit the eICU-CRD documentation states for the column, written as its UCUM code (`Cel`, `kg`, `cm`), as all MEDS ETLs write units (vitalPeriodic.temperature
+        # 'patient's temperature value in celsius'; https://eicu.mit.edu/eicutables/vitalperiodic/, from
+        # MIT-LCP/eicu-code website/content/eicutables/vitalPeriodic.md at 0e14106, MIT).
+        unit: '"Cel"'
   saO2:
     code: '"VITALS//PERIODIC//SAO2" if $sao2 == $sao2'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $sao2
+    # Source: eicu-docs:vitalPeriodic.saO2 'patient's spO2 value'; weavehr:oxygen_saturation (%); mimic-items:220277 O2 saturation pulseoxymetry
+    _metadata:
+      _self:
+        description: >-
+          "Pulse oximetry oxygen saturation (SpO2), % (vitalPeriodic.saO2)"
   heartRate:
     code: '"VITALS//PERIODIC//HEARTRATE" if $heartrate == $heartrate'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $heartrate
+    # Source: eicu-docs:vitalPeriodic.heartRate; weavehr:heart_rate (bpm); mimic-items:220045 Heart Rate
+    _metadata:
+      _self:
+        description: >-
+          "Heart rate, beats per minute (vitalPeriodic.heartRate)"
   respiration:
     code: '"VITALS//PERIODIC//RESPIRATION" if $respiration == $respiration'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $respiration
+    # Source: eicu-docs:vitalPeriodic.respiration; weavehr:respiratory_rate (insp/min); mimic-items:220210 Respiratory Rate
+    _metadata:
+      _self:
+        description: >-
+          "Respiratory rate, breaths per minute (vitalPeriodic.respiration)"
   cvp:
     code: '"VITALS//PERIODIC//CVP" if $cvp == $cvp'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $cvp
+    # Source: eicu-docs:vitalPeriodic.cvp; mimic-items:220074 Central Venous Pressure (mmHg); weavehr eICU table config splits cvp at 200 into mmHg / mmH2O
+    _metadata:
+      _self:
+        description: >-
+          "Central venous pressure (vitalPeriodic.cvp); unit not documented, values above ~200 are likely mmH2O rather than mmHg"
   etCo2:
     code: '"VITALS//PERIODIC//ETCO2" if $etco2 == $etco2'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $etco2
+    # Source: eicu-docs:vitalPeriodic.etCo2; mimic-items:228640 EtCO2
+    _metadata:
+      _self:
+        description: >-
+          "End-tidal carbon dioxide (vitalPeriodic.etCo2)"
   systemic_systolic:
     code: '"VITALS//PERIODIC//BP//SYSTEMIC_SYSTOLIC" if $systemicsystolic == $systemicsystolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $systemicsystolic
+    # Source: eicu-docs:vitalPeriodic.systemicSystolic; weavehr:systolic_blood_pressure (mmHg); mimic-items:220050 Arterial Blood Pressure systolic
+    _metadata:
+      _self:
+        description: >-
+          "Systemic (invasive, arterial line) blood pressure, systolic, mmHg (vitalPeriodic.systemicSystolic)"
   systemic_diastolic:
     code: '"VITALS//PERIODIC//BP//SYSTEMIC_DIASTOLIC" if $systemicdiastolic == $systemicdiastolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $systemicdiastolic
+    # Source: eicu-docs:vitalPeriodic.systemicDiastolic; weavehr:diastolic_blood_pressure (mmHg); mimic-items:220051 Arterial Blood Pressure diastolic
+    _metadata:
+      _self:
+        description: >-
+          "Systemic (invasive, arterial line) blood pressure, diastolic, mmHg (vitalPeriodic.systemicDiastolic)"
   systemic_mean:
     code: '"VITALS//PERIODIC//BP//SYSTEMIC_MEAN" if $systemicmean == $systemicmean'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $systemicmean
+    # Source: eicu-docs:vitalPeriodic.systemicMean; weavehr:mean_arterial_pressure (mmHg); mimic-items:220052 Arterial Blood Pressure mean
+    _metadata:
+      _self:
+        description: >-
+          "Systemic (invasive, arterial line) blood pressure, mean, mmHg (vitalPeriodic.systemicMean)"
   pa_systolic:
     code: '"VITALS//PERIODIC//BP//PULM_ART_SYSTOLIC" if $pasystolic == $pasystolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $pasystolic
+    # Source: eicu-docs:vitalPeriodic.paSystolic; mimic-items:220059 Pulmonary Artery Pressure systolic (mmHg)
+    _metadata:
+      _self:
+        description: >-
+          "Pulmonary artery pressure, systolic (vitalPeriodic.paSystolic)"
   pa_diastolic:
     code: '"VITALS//PERIODIC//BP//PULM_ART_DIASTOLIC" if $padiastolic == $padiastolic'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $padiastolic
+    # Source: eicu-docs:vitalPeriodic.paDiastolic; mimic-items:220060 Pulmonary Artery Pressure diastolic (mmHg)
+    _metadata:
+      _self:
+        description: >-
+          "Pulmonary artery pressure, diastolic (vitalPeriodic.paDiastolic)"
   pa_mean:
     code: '"VITALS//PERIODIC//BP//PULM_ART_MEAN" if $pamean == $pamean'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $pamean
+    # Source: eicu-docs:vitalPeriodic.paMean; mimic-items:220061 Pulmonary Artery Pressure mean (mmHg)
+    _metadata:
+      _self:
+        description: >-
+          "Pulmonary artery pressure, mean (vitalPeriodic.paMean)"
   st1:
     code: '"VITALS//PERIODIC//ST1" if $st1 == $st1'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $st1
+    # Source: eicu-docs:vitalPeriodic.st1 'patient's st1 value'; expansion
+    _metadata:
+      _self:
+        description: >-
+          "ST-segment deviation, ECG lead 1 (vitalPeriodic.st1)"
   st2:
     code: '"VITALS//PERIODIC//ST2" if $st2 == $st2'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $st2
+    # Source: eicu-docs:vitalPeriodic.st2; expansion
+    _metadata:
+      _self:
+        description: >-
+          "ST-segment deviation, ECG lead 2 (vitalPeriodic.st2)"
   st3:
     code: '"VITALS//PERIODIC//ST3" if $st3 == $st3'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $st3
+    # Source: eicu-docs:vitalPeriodic.st3; expansion
+    _metadata:
+      _self:
+        description: >-
+          "ST-segment deviation, ECG lead 3 (vitalPeriodic.st3)"
   ICP:
     code: '"VITALS//PERIODIC//ICP" if $icp == $icp'
     time: *vp_time
     vital_id: *vp_id
     numeric_value: $icp
+    # Source: eicu-docs:vitalPeriodic.ICP; mimic-items:220765 Intra Cranial Pressure (mmHg)
+    _metadata:
+      _self:
+        description: >-
+          "Intracranial pressure (vitalPeriodic.ICP)"
 
 sources:
+  # The raw release of each bucket; `meds-extract-run` stamps the selected one, with this package's
+  # version, into metadata/dataset.json as `dataset_version` (e.g. `2.0.1:0.3.0` for the demo).
+  dataset_version:
+    dataset: "2.0"
+    demo: "2.0.1"
   dataset:
     - type: physionet
       base_url: https://physionet.org/files/eicu-crd/2.0

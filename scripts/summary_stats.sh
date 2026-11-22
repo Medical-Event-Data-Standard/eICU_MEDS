@@ -29,17 +29,19 @@ die() {
 
 # How this repository builds each kind of dataset: `build KIND INPUT_DIR OUTPUT_DIR`, run from the
 # repository root. Prints the root of the MEDS dataset it wrote (the directory holding data/ and
-# metadata/). The build uses this checkout and its locked dependencies.
+# metadata/). The build uses this checkout and its locked dependencies. A baseline describes the
+# enriched dataset, so the build fails rather than soft-fails when the suMEDS enrichment fails.
 build() {
   local kind=$1 input=$2 output=$3
+  local strict="overrides=['++stage_cfg.strict=true']"
   case $kind in
     full)
-      uv run --frozen MEDS_extract-eICU root_output_dir="$output" raw_input_dir="$input" do_download=False >&2 \
-        && echo "$output/MEDS_output"
+      uv run --frozen meds-extract-run spec=eICU output_dir="$output" do_download=false input_dir="$input" "$strict" >&2 \
+        && echo "$output"
       ;;
     demo)
-      uv run --frozen MEDS_extract-eICU root_output_dir="$output" do_demo=True ${input:+"raw_input_dir=$input"} ${input:+do_download=False} >&2 \
-        && echo "$output/MEDS_output"
+      uv run --frozen meds-extract-run spec=eICU output_dir="$output" dataset_key=demo ${input:+do_download=false} ${input:+"input_dir=$input"} "$strict" >&2 \
+        && echo "$output"
       ;;
     *) die "unknown kind '$kind' (expected one of: $KINDS)" ;;
   esac
@@ -86,6 +88,9 @@ if [[ -z $meds_dir ]]; then
   meds_dir=$(build "$kind" "$input_dir" "$output_dir")
 fi
 [[ -f $meds_dir/metadata/dataset.json ]] || die "$meds_dir is not a MEDS dataset (no metadata/dataset.json)"
+enriched=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("sumeds_enrichment", {}).get("enriched"))' \
+  "$meds_dir/metadata/dataset.json")
+[[ $enriched == True ]] || die "$meds_dir is not enriched (sumeds_enrichment.enriched is $enriched); run suMEDS-enrich $meds_dir first"
 echo "Summarizing $meds_dir ($(tr -d '\n' <"$meds_dir/metadata/dataset.json"))" >&2
 
 current=$(mktemp "${TMPDIR:-/tmp}/summary_stats.XXXXXX")

@@ -159,19 +159,17 @@ wheels = [
 
 [[package]]
 name = "eicu-meds"
-version = "0.2.1"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "hydra-joblib-launcher" },
     { name = "meds-extract", extra = ["download"] },
+    { name = "sumeds" },
 ]
 
 [package.optional-dependencies]
 slurm-parallelism = [
     { name = "hydra-submitit-launcher" },
-]
-sumeds = [
-    { name = "sumeds" },
 ]
 
 [package.dev-dependencies]
@@ -181,17 +179,17 @@ dev = [
     { name = "pytest-cov" },
     { name = "pytest-rerunfailures" },
     { name = "ruff" },
-    { name = "sumeds" },
+    { name = "sumeds", extra = ["testing"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "hydra-joblib-launcher", specifier = "~=1.2" },
     { name = "hydra-submitit-launcher", marker = "extra == 'slurm-parallelism'", specifier = "~=1.2" },
-    { name = "meds-extract", extras = ["download"], specifier = ">=0.7.0,<0.8" },
-    { name = "sumeds", marker = "extra == 'sumeds'", specifier = ">=0.4,<0.5" },
+    { name = "meds-extract", extras = ["download"], specifier = ">=0.9.2,<0.10" },
+    { name = "sumeds", specifier = ">=0.6.11,<0.7" },
 ]
-provides-extras = ["slurm-parallelism", "sumeds"]
+provides-extras = ["slurm-parallelism"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -200,7 +198,7 @@ dev = [
     { name = "pytest-cov", specifier = "~=7.1" },
     { name = "pytest-rerunfailures", specifier = "==16.1" },
     { name = "ruff", specifier = ">=0.11,<1.0" },
-    { name = "sumeds", specifier = ">=0.4" },
+    { name = "sumeds", extras = ["testing"], specifier = ">=0.6.11,<0.7" },
 ]
 
 [[package]]
@@ -401,7 +399,7 @@ wheels = [
 
 [[package]]
 name = "meds-extract"
-version = "0.7.1"
+version = "0.9.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "dftly" },
@@ -416,9 +414,9 @@ dependencies = [
     { name = "universal-pathlib" },
     { name = "yaml-to-disk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/6a/e6/40716e3068ae4a9f3648f8e673f4124817dea5094b5d70eb252b15cc3c52/meds_extract-0.7.1.tar.gz", hash = "sha256:088054fc23225403d85c7deea21604edc2d8be1a4aa4517765810f8bcfd4419b", size = 454767, upload-time = "2026-10-22T18:12:27.246Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/c5/e7/6a80cb3d0ccf0bd19f05110aa4a7ca7551af2d7329d53233c4574c361cc1/meds_extract-0.9.2.tar.gz", hash = "sha256:33240fc2867c752a9b0c49013fc782267549b3f02bd74a279e8a4a73d7d1477c", size = 549300, upload-time = "2026-11-20T20:39:25.342Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/90/3d6105949b5cce6fa7177360a68a21cb5292e6a55b6b2f8a40ff1d59342f/meds_extract-0.7.1-py3-none-any.whl", hash = "sha256:1af65f8af9995d3f33c3d0ac2f0462ded9564e8c36f745e1f5a4698b5e86c81a", size = 223190, upload-time = "2026-10-22T18:12:25.665Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/34/4c51aeaf901119334c99647520f15870107abef4133b964f998c43b2853c/meds_extract-0.9.2-py3-none-any.whl", hash = "sha256:dfda150498678a3993b10bf3e79357e6cd967109761d2fce560fde8d4e168090", size = 260540, upload-time = "2026-11-20T20:39:23.763Z" },
 ]
 
 [package.optional-dependencies]
@@ -449,7 +447,7 @@ wheels = [
 
 [[package]]
 name = "meds-transforms"
-version = "0.7.0"
+version = "0.7.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "filelock" },
@@ -464,9 +462,9 @@ dependencies = [
     { name = "pytest" },
     { name = "yaml-to-disk" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/b6/fd/547ac91aa53043b22f6a1b436dfaabbce84e630fbcb52f27e99cc54a6fbc/meds_transforms-0.7.0.tar.gz", hash = "sha256:c06c4f7213fce7ea410d02d43fe731796f4438aec037a6d81c32f9f2c2e150b5", size = 617229, upload-time = "2026-08-05T18:51:09.775Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/02/8d/1442a6b1da5ffd4ceec4f0944a514df285d712cb7cafe71ddfe72bc5d379/meds_transforms-0.7.3.tar.gz", hash = "sha256:b4019f77367766c25ebffaa162416afc7347cd21eb9c35fe8d3e8884aab235bb", size = 650405, upload-time = "2026-11-13T22:03:17.338Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/4f/c0/8e21ccf0c87fcc706eca7a5249ad3148896db2b4a36e802325cc09a075f2/meds_transforms-0.7.0-py3-none-any.whl", hash = "sha256:6f4509866c1da26cf9f952a45c4545a8fc27c9876f2391217b852b3ee7351609", size = 232448, upload-time = "2026-08-05T18:51:08.09Z" },
+    { url = "https://files.pythonhosted.org/packages/89/bb/6b76860dd6d121c5a41ddedefe5e06463821baf1d2497a0fb39f9c622641/meds_transforms-0.7.3-py3-none-any.whl", hash = "sha256:411bba400e4d18e8ec57053b2e73f5b2c08f9057ae7170d0a12b18976389e831", size = 235471, upload-time = "2026-11-13T22:03:15.705Z" },
 ]
 
 [[package]]
@@ -957,7 +955,7 @@ wheels = [
 
 [[package]]
 name = "sumeds"
-version = "0.4.0"
+version = "0.6.11"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "meds" },
@@ -966,9 +964,15 @@ dependencies = [
     { name = "pyyaml" },
     { name = "tqdm" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/75/19/19910cadc5b6e6b2ea281d887a5ed00ec2bfd9119a20dbfbeb75849392d1/sumeds-0.4.0.tar.gz", hash = "sha256:697e476d1c5bdc432a2f6cf9090de41082f3aff0a35c4210cd7c0f5a829dbc78", size = 43188, upload-time = "2026-11-02T22:09:06.99Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/dd/a2/cdc870e312de8573ace5c95cce91040c3780cbd0b28cff08ce235dd4a4c9/sumeds-0.6.11.tar.gz", hash = "sha256:1dd745697bde1d85b43d1a2277ad6bf85f9ebfb916df923952f403254ee9d574", size = 98638, upload-time = "2026-11-21T00:14:33.307Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/21/4f/c55cf7b3a074cd39df391eaec314de51b2432f3c9584e682ce8fdc60bf71/sumeds-0.4.0-py3-none-any.whl", hash = "sha256:8b18652754a3dfb637052c30500bcf740be97bd7b4dc4d618a26212c56605f22", size = 47748, upload-time = "2026-11-02T22:09:05.465Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/72/0bd61cfd04378fb51e3a85b146dcfe5118aa35a2d031d7e598955eca2eb5/sumeds-0.6.11-py3-none-any.whl", hash = "sha256:3cb49c111c6617b1b3267132089009cf54b79a84de79a62f02900db6b820ad42", size = 108354, upload-time = "2026-11-21T00:14:32.025Z" },
+]
+
+[package.optional-dependencies]
+testing = [
+    { name = "dftly" },
+    { name = "pytest" },
 ]
 
 [[package]]

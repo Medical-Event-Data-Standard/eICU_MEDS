@@ -13,10 +13,12 @@ from pathlib import Path
 import polars as pl
 import pytest
 import yaml
-from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules
+from MEDS_extract.config import MessyConfig
+from sumeds import EnrichmentConfig, OntologyRules, enrich_metadata, load_rules, registered_rules
 from sumeds.ontology import INDEX_SCHEMA
 
-from eICU_MEDS.code_descriptions import read_lab_descriptions
+from eICU_MEDS import EVENT_CFG
+from eICU_MEDS.pre_MEDS import read_lab_descriptions
 
 CONFIG_FP = Path(__file__).parents[1] / "src" / "eICU_MEDS" / "configs" / "event_configs.yaml"
 RULES_FP = files("eICU_MEDS") / "sumeds_rules.yaml"
@@ -67,6 +69,14 @@ def _enriched_parents(rule, codes: list[str], ontology_source: str) -> dict[str,
     }
 
 
+def test_rules_are_registered_under_the_dataset_name():
+    """The spec's ``sumeds_enrich`` stage and ``suMEDS-enrich --rules eICU`` find the rules by this name."""
+    (enrich,) = [s for s in MessyConfig.load(EVENT_CFG).etl.post_stages if s.name == "sumeds_enrich"]
+    assert enrich.options == {"rules": "eICU"}
+    assert registered_rules()["eICU"] == "eICU_MEDS:sumeds_rules.yaml"
+    assert load_rules("eICU") == load_rules(RULES_FP)
+
+
 def test_rules_load_in_sumeds():
     """The rules load in suMEDS, which rejects any malformed rule; every rule is checked below."""
     rules = load_rules(RULES_FP)
@@ -89,13 +99,13 @@ def test_lab_loinc_crosswalk_key_is_the_raw_lab_name(unit):
     assert not labnames.str.contains("//", literal=True).any()
     assert not labnames.str.ends_with("/").any()
     for labname in labnames:
-        code = _render(template, labname=labname, labmeasurenamesystem=unit)
+        code = _render(template, labname=labname, _value_unit=unit)
         assert code == f"LAB//RESULT//{labname}//{unit}"
         assert crosswalk.key(code) == labname, code
 
 
 def test_lab_loinc_crosswalk_skips_other_lab_codes():
-    drawn = _render(_code_template("lab", "lab_specimen_drawn"), labname="Hgb", labmeasurenamesystem="g/dL")
+    drawn = _render(_code_template("lab", "lab_specimen_drawn"), labname="Hgb", _value_unit="g/dL")
     assert drawn == "LAB//SPECIMEN_DRAWN//Hgb//g/dL"
     assert _rule("eicu-lab-loinc").key(drawn) is None
 

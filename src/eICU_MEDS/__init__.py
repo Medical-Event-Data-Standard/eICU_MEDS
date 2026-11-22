@@ -1,7 +1,12 @@
+"""eICU-MEDS: the eICU-CRD ETL to MEDS, as a MEDS-Extract spec registered under the name ``eICU``.
+
+Run it with ``meds-extract-run spec=eICU output_dir=OUT``. The package ships the spec
+(``configs/event_configs.yaml``), the suMEDS rules (``sumeds_rules.yaml``) and two MEDS-Extract
+extension stages (``pre_MEDS.py`` and ``sort_parent_codes.py``).
+"""
+
 from importlib.metadata import PackageNotFoundError, version
 from importlib.resources import files
-
-from omegaconf import OmegaConf
 
 __package_name__ = "eICU_MEDS"
 try:
@@ -9,26 +14,6 @@ try:
 except PackageNotFoundError:  # pragma: no cover
     __version__ = "unknown"
 
-MAIN_CFG = files(__package_name__).joinpath("configs/main.yaml")
 EVENT_CFG = files(__package_name__).joinpath("configs/event_configs.yaml")
-ETL_CFG = files(__package_name__).joinpath("configs/ETL.yaml")
-PRE_MEDS_PY = files(__package_name__).joinpath("pre_MEDS.py")
-DATASET_CFG = files(__package_name__).joinpath("dataset.yaml")
 
-dataset_info = OmegaConf.load(DATASET_CFG)
-
-HAS_PRE_MEDS = PRE_MEDS_PY.exists()
-
-event_config = OmegaConf.load(EVENT_CFG)
-
-__all__ = [
-    "DATASET_CFG",
-    "ETL_CFG",
-    "EVENT_CFG",
-    "HAS_PRE_MEDS",
-    "MAIN_CFG",
-    "__package_name__",
-    "__version__",
-    "dataset_info",
-    "event_config",
-]
+__all__ = ["EVENT_CFG", "__package_name__", "__version__"]

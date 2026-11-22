@@ -63,8 +63,8 @@ jobs:
           path: ~/.cache/eICU_MEDS/demo_raw
           key: eicu-demo-raw-partial-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}-${{ github.run_id }}-${{ github.run_attempt }}
 
-  # Builds the demo the way a user does (no suMEDS enrichment, unlike the e2e test) and compares it
-  # with tests/regression/demo_summary_stats.json. The demo release is pinned, so any change in the
+  # Builds the demo the way a user does (including the suMEDS enrichment) and compares it with
+  # tests/regression/demo_summary_stats.json. The demo release is pinned, so any change in the
   # fingerprint is a change this repo made; tests/regression/policy.yaml decides which changes fail.
   # When a PR changes the output on purpose, commit the new statistics in the same PR: run
   # `scripts/summary_stats.sh demo`, or download the `eicu-demo-summary-stats` artifact of this job
@@ -92,10 +92,13 @@ jobs:
           key: eicu-demo-raw-${{ hashFiles('src/eICU_MEDS/configs/event_configs.yaml') }}
           fail-on-cache-miss: true
 
+      # `strict` fails the build if the suMEDS enrichment fails (e.g. fetching its ontology data),
+      # rather than comparing an unenriched build with the enriched baseline.
       - name: Build the demo
         run: |
-          uv run MEDS_extract-eICU root_output_dir="$RUNNER_TEMP/eicu_demo" \
-            raw_input_dir="$HOME/.cache/eICU_MEDS/demo_raw" do_download=False do_demo=True
+          uv run meds-extract-run spec=eICU output_dir="$RUNNER_TEMP/eicu_demo" dataset_key=demo \
+            do_download=false input_dir="$HOME/.cache/eICU_MEDS/demo_raw" \
+            "overrides=['++stage_cfg.strict=true']"
 
       - name: Summary-stats regression check
         # The action, package-spec and committed baseline are pinned together on meds_summary_stats
@@ -104,7 +107,7 @@ jobs:
         # always passes it and the flag overrides the file.
         uses: Medical-Event-Data-Standard/meds_summary_stats@0.0.4
         with:
-          meds-dir: ${{ runner.temp }}/eicu_demo/MEDS_output
+          meds-dir: ${{ runner.temp }}/eicu_demo
           baseline: tests/regression/demo_summary_stats.json
           policy: tests/regression/policy.yaml
           package-spec: meds_summary_stats==0.0.4
@@ -149,7 +152,7 @@ jobs:
         # them means no PR can land during a bad PhysioNet minute. The pattern is
         # intentionally scoped to network-shaped failures: anything else fails
         # hard on first occurrence. `could not download` is suMEDS failing to fetch its
-        # ontology data from GitHub for the `do_enrich=True` step.
+        # ontology data from GitHub for the enrichment step.
         run: |
           uv run pytest src/ tests/ -v --doctest-modules \
             --cov=src --cov-report=xml --cov-report=term \
