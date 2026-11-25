@@ -576,8 +576,14 @@ physicalExam:
         description: >-
           f"Physical exam item path: {$physicalexampath} (eICU physicalExam.physicalExamPath)"
         # The unit the path states, in parentheses (`Weight (kg)/Current`, `I&&O (ml)/Urine`), as in
-        # nurseCharting; only the unit labels of the public demo.
-        unit: extract group 1 of /.*\((ml|kg)\)/ from $physicalexampath
+        # nurseCharting; only the unit labels of the public demo. Else the `%` the item's own name
+        # ends in: `.../O2 Sat%/O2 Sat% Current` (also `Lowest`, `Highest`) and `.../FiO2%/FiO2%`,
+        # paths of the public eICU-CRD demo 2.0.1 (physicalExam.csv, physicalExamPath); the eICU-CRD
+        # documentation names `O2 Sat% Highest` as a physicalExamValue
+        # (https://eicu.mit.edu/eicutables/physicalexam/, column physicalExamValue).
+        unit: >-
+          (extract group 1 of /.*\((ml|kg)\)/ from $physicalexampath) ??
+          (extract group 1 of /\/(?:O2 Sat|FiO2)(%)\/[^\/]*$/ from $physicalexampath)
 
 respiratoryCharting:
   _table:
@@ -601,7 +607,14 @@ respiratoryCharting:
           (respChartValueLabel)"
         # The unit the label states, in parentheses (`FIO2 (%)`, `Insp Flow (l/min)`), as in
         # nurseCharting; only the unit labels of the public demo (`(set)`, `(patient)` are not).
-        unit: extract group 1 of /.*\((%|l\/min|L\/min|sec)\)/ from $respchartvaluelabel
+        # Else the unit three labels of the public eICU-CRD demo 2.0.1 (respiratoryCharting.csv,
+        # respChartValueLabel) state in words, written in UCUM: `O2 Percentage` is `%`, `LPM O2`
+        # (litres per minute) is `L/min`, `Adult Con Pt/Vent IBW in Kg` is `kg`.
+        unit: >-
+          (extract group 1 of /.*\((%|l\/min|L\/min|sec)\)/ from $respchartvaluelabel) ??
+          ("%" if $respchartvaluelabel == "O2 Percentage") ??
+          ("L/min" if $respchartvaluelabel == "LPM O2") ??
+          ("kg" if $respchartvaluelabel == "Adult Con Pt/Vent IBW in Kg")
 
 treatment:
   _table:

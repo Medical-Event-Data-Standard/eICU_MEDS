@@ -76,7 +76,8 @@ def test_io_unit_is_the_last_unit_label_in_the_path(events):
 
 def test_charted_units_are_the_units_their_labels_state(events):
     """Nurse-charted, respiratory-charted and physical-exam items whose label states a unit in
-    parentheses get it; other parenthesized words (`(patient)`, `(set)`) are not units."""
+    parentheses get it; other parenthesized words (`(patient)`, `(set)`) are not units. A few
+    labels of the public demo state their unit otherwise (`O2 Sat%`, `LPM O2`, `IBW in Kg`)."""
     assert _unit_of(
         events["nurseCharting/nurse_charting"],
         {
@@ -92,10 +93,20 @@ def test_charted_units_are_the_units_their_labels_state(events):
                 "Minute Ventilation Set(L/min)",
                 "Insp Flow (l/min)",
                 "RR (patient)",
+                # Three labels state their unit in words, not in parentheses.
+                "O2 Percentage",
+                "LPM O2",
+                "Adult Con Pt/Vent IBW in Kg",
+                # Only those exact labels.
+                "LPM O2 (set)",
+                "O2 L/%",
                 None,
             ]
         },
-    ) == ["%", "L/min", "l/min", None, None]
+    ) == ["%", "L/min", "l/min", None, "%", "L/min", "kg", None, None, None]
+    vitals = (
+        "notes/Progress Notes/Physical Exam/Physical Exam/Constitutional/Vital Sign and Physiological Data"
+    )
     assert _unit_of(
         events["physicalExam/physical_exam"],
         {
@@ -103,9 +114,16 @@ def test_charted_units_are_the_units_their_labels_state(events):
                 "notes/Physical Exam/Constitutional/Weight and I&O/Weight (kg)/Current",
                 "notes/Physical Exam/Constitutional/Weight and I&O/I&&O (ml)/Urine",
                 "notes/Physical Exam/Vital Sign and Physiological Data/BP (systolic)/Current",
+                # The item's own name ends in `%`.
+                f"{vitals}/O2 Sat%/O2 Sat% Current",
+                f"{vitals}/O2 Sat%/O2 Sat% Lowest",
+                f"{vitals}/FiO2%/FiO2%",
+                # Not the last two path parts.
+                f"{vitals}/O2 Sat%",
+                f"{vitals}/O2 Sat%/Current/x",
             ]
         },
-    ) == ["kg", "ml", None]
+    ) == ["kg", "ml", None, "%", "%", "%", None, None]
 
 
 def test_documented_units_are_constants_on_their_literal_codes(events):
