@@ -184,6 +184,23 @@ def _validate_data_correctness(data_path: Path, metadata_path: Path):
     )
     assert n_cancelled_given == 0, f"{n_cancelled_given} START/END events belong to cancelled orders."
 
+    # Every order, cancelled or not, has one ORDER event, and a cancellation never precedes its order.
+    orders = df.filter(pl.col("code").str.starts_with("MEDICATION//ORDER//"))
+    n_orders, n_order_ids = orders.select(pl.len(), pl.col("medication_id").n_unique()).collect().row(0)
+    n_started = (
+        df.filter(pl.col("code").str.starts_with("MEDICATION//START//")).select(pl.len()).collect().item()
+    )
+    n_cancelled = cancelled.select(pl.len()).collect().item()
+    assert n_orders == n_order_ids == n_started + n_cancelled, (n_orders, n_order_ids, n_started, n_cancelled)
+    n_early, n_orderless = (
+        cancelled.select("medication_id", pl.col("time").alias("cancelled"))
+        .join(orders.select("medication_id", pl.col("time").alias("ordered")), on="medication_id", how="left")
+        .select((pl.col("cancelled") < pl.col("ordered")).sum(), pl.col("ordered").is_null().sum())
+        .collect()
+        .row(0)
+    )
+    assert n_early == 0 and n_orderless == 0, (n_early, n_orderless)
+
     births = (
         df.filter(pl.col("code") == "MEDS_BIRTH")
         .group_by("subject_id")

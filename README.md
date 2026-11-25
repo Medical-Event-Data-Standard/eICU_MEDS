@@ -212,17 +212,22 @@ fuzzing.
 says only that the *order* was cancelled, not whether a dose was given first, and the data does not
 settle it.
 
-Such a row therefore emits a single `MEDICATION//ORDER_CANCELLED//<drug>` at the start offset
-(carrying the dosage) instead of `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`.
-Filtering on `START` gives orders that stood; consumers who want to treat cancelled orders as
-possibly given can add the `ORDER_CANCELLED` codes back. See
+Every order, cancelled or not, emits `MEDICATION//ORDER//<drug>` at its order time
+(`drugOrderOffset`, carrying the dosage). An order that stood then emits `MEDICATION//START//<drug>`
+and `MEDICATION//END//<drug>` as before; a cancelled one emits neither, but
+`MEDICATION//ORDER_CANCELLED//<drug>` late in the stay (below). Filtering on `START` gives orders that
+stood, and `ORDER` gives every order, cancelled or not. See
 [#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10).
 
-`ORDER_CANCELLED` marks an order, active from its start offset, that was later cancelled; eICU does
-not record when the cancellation happened. The stop offset is no substitute: it is exactly 0 on 47% of cancelled
-orders (1.7% of live ones), and where it is set it looks like the scheduled end (most often 60, 120,
-240 or 360 minutes after the start, or 90 days minus a minute). The start offset relates to the order
-time the same way for cancelled and live orders (median 1 minute before it).
+eICU does not record when an order was cancelled, so `ORDER_CANCELLED` is dated at the first time by
+which the cancellation is known: unit discharge (`patient.unitDischargeOffset`), or the order's own
+order or start time if that is later. This keeps a prediction made during the stay from seeing a
+cancellation that had not happened yet; at the order time, a cancelled order looks like any other.
+The later order or start time applies to orders recorded after the patient left the unit (53,471 of
+the 205,273 cancelled orders in the full release, 26%; 530 of 2,636 in the demo), so a cancellation never precedes its order. The stop offset is no
+substitute: it is exactly 0 on 47% of cancelled orders (1.7% of live ones), and where it is set it
+looks like the scheduled end (most often 60, 120, 240 or 360 minutes after the start, or 90 days
+minus a minute).
 
 ## Charted observations
 
@@ -617,13 +622,17 @@ and cutting a release with `uv version --bump`.
 
 ### Unreleased
 
-- **Cancelled medication orders are `MEDICATION//ORDER_CANCELLED//<drug>`**
+- **Every medication order is `MEDICATION//ORDER//<drug>` at its order time, and a cancelled order
+    is `MEDICATION//ORDER_CANCELLED//<drug>` at unit discharge instead of `START`/`END`**
     ([#20](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pull/20), closes
-    [#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10)). A `medication` row with
-    `drugOrderCancelled == "Yes"` (2.8% of rows in the full release) emits one
-    `MEDICATION//ORDER_CANCELLED//<drug>` at its start offset, with its dosage, instead of
-    `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`. Live orders are unchanged. To get the old
-    output back, treat `ORDER_CANCELLED` as `START` (the matching `END` events are not emitted). See
+    [#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10)). Each `medication` row
+    now also emits `MEDICATION//ORDER//<drug>` at `drugOrderOffset`, with its dosage (one per row: 7,301,853
+    rows in the full release, 75,604 events on the demo). A row with `drugOrderCancelled == "Yes"` (2.8% of rows)
+    no longer emits `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`, but one
+    `MEDICATION//ORDER_CANCELLED//<drug>` at unit discharge, or at its own order or start time if
+    that is later. Live orders keep their `START` and `END`. There is no exact way back, as a
+    cancelled order's start and stop offsets are no longer emitted; to keep treating cancelled orders
+    as given, take the `ORDER` event of each `ORDER_CANCELLED` order as its `START`. See
     [Cancelled medication orders](#cancelled-medication-orders).
 
 - Not breaking: seven physical-exam and respiratory-charting codes whose label states its unit
