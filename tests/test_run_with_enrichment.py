@@ -20,6 +20,7 @@ import io
 import json
 import os
 import subprocess
+from datetime import datetime, timedelta
 from pathlib import Path
 
 import polars as pl
@@ -131,6 +132,24 @@ TABLES = {
     "treatment": [
         {"patientunitstayid": 1, "treatmentoffset": 50, "treatmentstring": TREATMENT_PATH},
         {"patientunitstayid": 2, "treatmentoffset": 60, "treatmentstring": TREATMENT_LEAF},
+    ],
+    # A live order, a cancelled one and a cancelled one ordered after unit discharge (offset 2000).
+    "medication": [
+        {
+            "medicationid": medication_id,
+            "patientunitstayid": stay,
+            "drugname": "Synthetic drugname",
+            "dosage": "5 mg",
+            "drugordercancelled": cancelled,
+            "drugorderoffset": order,
+            "drugstartoffset": start,
+            "drugstopoffset": stop,
+        }
+        for medication_id, stay, cancelled, order, start, stop in [
+            (1, 1, "No", 70, 75, 1500),
+            (2, 1, "Yes", 80, 85, 0),
+            (3, 2, "Yes", 2100, 2110, 2170),
+        ]
     ],
 }
 
@@ -359,6 +378,37 @@ def test_hadm_id_is_the_hospital_stay_and_hospital_id_the_site(plain_output: Pat
     assert (linked["hadm_id"] == linked["subject_id"]).all()
     assert linked["hospital_id"].to_list() == [1] * linked.height
     assert data.filter(pl.col("hadm_id").is_null())["hospital_id"].null_count() == data.height - linked.height
+
+
+def test_cancelled_orders_are_ordered_then_cancelled_at_unit_discharge(plain_output: Path):
+    """Every order is ``ORDER`` at its order time; only a live one has ``START``/``END`` (#10).
+
+    A cancelled order's ``ORDER_CANCELLED`` is at unit discharge, or at its own order or start time if
+    that is later, never at its start time, so a cancellation is not visible before the stay ends.
+    """
+    data = pl.concat([pl.read_parquet(fp) for fp in (plain_output / "data").rglob("*.parquet")])
+    unit_admission = datetime(2015, 12, 31, 12) - timedelta(minutes=3000)
+    events = {
+        (row["medication_id"], row["code"].split("//")[1]): (row["time"] - unit_admission)
+        / timedelta(minutes=1)
+        for row in data.filter(pl.col("code").str.starts_with("MEDICATION//")).iter_rows(named=True)
+    }
+    assert events == {
+        (1, "ORDER"): 70,
+        (1, "START"): 75,
+        (1, "END"): 1500,
+        (2, "ORDER"): 80,
+        (2, "ORDER_CANCELLED"): 2000,
+        (3, "ORDER"): 2100,
+        (3, "ORDER_CANCELLED"): 2110,
+    }
+    codes = _codes(plain_output)
+    assert codes["MEDICATION//ORDER//Synthetic drugname"]["description"] == (
+        "Medication ordered: Synthetic drugname (eICU medication.drugName, at medication.drugOrderOffset)"
+    )
+    assert codes["MEDICATION//ORDER_CANCELLED//Synthetic drugname"]["description"].startswith(
+        "Medication order cancelled (eICU medication.drugOrderCancelled)"
+    )
 
 
 def test_codes_parquet_is_replaced_by_valid_meds_metadata(enriched_output: Path):

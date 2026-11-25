@@ -205,6 +205,30 @@ polars' non-strict cast. A narrower hand-rolled pattern silently drops real valu
 `1e5`, `25.` and `+5`; `tests/test_numeric_guard.py` pins the equivalence by differential
 fuzzing.
 
+## Cancelled medication orders
+
+`medication.drugOrderCancelled` is `Yes` on 205,273 of 7,301,853 rows (2.8%). The
+[documentation](https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/medication.md)
+says only that the *order* was cancelled, not whether a dose was given first, and the data does not
+settle it.
+
+Every order, cancelled or not, emits `MEDICATION//ORDER//<drug>` at its order time
+(`drugOrderOffset`, carrying the dosage). An order that stood then emits `MEDICATION//START//<drug>`
+and `MEDICATION//END//<drug>` as before; a cancelled one emits neither, but
+`MEDICATION//ORDER_CANCELLED//<drug>` late in the stay (below). Filtering on `START` gives orders that
+stood, and `ORDER` gives every order, cancelled or not. See
+[#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10).
+
+eICU does not record when an order was cancelled, so `ORDER_CANCELLED` is dated at the first time by
+which the cancellation is known: unit discharge (`patient.unitDischargeOffset`), or the order's own
+order or start time if that is later. This keeps a prediction made during the stay from seeing a
+cancellation that had not happened yet; at the order time, a cancelled order looks like any other.
+The later order or start time applies to orders recorded after the patient left the unit (53,471 of
+the 205,273 cancelled orders in the full release, 26%; 530 of 2,636 in the demo), so a cancellation never precedes its order. The stop offset is no
+substitute: it is exactly 0 on 47% of cancelled orders (1.7% of live ones), and where it is set it
+looks like the scheduled end (most often 60, 120, 240 or 360 minutes after the start, or 90 days
+minus a minute).
+
 ## Charted observations
 
 Several tables record each observation as one varchar cell under picklist labels or a label
@@ -303,13 +327,13 @@ Every description is written by MEDS-Extract from the spec. Releases up to 0.2.0
 literal codes and the lab names outside the table after the pipeline, because MEDS-Extract could not
 attach metadata to a code without components before 0.8.1; the text is the same.
 
-On the demo (eICU-CRD demo 2.0.1) every one of the 8,122 codes is described: 294 lab codes,
-34 literal codes, and 7,794 component-coded codes. Event data is untouched: per-code event
+On the demo (eICU-CRD demo 2.0.1) every one of the 8,328 codes is described: 294 lab codes,
+34 literal codes, and 8,000 component-coded codes. Event data is untouched: per-code event
 counts are identical to a build without this metadata.
 
-On the full release (eICU-CRD 2.0) every one of the 15,528 codes is described: 316 lab codes
+On the full release (eICU-CRD 2.0) every one of the 16,122 codes is described: 316 lab codes
 (a `RESULT` and a `SPECIMEN_DRAWN` code for each of the 158 lab names; 148 names are in the
-table and the other 10 get the generic description), 34 literal codes, and 15,178
+table and the other 10 get the generic description), 34 literal codes, and 15,772
 component-coded codes. Every code in the data is in `codes.parquet`, and the file validates
 against `meds.CodeMetadataSchema`.
 
@@ -598,7 +622,20 @@ and cutting a release with `uv version --bump`.
 
 ### Unreleased
 
-- No breaking change. Seven physical-exam and respiratory-charting codes whose label states its unit
+- **Every medication order is `MEDICATION//ORDER//<drug>` at its order time, and a cancelled order
+    is `MEDICATION//ORDER_CANCELLED//<drug>` at unit discharge instead of `START`/`END`**
+    ([#20](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/pull/20), closes
+    [#10](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/10)). Each `medication` row
+    now also emits `MEDICATION//ORDER//<drug>` at `drugOrderOffset`, with its dosage (one per row: 7,301,853
+    rows in the full release, 75,604 events on the demo). A row with `drugOrderCancelled == "Yes"` (2.8% of rows)
+    no longer emits `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`, but one
+    `MEDICATION//ORDER_CANCELLED//<drug>` at unit discharge, or at its own order or start time if
+    that is later. Live orders keep their `START` and `END`. There is no exact way back, as a
+    cancelled order's start and stop offsets are no longer emitted; to keep treating cancelled orders
+    as given, take the `ORDER` event of each `ORDER_CANCELLED` order as its `START`. See
+    [Cancelled medication orders](#cancelled-medication-orders).
+
+- Not breaking: seven physical-exam and respiratory-charting codes whose label states its unit
     without parentheses now have a `unit` in `metadata/codes.parquet`: `PHYSICAL_EXAM//…/O2 Sat%/O2 Sat% Current`,
     `… Lowest`, `… Highest` and `PHYSICAL_EXAM//…/FiO2%/FiO2%` get `%`;
     `RESPIRATORY_CHARTING//<category>//O2 Percentage` gets `%`, `…//LPM O2` `L/min` and

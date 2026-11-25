@@ -443,12 +443,37 @@ lab:
 
 medication:
   _table:
-    joins: *anchor_join
+    # The anchor join plus `unitdischargeoffset`, the time of a cancelled order's cancellation.
+    joins:
+      patient:
+        key: patientunitstayid
+        cols:
+          - patienthealthsystemstayid
+          - hospitaldischargeyear
+          - hospitaldischargetime24
+          - hospitaldischargeoffset
+          - unitdischargeoffset
     cols: *anchor_cols
-  # An order is two codes, `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`, the spelling
-  # the MEDS ETLs move to for the two ends of an interval (alignEHR#53); swap START for END to pair.
+  # Every order, cancelled or not, is `MEDICATION//ORDER//<drug>` at its order time
+  # (drugOrderOffset), which says nothing about how the order ended. An order that stood is then two
+  # codes, `MEDICATION//START//<drug>` and `MEDICATION//END//<drug>`, the spelling the MEDS ETLs move
+  # to for the two ends of an interval (alignEHR#53); swap START for END to pair. A cancelled order
+  # may or may not have been given before cancellation, and eICU does not say which or when it was
+  # cancelled, so it gets no START or END but `MEDICATION//ORDER_CANCELLED//<drug>` at the end of the
+  # unit stay, when the cancellation is known: unit discharge, or the order's own order or start
+  # time if that is later. See the README.
+  drug_ordered:
+    code: f"MEDICATION//ORDER//{$drugname ?? 'UNK'}"
+    time: $unitadmittimestamp - (-$drugorderoffset)::minutes
+    _metadata:
+      _self:
+        description: >-
+          f"Medication ordered: {$drugname ?? 'UNK'} (eICU medication.drugName, at medication.drugOrderOffset)"
+    numeric_value: 'regex_extract("^[+-]?(?:(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?|[iI][nN][fF](?:[iI][nN][iI][tT][yY])?|[nN][aA][nN])$", $dosage)::float64'
+    dosage: $dosage
+    medication_id: $medicationid
   drug_started:
-    code: f"MEDICATION//START//{$drugname ?? 'UNK'}"
+    code: f"MEDICATION//START//{$drugname ?? 'UNK'}" if $drugordercancelled != "Yes"
     time: $unitadmittimestamp - (-$drugstartoffset)::minutes
     _metadata:
       _self:
@@ -458,12 +483,23 @@ medication:
     dosage: $dosage
     medication_id: $medicationid
   drug_stopped:
-    code: f"MEDICATION//END//{$drugname ?? 'UNK'}"
+    code: f"MEDICATION//END//{$drugname ?? 'UNK'}" if $drugordercancelled != "Yes"
     time: $unitadmittimestamp - (-$drugstopoffset)::minutes
     _metadata:
       _self:
         description: >-
           f"Medication order stopped: {$drugname ?? 'UNK'} (eICU medication.drugName)"
+    medication_id: $medicationid
+  drug_order_cancelled:
+    code: f"MEDICATION//ORDER_CANCELLED//{$drugname ?? 'UNK'}" if $drugordercancelled == "Yes"
+    time: >-
+      $unitadmittimestamp - (-max($unitdischargeoffset, $drugorderoffset, $drugstartoffset))::minutes
+    _metadata:
+      _self:
+        description: >-
+          f"Medication order cancelled (eICU medication.drugOrderCancelled), possibly after some doses;
+          dated at unit discharge or, if later, its own order or start time, as eICU does not record when:
+          {$drugname ?? 'UNK'} (eICU medication.drugName)"
     medication_id: $medicationid
 
 nurseAssessment:

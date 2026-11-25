@@ -107,21 +107,6 @@
   {
    "subject_id": 101,
    "time": "2015-12-29T10:01:00",
-   "code": "MEDICATION//END//Synthetic drugname",
-   "source_block": "medication/drug_stopped",
-   "medication_id": 1
-  },
-  {
-   "subject_id": 101,
-   "time": "2015-12-29T10:01:00",
-   "code": "MEDICATION//START//Synthetic drugname",
-   "source_block": "medication/drug_started",
-   "medication_id": 1,
-   "dosage": "Synthetic dosage"
-  },
-  {
-   "subject_id": 101,
-   "time": "2015-12-29T10:01:00",
    "code": "NURSE_ASSESSMENT//Synthetic cellattributepath",
    "text_value": "Synthetic cellattributevalue",
    "source_block": "nurseAssessment/nurse_assessment",
@@ -442,6 +427,37 @@
   },
   {
    "subject_id": 101,
+   "time": "2015-12-29T11:10:00",
+   "code": "MEDICATION//ORDER//Synthetic drugname",
+   "source_block": "medication/drug_ordered",
+   "medication_id": 1,
+   "dosage": "5 mg"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T11:15:00",
+   "code": "MEDICATION//START//Synthetic drugname",
+   "source_block": "medication/drug_started",
+   "medication_id": 1,
+   "dosage": "5 mg"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-29T11:20:00",
+   "code": "MEDICATION//ORDER//Synthetic drugname",
+   "source_block": "medication/drug_ordered",
+   "medication_id": 2,
+   "dosage": "5 mg"
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-30T11:00:00",
+   "code": "MEDICATION//END//Synthetic drugname",
+   "source_block": "medication/drug_stopped",
+   "medication_id": 1
+  },
+  {
+   "subject_id": 101,
    "time": "2015-12-30T19:20:00",
    "code": "ICU_DISCHARGE//Alive//Synthetic location",
    "source_block": "patient/unit_discharge",
@@ -459,6 +475,13 @@
    "hadm_id": 101,
    "hospital_id": 1,
    "icustay_id": 1
+  },
+  {
+   "subject_id": 101,
+   "time": "2015-12-30T19:20:00",
+   "code": "MEDICATION//ORDER_CANCELLED//Synthetic drugname",
+   "source_block": "medication/drug_order_cancelled",
+   "medication_id": 2
   },
   {
    "subject_id": 101,
@@ -585,6 +608,21 @@
    "hadm_id": 102,
    "hospital_id": 1,
    "icustay_id": 2
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-30T21:00:00",
+   "code": "MEDICATION//ORDER//Synthetic drugname",
+   "source_block": "medication/drug_ordered",
+   "medication_id": 3,
+   "dosage": "5 mg"
+  },
+  {
+   "subject_id": 102,
+   "time": "2015-12-30T21:10:00",
+   "code": "MEDICATION//ORDER_CANCELLED//Synthetic drugname",
+   "source_block": "medication/drug_order_cancelled",
+   "medication_id": 3
   },
   {
    "subject_id": 102,
@@ -1019,6 +1057,16 @@
   [
    "MEDICATION//END//Synthetic drugname",
    "Medication order stopped: Synthetic drugname (eICU medication.drugName)",
+   null
+  ],
+  [
+   "MEDICATION//ORDER//Synthetic drugname",
+   "Medication ordered: Synthetic drugname (eICU medication.drugName, at medication.drugOrderOffset)",
+   null
+  ],
+  [
+   "MEDICATION//ORDER_CANCELLED//Synthetic drugname",
+   "Medication order cancelled (eICU medication.drugOrderCancelled), possibly after some doses; dated at unit discharge or, if later, its own order or start time, as eICU does not record when: Synthetic drugname (eICU medication.drugName)",
    null
   ],
   [
