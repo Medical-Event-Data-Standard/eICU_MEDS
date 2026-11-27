@@ -8,22 +8,23 @@ from MEDS_extract.config import MessyConfig
 
 MESSY_CFG = Path(__file__).parents[1] / "src" / "eICU_MEDS" / "configs" / "event_configs.yaml"
 
-# Three hospital stays, all ending Expired at 2015-12-31 12:00 (offsets are from each unit admission):
+# Four hospital stays, all ending Expired at 2015-12-31 12:00 (offsets are from each unit admission):
 #   7: unit 1 Alive, then unit 2 Expired 60 min before the hospital discharge  -> unit 2's discharge
 #   8: no unit Expired                                                         -> hospital discharge
 #   9: two units Expired (contradictory)                                       -> hospital discharge
+#  10: one unit Expired, but its discharge 30 min after the hospital's         -> hospital discharge
 ROWS = {
-    "patientunitstayid": [1, 2, 3, 4, 5],
-    "patienthealthsystemstayid": [7, 7, 8, 9, 9],
-    "hospitalid": [1, 1, 1, 1, 1],
-    "hospitaldischargeyear": [2015] * 5,
-    "hospitaldischargetime24": ["12:00:00"] * 5,
-    "hospitaldischargeoffset": [3000, 600, 600, 600, 300],
-    "unitdischargeoffset": [1000, 540, 100, 500, 200],
-    "hospitaladmitoffset": [0, -2400, 0, 0, -300],
-    "age": ["60"] * 5,
-    "hospitaldischargestatus": ["Expired"] * 5,
-    "unitdischargestatus": ["Alive", "Expired", "Alive", "Expired", "Expired"],
+    "patientunitstayid": [1, 2, 3, 4, 5, 6],
+    "patienthealthsystemstayid": [7, 7, 8, 9, 9, 10],
+    "hospitalid": [1] * 6,
+    "hospitaldischargeyear": [2015] * 6,
+    "hospitaldischargetime24": ["12:00:00"] * 6,
+    "hospitaldischargeoffset": [3000, 600, 600, 600, 300, 600],
+    "unitdischargeoffset": [1000, 540, 100, 500, 200, 630],
+    "hospitaladmitoffset": [0, -2400, 0, 0, -300, 0],
+    "age": ["60"] * 6,
+    "hospitaldischargestatus": ["Expired"] * 6,
+    "unitdischargestatus": ["Alive", "Expired", "Alive", "Expired", "Expired", "Expired"],
 }
 HOSPITAL_DISCHARGE = datetime(2015, 12, 31, 12)
 
@@ -46,8 +47,9 @@ def _time_of_death(tmp_path: Path) -> dict[int, set]:
     }
 
 
-def test_death_is_timed_at_the_one_expired_icu_discharge(tmp_path):
+def test_death_is_timed_at_the_earlier_of_the_one_expired_icu_and_the_hospital_discharge(tmp_path):
     deaths = _time_of_death(tmp_path)
     assert deaths[7] == {datetime(2015, 12, 31, 11)}  # unit 2: discharge 600 - 540 = 60 min early
     assert deaths[8] == {HOSPITAL_DISCHARGE}
     assert deaths[9] == {HOSPITAL_DISCHARGE}
+    assert deaths[10] == {HOSPITAL_DISCHARGE}  # never after the hospital discharge

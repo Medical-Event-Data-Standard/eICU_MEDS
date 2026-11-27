@@ -98,13 +98,16 @@ patient:
       # Anchored on the HOSPITAL admission, not the unit admission: this table is one row
       # per unit stay but a subject is a health-system stay. See "Birth" in the README.
       dateofbirth: $hospitaladmittimestamp - ($age_in_years * 365.25 + 182.625)::days
-      # A hospital death (README "Death") is timed at the ICU discharge when the stay has exactly
-      # one ICU stay that ended Expired (#23): the patient left that ICU dead, and the hospital
-      # discharge can be hours later. Only that row gives the time; the stay's other rows give
-      # none, so the stay has one MEDS_DEATH. Every other hospital death, with no Expired ICU
-      # stay or (once in eICU-CRD 2.0) two, keeps the hospital discharge time.
+      # A hospital death (README "Death") is timed at the earlier of the ICU and the hospital
+      # discharge when the stay has exactly one ICU stay that ended Expired (#23): the patient left
+      # that ICU dead, and the hospital discharge can be hours later. (Where the source records the
+      # hospital discharge first, the death stays there, inside the hospital stay.) Only that row
+      # gives the time; the stay's other rows give none, so the stay has one MEDS_DEATH. Every other
+      # hospital death, with no Expired ICU stay or (once in eICU-CRD 2.0) two, keeps the hospital
+      # discharge time.
       time_of_death: >-
-        (($unitdischargetimestamp if $unitdischargestatus == "Expired")
+        ((($unitdischargetimestamp if $unitdischargetimestamp < $hospitaldischargetimestamp
+        else $hospitaldischargetimestamp) if $unitdischargestatus == "Expired")
         if ($icu_deaths ?? 0) == 1 else $hospitaldischargetimestamp)
         if $hospitaldischargestatus == "Expired"
   dob:
@@ -234,7 +237,8 @@ patient:
       _self:
         description: >-
           "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', timed at the
-          Expired ICU discharge when the stay has exactly one, else at the hospital discharge; see README 'Death'"
+          Expired ICU discharge when the stay has exactly one and it is the earlier, else at the hospital discharge;
+          see README 'Death'"
 
 admissionDx:
   _table:

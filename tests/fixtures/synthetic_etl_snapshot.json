@@ -1081,7 +1081,7 @@
   ],
   [
    "MEDS_DEATH",
-   "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', timed at the Expired ICU discharge when the stay has exactly one, else at the hospital discharge; see README 'Death'",
+   "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', timed at the Expired ICU discharge when the stay has exactly one and it is the earlier, else at the hospital discharge; see README 'Death'",
    null
   ],
   [
