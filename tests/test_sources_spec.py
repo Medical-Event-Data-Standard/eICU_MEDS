@@ -15,13 +15,13 @@ from omegaconf import OmegaConf
 from omegaconf.errors import InterpolationResolutionError
 
 from eICU_MEDS import EVENT_CFG
-from eICU_MEDS.pre_MEDS import DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX
+from eICU_MEDS.pre_MEDS import DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX, UNIT_STATUS_PREFIX
 
 BUCKETS = ("dataset", "demo")
 # Top-level keys of the config that are not tables.
 RESERVED_KEYS = {"etl", "sources"}
 # Tables the `eicu_pre_meds` pre-stage writes; they are not downloaded.
-STAGED = {DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX}
+STAGED = {DX_MAP_PREFIX, LAB_DESCRIPTIONS_PREFIX, UNIT_STATUS_PREFIX}
 
 
 def _bucket_spec(*keys: str) -> dict:
