@@ -30,9 +30,9 @@ HOSPITAL_DISCHARGE = datetime(2015, 12, 31, 12)
 
 def _time_of_death(tmp_path: Path) -> dict[int, set]:
     patient = next(t for t in MessyConfig.load(MESSY_CFG).event_tables if t.input_prefix == "patient")
-    pl.DataFrame({"hospitalid": [1], "numbedscategory": ["x"], "teachingstatus": ["x"], "region": ["x"]}).write_csv(
-        tmp_path / "hospital.csv"
-    )
+    pl.DataFrame(
+        {"hospitalid": [1], "numbedscategory": ["x"], "teachingstatus": ["x"], "region": ["x"]}
+    ).write_csv(tmp_path / "hospital.csv")
     pl.DataFrame(ROWS).select(
         "patienthealthsystemstayid",
         pl.col("unitdischargestatus").alias("unit_discharge_status"),
