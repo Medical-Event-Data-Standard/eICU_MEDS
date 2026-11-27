@@ -172,13 +172,13 @@ closes at ICU discharge (in-ICU mortality, ICU readmission) missed it. Taking th
 keeps every death within its hospital stay, so a window that closes at hospital discharge (in-hospital
 mortality) still sees it. On the full release, 14,623 hospital stays end in death:
 
-| `MEDS_DEATH` timed at | Stays |
-| --- | ---: |
-| the Expired ICU discharge, earlier than the hospital discharge (median 129 min) | 3,427 |
-| the Expired ICU discharge, the same as the hospital discharge | 6,376 |
-| the hospital discharge, which the source records before the Expired ICU discharge (median 20 min) | 880 |
-| the hospital discharge: no unit stay is `Expired` | 3,939 |
-| the hospital discharge: two unit stays are `Expired` | 1 |
+| `MEDS_DEATH` timed at                                                                             | Stays |
+| ------------------------------------------------------------------------------------------------- | ----: |
+| the Expired ICU discharge, earlier than the hospital discharge (median 129 min)                   | 3,427 |
+| the Expired ICU discharge, the same as the hospital discharge                                     | 6,376 |
+| the hospital discharge, which the source records before the Expired ICU discharge (median 20 min) |   880 |
+| the hospital discharge: no unit stay is `Expired`                                                 | 3,939 |
+| the hospital discharge: two unit stays are `Expired`                                              |     1 |
 
 A stay with two Expired unit stays contradicts itself, so it keeps the hospital time rather than
 picking one. Counting a hospital stay's Expired unit stays needs `patient` joined to itself, which
