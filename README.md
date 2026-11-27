@@ -646,7 +646,7 @@ and cutting a release with `uv version --bump`.
 
 ## Breaking changes
 
-### Unreleased
+### 0.5.0 (2026-11-27)
 
 - **`MEDS_DEATH` is timed at the Expired ICU discharge when the hospital stay has exactly one and it comes
     before the hospital discharge**, and at the hospital discharge otherwise, as before
