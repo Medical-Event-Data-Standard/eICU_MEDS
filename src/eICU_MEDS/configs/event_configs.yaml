@@ -80,7 +80,15 @@ patient:
       hospital:
         key: hospitalid
         cols: [numbedscategory, teachingstatus, region]
+      # The number of this hospital stay's ICU stays that ended Expired: `unit_discharge_status` is
+      # `patient` itself, renamed by the `eicu_pre_meds` pre-stage (MESSY cannot join a table to
+      # itself). The literal key `unit_discharge_status: 'Expired'` below keeps only the Expired
+      # rows, and `count` counts them; a stay with none gets null.
+      unit_discharge_status:
+        key: [patienthealthsystemstayid, unit_discharge_status]
+        cols: { icu_deaths: count }
     cols:
+      unit_discharge_status: "'Expired'"
       hospitaldischargetimestamp: >-
         f"{$hospitaldischargeyear}-12-31 {$hospitaldischargetime24}"::"%Y-%m-%d %H:%M:%S"
       unitadmittimestamp: $hospitaldischargetimestamp - $hospitaldischargeoffset::minutes
@@ -90,7 +98,18 @@ patient:
       # Anchored on the HOSPITAL admission, not the unit admission: this table is one row
       # per unit stay but a subject is a health-system stay. See "Birth" in the README.
       dateofbirth: $hospitaladmittimestamp - ($age_in_years * 365.25 + 182.625)::days
-      time_of_death: $hospitaldischargetimestamp if $hospitaldischargestatus == "Expired"
+      # A hospital death (README "Death") is timed at the earlier of the ICU and the hospital
+      # discharge when the stay has exactly one ICU stay that ended Expired (#23): the patient left
+      # that ICU dead, and the hospital discharge can be hours later. (Where the source records the
+      # hospital discharge first, the death stays there, inside the hospital stay.) Only that row
+      # gives the time; the stay's other rows give none, so the stay has one MEDS_DEATH. Every other
+      # hospital death, with no Expired ICU stay or (once in eICU-CRD 2.0) two, keeps the hospital
+      # discharge time.
+      time_of_death: >-
+        ((($unitdischargetimestamp if $unitdischargetimestamp < $hospitaldischargetimestamp
+        else $hospitaldischargetimestamp) if $unitdischargestatus == "Expired")
+        if ($icu_deaths ?? 0) == 1 else $hospitaldischargetimestamp)
+        if $hospitaldischargestatus == "Expired"
   dob:
     code: MEDS_BIRTH
     time: $dateofbirth
@@ -217,7 +236,9 @@ patient:
     _metadata:
       _self:
         description: >-
-          "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', see README 'Death'"
+          "Death (MEDS standard code); hospital discharge with patient.hospitalDischargeStatus 'Expired', timed at the
+          Expired ICU discharge when the stay has exactly one and it is the earlier, else at the hospital discharge;
+          see README 'Death'"
 
 admissionDx:
   _table:

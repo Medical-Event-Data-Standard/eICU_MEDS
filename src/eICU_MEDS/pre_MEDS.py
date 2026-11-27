@@ -29,8 +29,10 @@ So the split of responsibilities is deliberately minimal:
 
 No regex, no vocabulary knowledge, and no formatting decisions live in this file.
 
-The stage also places the packaged lab-description table, and the demo's ``infusiondrug`` table
-under the release spelling when the raw directory has only the demo's.
+The stage also places the packaged lab-description table, the demo's ``infusiondrug`` table
+under the release spelling when the raw directory has only the demo's, and a renamed projection of
+``patient`` (:func:`write_unit_discharge_status`) that the ``patient`` table joins to count a
+hospital stay's ICU deaths: MESSY cannot join a table to itself.
 """
 
 import logging
@@ -56,6 +58,12 @@ LAB_DESCRIPTIONS_PREFIX = "lab_descriptions"
 # `DX_MAP_PREFIX` must match the `_metadata` source prefix in `configs/event_configs.yaml`.
 DIAGNOSIS_PREFIX = "diagnosis"
 DX_MAP_PREFIX = "dx_icd_map"
+
+
+# The `patient` table, and the name its renamed projection is staged under. `UNIT_STATUS_PREFIX`
+# must match the `patient` table's join in `configs/event_configs.yaml`.
+PATIENT_PREFIX = "patient"
+UNIT_STATUS_PREFIX = "unit_discharge_status"
 
 
 # eICU joins multiple codes with ", ". Splitting on the bare comma would also split inside
@@ -176,6 +184,44 @@ def write_lab_descriptions(output_dir: Path) -> Path:
     return out_fp
 
 
+def write_unit_discharge_status(input_dir: Path, output_dir: Path) -> Path:
+    """Write ``patient``'s unit-stay status under names the ``patient`` table does not have.
+
+    The ``patient`` table times ``MEDS_DEATH`` at the Expired ICU discharge when its hospital stay
+    has exactly one (README "Death"), so each of its rows needs the number of the stay's ICU stays
+    that ended ``Expired``. That is a per-stay count over ``patient``'s own rows, and MESSY cannot
+    join a table to itself (every joined column would collide with a left column). This writes the
+    three columns the join needs, renamed, and nothing else: no row is filtered or derived. The
+    filter (``Expired``) and the count are the join's, in ``configs/event_configs.yaml``. The table is
+    written as CSV, like the raw release, so the extraction types its columns as it types
+    ``patient``'s.
+
+    Examples:
+        >>> import gzip, tempfile
+        >>> with tempfile.TemporaryDirectory() as d:
+        ...     raw, out = Path(d) / "raw", Path(d) / "out"
+        ...     raw.mkdir(); out.mkdir()
+        ...     csv = b"patientunitstayid,patienthealthsystemstayid,unitdischargestatus\\n1,7,Expired\\n"
+        ...     _ = (raw / "patient.csv.gz").write_bytes(gzip.compress(csv))
+        ...     pl.read_csv(write_unit_discharge_status(raw, out)).rows(named=True)
+        [{'patienthealthsystemstayid': 7, 'unit_discharge_status': 'Expired', 'icu_deaths': 1}]
+    """
+    patient_fp = Path(input_dir) / f"{PATIENT_PREFIX}.csv.gz"
+    if not patient_fp.is_file():
+        raise FileNotFoundError(f"{patient_fp.resolve()!s} not found; cannot stage {UNIT_STATUS_PREFIX}.")
+    out_fp = Path(output_dir) / f"{UNIT_STATUS_PREFIX}.csv"
+    tmp_fp = Path(output_dir) / f".{UNIT_STATUS_PREFIX}.csv.tmp"
+    projection = pl.read_csv(patient_fp, infer_schema=False).select(
+        "patienthealthsystemstayid",
+        pl.col("unitdischargestatus").alias("unit_discharge_status"),
+        # Counted per stay by the join, so its aggregate is the number of Expired ICU stays.
+        pl.col("patientunitstayid").alias("icu_deaths"),
+    )
+    projection.write_csv(tmp_fp)
+    os.replace(tmp_fp, out_fp)
+    return out_fp
+
+
 def _replace_with_symlink(target: Path, link: Path) -> None:
     """Point ``link`` at ``target`` (absolute), replacing anything already at ``link``."""
     if link.is_symlink() or link.exists():
@@ -191,6 +237,8 @@ def stage_tables(input_dir: Path, output_dir: Path) -> list[Path]:
 
     * ``dx_icd_map.parquet``, built from the raw ``diagnosis`` table (:func:`build_dx_icd_map`);
     * ``lab_descriptions.parquet``, the packaged lab-description table;
+    * ``unit_discharge_status.csv``, a renamed projection of the raw ``patient`` table
+      (:func:`write_unit_discharge_status`);
     * ``infusionDrug.csv.gz``, a link to the demo's ``infusiondrug.csv.gz``, only when the raw
       directory has the demo spelling and not the release one (a demo fetched other than with
       ``meds-extract-download``, which renames it).
@@ -205,7 +253,7 @@ def stage_tables(input_dir: Path, output_dir: Path) -> list[Path]:
         The paths written.
 
     Raises:
-        FileNotFoundError: If the raw ``diagnosis`` table is missing.
+        FileNotFoundError: If the raw ``diagnosis`` or ``patient`` table is missing.
 
     Examples:
         >>> import gzip, tempfile
@@ -215,9 +263,11 @@ def stage_tables(input_dir: Path, output_dir: Path) -> list[Path]:
         ...     csv = 'diagnosisstring,icd9code\\np|q,"486, J18.9"\\n'.encode()
         ...     _ = (raw / "diagnosis.csv.gz").write_bytes(gzip.compress(csv))
         ...     _ = (raw / "infusiondrug.csv.gz").write_bytes(gzip.compress(b"a\\n1\\n"))
+        ...     patient = b"patientunitstayid,patienthealthsystemstayid,unitdischargestatus\\n1,7,Alive\\n"
+        ...     _ = (raw / "patient.csv.gz").write_bytes(gzip.compress(patient))
         ...     sorted(fp.name for fp in stage_tables(raw, out))
         ...     pl.read_parquet(out / "dx_icd_map.parquet").sort("icd_code")["icd_code"].to_list()
-        ['dx_icd_map.parquet', 'infusionDrug.csv.gz', 'lab_descriptions.parquet']
+        ['dx_icd_map.parquet', 'infusionDrug.csv.gz', 'lab_descriptions.parquet', 'unit_discharge_status.csv']
         ['486', 'J18.9']
     """
     input_dir, output_dir = Path(input_dir), Path(output_dir)
@@ -253,6 +303,10 @@ def stage_tables(input_dir: Path, output_dir: Path) -> list[Path]:
         f"{dx_map['diagnosisstring'].n_unique():,} problems to {out_fp.resolve()!s}."
     )
     written.append(out_fp)
+
+    status_fp = write_unit_discharge_status(input_dir, output_dir)
+    logger.info(f"Wrote the renamed unit-discharge status of patient to {status_fp.resolve()!s}.")
+    written.append(status_fp)
     return written
 
 

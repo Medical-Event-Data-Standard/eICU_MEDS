@@ -145,7 +145,7 @@ defines it.
 
 ## Death
 
-`MEDS_DEATH` is emitted at hospital discharge when `hospitalDischargeStatus == "Expired"`, and from
+`MEDS_DEATH` is emitted for a hospital stay when `hospitalDischargeStatus == "Expired"`, and from
 no other field. The
 [documentation](https://github.com/MIT-LCP/eicu-code/blob/main/website/content/eicutables/patient.md)
 describes `Expired` as the patient's condition on leaving the hospital, and on the full release it
@@ -161,6 +161,32 @@ themselves: in 142 of them the hospital stay continues past the unit discharge a
 patient supposedly died, some to a discharge home. Rows with a blank hospital status (1,751) are
 likewise not treated as deaths. See
 [#11](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/11).
+
+**When.** A death is timed at the ICU discharge when its hospital stay has exactly one unit stay
+with `unitDischargeStatus == "Expired"` (the patient left that ICU dead) and that ICU discharge comes
+before the hospital discharge. Every other death is timed at the hospital discharge
+([#23](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/23)). The two times differ
+because the source offsets differ (`hospitalDischargeOffset` against `unitDischargeOffset`). Timed at
+the hospital discharge, a death in the ICU could fall hours after the ICU discharge, so a window that
+closes at ICU discharge (in-ICU mortality, ICU readmission) missed it. Taking the earlier of the two
+keeps every death within its hospital stay, so a window that closes at hospital discharge (in-hospital
+mortality) still sees it. On the full release, 14,623 hospital stays end in death:
+
+| `MEDS_DEATH` timed at                                                                             | Stays |
+| ------------------------------------------------------------------------------------------------- | ----: |
+| the Expired ICU discharge, earlier than the hospital discharge (median 129 min)                   | 3,427 |
+| the Expired ICU discharge, the same as the hospital discharge                                     | 6,376 |
+| the hospital discharge, which the source records before the Expired ICU discharge (median 20 min) |   880 |
+| the hospital discharge: no unit stay is `Expired`                                                 | 3,939 |
+| the hospital discharge: two unit stays are `Expired`                                              |     1 |
+
+A stay with two Expired unit stays contradicts itself, so it keeps the hospital time rather than
+picking one. Counting a hospital stay's Expired unit stays needs `patient` joined to itself, which
+MESSY does not allow: a self-join is rejected, and joining the same file under another name is
+rejected too, because every joined column collides with one `patient` already has. So the
+`eicu_pre_meds` pre-stage stages `patient`'s stay id, unit status and unit-stay id under new names
+(`unit_discharge_status`), without filtering or deriving anything. The filter, the count and the
+timing rule are in `configs/event_configs.yaml`.
 
 ## Vital signs: only measurements that happened
 
@@ -621,6 +647,16 @@ and cutting a release with `uv version --bump`.
 ## Breaking changes
 
 ### Unreleased
+
+- **`MEDS_DEATH` is timed at the Expired ICU discharge when the hospital stay has exactly one and it comes
+    before the hospital discharge**, and at the hospital discharge otherwise, as before
+    ([#23](https://github.com/Medical-Event-Data-Standard/eICU_MEDS/issues/23)). Which subjects die is
+    unchanged (182 deaths on the demo, one per subject), and no death moves later; 3,427 of the 14,623 deaths in
+    the full release move earlier (median 129 min). On the demo, 111 of the 121 deaths with an
+    `ICU_DISCHARGE//Expired//…` event now fall on it (before: 76; 35 came after it). The other 10 stay at a
+    hospital discharge the source records before that ICU discharge. Tasks that close a window at ICU
+    discharge now see these deaths. To get the old time back, take the subject's
+    `HOSPITAL_DISCHARGE//Expired//…` event. See [Death](#death).
 
 - **Every medication order is `MEDICATION//ORDER//<drug>` at its order time, and a cancelled order
     is `MEDICATION//ORDER_CANCELLED//<drug>` at unit discharge instead of `START`/`END`**
